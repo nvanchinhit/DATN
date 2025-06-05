@@ -4,7 +4,7 @@ import React from "react";
 const navLinks = [
   { href: "/", label: "Trang chủ" },
   { href: "#services", label: "Dịch vụ" },
-  { href: "/bookingdoctor", label: "Đặt lịch khám" },
+  { href: "/", label: "Đặt lịch khám" },
   { href: "#medicine", label: "Mua thuốc" },
   { href: "#contact", label: "Liên hệ" },
 ];
