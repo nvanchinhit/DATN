@@ -10,8 +10,8 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Modern Web Application',
-  description: 'A beautiful, responsive web application built with Next.js',
+  title: 'TDCARE',
+  description: ' Xây dựng hệ thống bán thuốc & đặt lịch khám trực tuyến',
 };
 
 export default function RootLayout({
