@@ -8,7 +8,7 @@ const HeroSection = () => {
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 text-white mb-8 md:mb-0">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-              Chăm sóc sức khỏe thông minh tại Medicare
+              Chăm sóc sức khỏe thông minh tại TDCARE
             </h1>
             <p className="text-lg md:text-xl mb-8 text-teal-50">
               Đặt lịch khám bệnh trực tuyến, tư vấn với bác sĩ chuyên khoa và 
