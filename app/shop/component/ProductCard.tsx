@@ -1,13 +1,21 @@
 'use client';
 import React from 'react';
 
-const ProductCard: React.FC = () => {
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  old_price?: number; // nếu có giá gốc
+};
+
+const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   return (
     <div className="card h-100 shadow-sm border-0" style={{ backgroundColor: '#f5fcff' }}>
       <div className="ratio ratio-1x1 bg-light rounded-top overflow-hidden">
         <img
-          src="https://production-cdn.pharmacity.io/digital/828x828/plain/e-com/images/ecommerce/20250523103220-0-P24647_1.jpg?versionId=EqrUkTqlk06yvgNhgUudvhivue7Dy5pS"
-          alt="Sản phẩm"
+          src={`http://localhost:5000/images/${product.image}`}
+          alt={product.name}
           className="img-fluid object-fit-cover w-100 h-100"
           style={{ objectFit: 'cover' }}
         />
@@ -15,10 +23,14 @@ const ProductCard: React.FC = () => {
 
       <div className="card-body p-3 d-flex flex-column justify-content-between">
         <div className="text-center">
-          <h6 className="card-title mb-2 fw-semibold">Sản phẩm 3</h6>
+          <h6 className="card-title mb-2 fw-semibold">{product.name}</h6>
           <div className="mb-2">
-            <span className="fw-bold text-primary">150.000 VND</span>
-            <span className="text-muted text-decoration-line-through ms-2">2 VND</span>
+            <span className="fw-bold text-primary">{product.price.toLocaleString()} VND</span>
+            {product.old_price && (
+              <span className="text-muted text-decoration-line-through ms-2">
+                {product.old_price.toLocaleString()} VND
+              </span>
+            )}
           </div>
         </div>
 

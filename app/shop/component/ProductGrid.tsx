@@ -1,13 +1,34 @@
+// shop/component/ProductGrid.tsx
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import ProductCard from './ProductCard';
 
-const ProductGrid: React.FC = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-    {Array.from({ length: 9 }).map((_, i) => (
-      <ProductCard key={i} />
-    ))}
-  </div>
-);
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+};
+
+const ProductGrid: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/products')
+      .then(res => setProducts(res.data))
+      .catch(err => console.error('Lỗi tải sản phẩm:', err));
+  }, []);
+
+  return (
+    <div className="row g-3">
+      {products.map((product) => (
+        <div className="col-md-4" key={product.id}>
+          <ProductCard product={product} />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default ProductGrid;
