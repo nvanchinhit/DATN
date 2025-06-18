@@ -1,11 +1,18 @@
+
+'use client';
+
 interface Props {
   name: string;
+  id: number;
 }
 
-export default function SpecialtyCard({ name }: Props) {
+export default function SpecialtyCard({ name, id,  }: Props) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition transform hover:scale-105 text-center border border-blue-100">
-      <h3 className="text-lg font-semibold text-blue-800">{name}</h3>
+    <div
+      
+      className="bg-white p-6 rounded-xl shadow hover:shadow-lg cursor-pointer transition"
+    >
+      <h2 className="text-xl font-semibold text-blue-700">{name}</h2>
     </div>
   );
 }

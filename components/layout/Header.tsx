@@ -83,7 +83,7 @@ export default function Header() {
           <nav className="hidden md:flex items-center gap-4">
             <Link href="/" className="hover:text-blue-600 no-underline">Trang chủ</Link>
             <Link href="/shop" className="hover:text-blue-600 no-underline">Sản phẩm</Link>
-            <Link href="/doctorbooking" className="hover:text-blue-600 no-underline">Đặt lịch khám</Link>
+            <Link href="/specialty" className="hover:text-blue-600 no-underline">Đặt lịch khám</Link>
             <Link href="#" className="hover:text-blue-600 no-underline">Về chúng tôi</Link>
             <Link href="#" className="hover:text-blue-600 no-underline">Tin tức</Link>
             <Link href="#" className="hover:text-blue-600 no-underline">Liên hệ</Link>

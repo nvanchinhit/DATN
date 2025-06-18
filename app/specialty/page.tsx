@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SpecialtyCard from '@/components/SpecialtyCard';
 
 interface Specialization {
@@ -11,6 +12,7 @@ interface Specialization {
 export default function SpecialtyPage() {
   const [data, setData] = useState<Specialization[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('http://localhost:5000/api/specializations')
@@ -19,6 +21,10 @@ export default function SpecialtyPage() {
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleClick = (id: number) => {
+    router.push(`/bookingdoctor?specialization=${id}`);
+  };
 
   return (
     <div className="flex h-screen font-sans bg-gradient-to-br from-blue-50 to-blue-100">
@@ -35,7 +41,11 @@ export default function SpecialtyPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {data.map(sp => (
-                <SpecialtyCard key={sp.id} name={sp.name} />
+                <SpecialtyCard
+                  key={sp.id}
+                  id={sp.id}
+                  name={sp.name}
+                />
               ))}
             </div>
           )}

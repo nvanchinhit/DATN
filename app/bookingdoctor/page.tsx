@@ -4,28 +4,33 @@ import React, { useState } from 'react';
 
 const DoctorBooking = () => {
   const [searchTerm, setSearchTerm] = useState('');
+
   const doctors = [
     {
       id: 1,
-      name: 'Trần Trọng Thắng',
+      name: 'Nguyễn Văn Minh',
       isFavorite: true,
       description: [
-        'Bác sĩ chuyên khoa II Trần Trọng Thắng',
-        'Gần 30 năm kinh nghiệm khám và điều trị cơ xương khớp',
-        'Từng công tác tại Bệnh viện Xanh Pôn, Bệnh viện Phục hồi chức năng Hà Nội',
+        'Bác sĩ chuyên khoa II Nguyễn Văn Minh',
+        'Hơn 25 năm kinh nghiệm khám và điều trị cơ xương khớp',
+        'Nguyên Trưởng khoa Cơ Xương Khớp Bệnh viện Đà Nẵng',
       ],
       location: 'Đà Nẵng',
+      slots: ['08:00 - 08:15', '09:30 - 09:45', '11:00 - 11:30'],
+      imageUrl: 'https://honghunghospital.com.vn/wp-content/uploads/2020/05/41.-Phan-V%C4%83n-Ch%C3%AD-scaled.jpg',
     },
     {
       id: 2,
-      name: 'Trần Cao Thắng',
-      isFavorite: true,
+      name: 'Phạm Thị Hương',
+      isFavorite: false,
       description: [
-        'Bác sĩ chuyên khoa II Trần Cao Thắng',
-        'Gần 30 năm kinh nghiệm khám và điều trị cơ xương khớp',
-        'Từng công tác tại Bệnh viện Phục hồi chức năng Đà Nẵng',
+        'Bác sĩ chuyên khoa II Phạm Thị Hương',
+        'Hơn 20 năm kinh nghiệm điều trị các bệnh lý cơ xương khớp',
+        'Từng công tác tại Bệnh viện Chấn Thương Chỉnh Hình Đà Nẵng',
       ],
       location: 'Đà Nẵng',
+      slots: ['13:00 - 13:15', '14:30 - 14:45', '16:00 - 16:30'],
+      imageUrl: 'https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/06/anh-bac-si.jpg',
     },
   ];
 
@@ -61,8 +66,12 @@ const DoctorBooking = () => {
           key={doc.id}
           className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 flex flex-col md:flex-row gap-6 hover:shadow-lg transition"
         >
-          <div className="w-full md:w-32 h-32 bg-gray-200 rounded-xl flex items-center justify-center text-gray-500 text-sm">
-            Ảnh
+          <div className="w-full md:w-32 h-32 bg-gray-200 rounded-xl flex items-center justify-center overflow-hidden">
+            <img
+              src={doc.imageUrl}
+              alt={doc.name}
+              className="w-full h-full object-cover"
+            />
           </div>
 
           <div className="flex-1 space-y-2">
@@ -97,7 +106,7 @@ const DoctorBooking = () => {
               defaultValue="2025-06-25"
             />
             <div className="flex gap-2 flex-wrap">
-              {['14:00 - 15:00', '15:00 - 16:00', '17:00 - 17:50'].map((time, index) => (
+              {doc.slots.map((time, index) => (
                 <button
                   key={index}
                   className="px-3 py-1 bg-white border border-gray-300 rounded-md hover:bg-gray-100 text-sm transition"
