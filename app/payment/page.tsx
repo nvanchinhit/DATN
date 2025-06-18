@@ -17,8 +17,22 @@ const CheckoutPage = () => {
   }, []);
 
   const products = [
-    { id: 1, name: 'Sản phẩm 1', price: 500000, quantity: 1 },
-    { id: 2, name: 'Sản phẩm 2', price: 200000, quantity: 1 },
+    {
+      id: 1,
+      name: 'Paracetamol 500mg',
+      price: 150000,
+      quantity: 1,
+      image:
+        'https://cdn.nhathuoclongchau.com.vn/unsafe/https://cms-prod.s3-sgn09.fptcloud.com/00032865_paracetamol_stada_500mg_10x10_4111_61af_large_6bbfac12ff.jpg',
+    },
+    {
+      id: 2,
+      name: 'Vitamin C 1000mg',
+      price: 200000,
+      quantity: 1,
+      image:
+        'https://nhathuocthanthien.com.vn/wp-content/uploads/2023/02/dgm_nttt_Vitamin-c-1000-mg-zinc-rosehip.jpg',
+    },
   ];
 
   const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
@@ -109,7 +123,10 @@ const CheckoutPage = () => {
             </label>
           </div>
 
-          <button className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition">
+          <button
+            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition"
+            onClick={() => alert('Đặt hàng thành công!')}
+          >
             Đặt Hàng
           </button>
         </div>
@@ -123,9 +140,11 @@ const CheckoutPage = () => {
             {products.map((product) => (
               <li key={product.id} className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-gray-200 rounded-md flex items-center justify-center text-sm text-gray-500">
-                    Ảnh
-                  </div>
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-14 h-14 object-cover rounded-md border"
+                  />
                   <div>
                     <p className="font-medium">{product.name}</p>
                     <p className="text-sm text-gray-500">
