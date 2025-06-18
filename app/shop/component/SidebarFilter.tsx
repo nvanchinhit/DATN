@@ -25,17 +25,26 @@ const SidebarFilter: React.FC = () => {
   };
 
   return (
-    <aside className="border rounded-3 p-3 mb-4 shadow-sm" style={{ backgroundColor: '#f2fcff' }}>
-      <h5 className="fw-bold mb-3">LỌC THEO GIÁ</h5>
-      <form className="mb-4">
-        {[ "0 - 100.000", "100.000 - 200.000", "200.000 - 300.000" ].map((label, index) => (
-          <div className="form-check mb-2" key={index}>
-            <input className="form-check-input" type="checkbox" id={`price${index}`} />
-            <label className="form-check-label" htmlFor={`price${index}`}>{label}</label>
-          </div>
-        ))}
-        <button type="button" className="btn btn-primary btn-sm w-100 mt-2">Áp dụng</button>
-      </form>
+<aside className="border rounded-3 p-3 mb-4 shadow-sm" style={{ backgroundColor: '#f2fcff' }}>
+  <h5 className="fw-bold mb-3">LỌC THEO GIÁ</h5>
+  <form className="mb-4">
+    {[
+      "0 - 100.000",
+      "100.000 - 200.000",
+      "200.000 - 300.000",
+      "300.000 - 400.000",
+      "400.000 - 500.000"
+    ].map((label, index) => (
+      <div className="form-check mb-2" key={index}>
+        <input className="form-check-input" type="checkbox" id={`price${index}`} />
+        <label className="form-check-label" htmlFor={`price${index}`}>
+          {label}
+        </label>
+      </div>
+    ))}
+    <button type="button" className="btn btn-primary btn-sm w-100 mt-2">Áp dụng</button>
+  </form>
+
 
       <h5 className="fw-bold mb-3">LỌC THEO THƯƠNG HIỆU</h5>
       <div className="row gx-2 gy-2 mb-2">
