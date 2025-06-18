@@ -50,7 +50,7 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-24 bg-white">
         <h2 className="text-3xl font-bold text-gray-800 text-center mb-1">Đăng nhập</h2>
         <p className="text-sm text-center text-gray-500 mb-8">
-          SMMAZ.NET dịch vụ mạng xã hội - bảng điều khiển SMM PANEL
+          Website Đặt Lịch Khám Và Mua Thuốc Uy Tín Số 1 Việt Nam
         </p>
 
         <form onSubmit={handleLogin} className="space-y-5 w-full max-w-md mx-auto">
@@ -97,7 +97,7 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
 
       {/* Right - Banner */}
       <div className="hidden md:flex w-1/2 bg-[#0066ff] items-center justify-center relative overflow-hidden">
-        <Image src="/mascot.png" alt="Mascot" width={300} height={300} className="z-10" />
+        <Image src="" alt="Mascot" width={300} height={300} className="z-10" />
         <div className="absolute inset-0 bg-blue-800 bg-opacity-60 z-20 flex flex-col items-center justify-center p-6 text-white">
           <div className="flex space-x-3 items-center mb-3">
             <div className="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-bold shadow">👍 500K+</div>

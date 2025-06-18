@@ -1,17 +1,14 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import AppLayout from '@/components/layout/AppLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'TDCARE',
-  description: ' Xây dựng hệ thống bán thuốc & đặt lịch khám trực tuyến',
+  description: 'Xây dựng hệ thống bán thuốc & đặt lịch khám trực tuyến',
 };
 
 export default function RootLayout({
@@ -22,17 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AppLayout>{children}</AppLayout>
         </ThemeProvider>
       </body>
     </html>

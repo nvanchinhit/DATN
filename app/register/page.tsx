@@ -50,7 +50,7 @@ export default function RegisterPage() {
       <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-24 bg-white">
         <h2 className="text-3xl font-bold text-blue-700 text-center mb-1">Tạo Tài Khoản</h2>
         <p className="text-sm text-center text-blue-600 mb-8">
-          Nhập thông tin để bắt đầu sử dụng dịch vụ SMMAZ.NET
+          Website Đặt Lịch Khám Và Mua Thuốc Uy Tín Số 1 Việt Nam
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5 w-full max-w-md mx-auto">
