@@ -3,11 +3,12 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
-  const { name, email, password, phone, address } = req.body;
+  // <<< THAY ĐỔI: Bỏ `address` khỏi req.body
+  const { name, email, password, phone } = req.body;
 
   // Kiểm tra dữ liệu đầu vào
-  if (!name || !email || !password) {
-    return res.status(400).json({ msg: "Vui lòng nhập đầy đủ thông tin!" });
+  if (!name || !email || !password || !phone) { // Thêm phone vào check
+    return res.status(400).json({ msg: "Vui lòng nhập đầy đủ thông tin bắt buộc!" });
   }
 
   // Kiểm tra biến môi trường
@@ -32,10 +33,10 @@ exports.register = async (req, res) => {
         // Mã hóa mật khẩu
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Chèn người dùng vào database
+        // <<< THAY ĐỔI: Bỏ `address` khỏi câu lệnh INSERT
         db.query(
-          "INSERT INTO customers (name, email, password, phone, address, role_id) VALUES (?, ?, ?, ?, ?, ?)",
-          [name, email, hashedPassword, phone, address, 2],
+          "INSERT INTO customers (name, email, password, phone, role_id) VALUES (?, ?, ?, ?, ?)",
+          [name, email, hashedPassword, phone, 2], // <<< THAY ĐỔI: Bỏ `address` khỏi mảng giá trị
           (err, result) => {
             if (err) {
               console.error("❌ Lỗi truy vấn INSERT:", err);
@@ -50,12 +51,12 @@ exports.register = async (req, res) => {
             res.status(201).json({
               msg: "Đăng ký thành công!",
               token,
+              // <<< THAY ĐỔI: Bỏ `address` khỏi đối tượng user trả về
               user: {
                 id: result.insertId,
                 name,
                 email,
                 phone,
-                address,
               },
             });
           }
@@ -70,6 +71,7 @@ exports.register = async (req, res) => {
     return res.status(500).json({ msg: "Đã có lỗi xảy ra!" });
   }
 };
+
 exports.login = (req, res) => {
   const { email, password } = req.body;
 
@@ -91,7 +93,8 @@ exports.login = (req, res) => {
       return res.status(400).json({ msg: "Mật khẩu không chính xác!" });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
+    const secret = process.env.JWT_SECRET || "your_default_secret";
+    const token = jwt.sign({ id: user.id, email: user.email }, secret, {
       expiresIn: "7d",
     });
 
@@ -103,8 +106,7 @@ exports.login = (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        address: user.address,
-        role_id: user.role_id, // Nếu có
+        role_id: user.role_id,
       },
     });
   });

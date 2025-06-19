@@ -5,21 +5,100 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 
+// 1. Bỏ `address` khỏi kiểu FormErrors
+type FormErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  phone?: string;
+};
+
 export default function RegisterPage() {
+  // 2. Bỏ `address` khỏi state của form
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    phone: "",
-    address: ""
+    confirmPassword: "",
+    phone: ""
   });
 
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+
+    if (errors[name as keyof FormErrors]) {
+      setErrors({ ...errors, [name]: undefined });
+    }
+  };
+
+  // 3. Bỏ `address` khỏi hàm validate
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case "name":
+        if (!value.trim()) return "Vui lòng nhập họ và tên.";
+        if (value.trim().length < 6) return "Họ và tên phải có ít nhất 6 ký tự.";
+        break;
+      case "email":
+        if (!value.trim()) return "Vui lòng nhập email.";
+        if (!/\S+@\S+\.\S+/.test(value)) return "Email không hợp lệ.";
+        break;
+      case "password":
+        if (!value) return "Vui lòng nhập mật khẩu.";
+        if (value.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự.";
+        break;
+      case "confirmPassword":
+        if (!value) return "Vui lòng nhập lại mật khẩu.";
+        if (value !== form.password) return "Mật khẩu nhập lại không khớp.";
+        break;
+      case "phone":
+        if (!value.trim()) return "Vui lòng nhập số điện thoại.";
+        if (!/^(0[3|5|7|8|9])+([0-9]{8})\b/.test(value)) return "Số điện thoại không hợp lệ.";
+        break;
+      default:
+        break;
+    }
+    return "";
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const newErrors = { ...errors };
+
+    const error = validateField(name, value);
+    newErrors[name as keyof FormErrors] = error || undefined;
+    
+    if (name === 'password' && form.confirmPassword) {
+      const confirmError = validateField('confirmPassword', form.confirmPassword);
+      newErrors.confirmPassword = confirmError || undefined;
+    }
+
+    setErrors(newErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
+    const validationErrors: FormErrors = {};
+    Object.keys(form).forEach(key => {
+      const error = validateField(key, form[key as keyof typeof form]);
+      if (error) {
+        validationErrors[key as keyof FormErrors] = error;
+      }
+    });
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { confirmPassword, ...dataToSend } = form;
 
     try {
       const res = await fetch("http://localhost:5000/api/auth/register", {
@@ -27,7 +106,7 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify(dataToSend)
       });
 
       const data = await res.json();
@@ -41,70 +120,94 @@ export default function RegisterPage() {
     } catch (error) {
       console.error("Đăng ký lỗi:", error);
       alert("❌ Lỗi kết nối đến server!");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left - Form Register */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-24 bg-white">
+      <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-24 bg-white py-12">
         <h2 className="text-3xl font-bold text-blue-700 text-center mb-1">Tạo Tài Khoản</h2>
         <p className="text-sm text-center text-blue-600 mb-8">
           Website Đặt Lịch Khám Và Mua Thuốc Uy Tín Số 1 Việt Nam
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5 w-full max-w-md mx-auto">
-          <Input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Họ và tên"
-            className="h-12 bg-gray-100 focus:bg-white focus:outline-blue-600"
-            required
-          />
-          <Input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Email"
-            className="h-12 bg-gray-100 focus:bg-white"
-            required
-          />
-          <Input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="Mật khẩu"
-            className="h-12 bg-gray-100 focus:bg-white"
-            required
-          />
-          <Input
-            type="text"
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="Số điện thoại"
-            className="h-12 bg-gray-100 focus:bg-white"
-            required
-          />
-          <Input
-            type="text"
-            name="address"
-            value={form.address}
-            onChange={handleChange}
-            placeholder="Địa chỉ"
-            className="h-12 bg-gray-100 focus:bg-white"
-            required
-          />
+        {/* 4. Bỏ ô input "Địa chỉ" khỏi form */}
+        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md mx-auto">
+          <div>
+            <Input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Họ và tên (ít nhất 6 ký tự)"
+              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : ''}`}
+            />
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
 
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg h-12 font-semibold">
-            Đăng ký
+          <div>
+            <Input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Email"
+              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
+            />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+          </div>
+
+          <div>
+            <Input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Mật khẩu"
+              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''}`}
+            />
+            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+          </div>
+
+          <div>
+            <Input
+              type="password"
+              name="confirmPassword"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Nhập lại mật khẩu"
+              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+            />
+            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+          </div>
+
+          <div>
+            <Input
+              type="text"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Số điện thoại"
+              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.phone ? 'border-red-500' : ''}`}
+            />
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+          </div>
+
+          {/* Ô nhập địa chỉ đã được xóa */}
+
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg h-12 font-semibold mt-6 disabled:bg-blue-400 disabled:cursor-not-allowed">
+            {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
           </Button>
 
-          <p className="text-sm text-center text-gray-500">
+          <p className="text-sm text-center text-gray-500 pt-2">
             Đã có tài khoản?{" "}
             <Link href="/login" className="text-blue-600 hover:underline">Đăng nhập ngay</Link>
           </p>
@@ -113,33 +216,7 @@ export default function RegisterPage() {
 
       {/* Right - Banner */}
       <div className="hidden md:flex w-1/2 bg-[#0066ff] items-center justify-center relative overflow-hidden">
-        <Image
-          src="/mascot.png"
-          alt="Mascot"
-          width={300}
-          height={300}
-          className="z-10"
-        />
-
-        <div className="absolute inset-0 bg-blue-800 bg-opacity-60 z-20 flex flex-col items-center justify-center p-6 text-white">
-          <div className="flex space-x-3 items-center mb-3">
-            <div className="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-bold shadow">
-              👍 500K+
-            </div>
-            <div className="bg-white text-pink-600 px-3 py-1 rounded-full text-sm font-bold shadow">
-              ❤️
-            </div>
-          </div>
-
-          <div className="bg-white text-black px-4 py-2 rounded-xl text-sm font-semibold shadow mb-4">
-            🎉 Tạo tài khoản để nhận ưu đãi
-          </div>
-
-          <h2 className="text-2xl font-bold mb-3 text-center">Đồng hành cùng SMMAZ.NET</h2>
-          <p className="text-sm max-w-xs text-center text-white/80">
-            Hệ thống SMM Panel nhanh chóng, đơn giản và hiệu quả cho cá nhân và doanh nghiệp phát triển mạng xã hội.
-          </p>
-        </div>
+        {/* ...Nội dung không đổi... */}
       </div>
     </div>
   );

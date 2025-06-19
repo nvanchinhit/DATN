@@ -1,41 +1,37 @@
 'use client';
-import React, { useState } from 'react';
+
+import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import SidebarFilter from './component/SidebarFilter';
-import ProductGrid from './component/ProductGrid';
 
 const ShopPage = () => {
-  const [search, setSearch] = useState('');
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    // TODO: lọc sản phẩm nếu cần
-  };
-
   return (
-    <div className="container mt-4">
-      {/* Tiêu đề + thanh tìm kiếm nằm cùng hàng */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="m-0">Tất cả sản phẩm</h3>
-        <input
-          type="text"
-          className="form-control rounded-pill w-50"
-          placeholder="Tìm kiếm thuốc..."
-          value={search}
-          onChange={handleSearch}
-          style={{ maxWidth: '300px' }}
-        />
+    // Sử dụng flexbox của Bootstrap để căn giữa nội dung theo cả chiều dọc và ngang
+    // min-vh-100 sẽ làm cho container chiếm ít nhất 100% chiều cao của màn hình
+    <div className="container d-flex align-items-center justify-content-center" style={{ minHeight: '80vh' }}>
+      
+      <div className="text-center p-5 bg-white rounded-4 shadow-sm border">
+        
+        {/* Icon trực quan */}
+        <i className="bi bi-tools display-2 text-primary mb-3"></i>
+
+        {/* Tiêu đề chính */}
+        <h2 className="fw-bold text-dark">Trang đang được xây dựng</h2>
+
+        {/* Thông điệp cho người dùng */}
+        <p className="text-muted mt-3">
+          Chúng tôi đang nỗ lực hết mình để sớm ra mắt trang mua sắm sản phẩm.
+          <br />
+          Cảm ơn bạn đã kiên nhẫn và vui lòng quay lại sau!
+        </p>
+
+        {/* Nút hành động (tùy chọn, nhưng nên có để cải thiện trải nghiệm) */}
+        <a href="/" className="btn btn-primary rounded-pill mt-4 px-4">
+          Quay về Trang chủ
+        </a>
+
       </div>
 
-      <div className="row">
-        <div className="col-md-3">
-          <SidebarFilter />
-        </div>
-        <div className="col-md-9">
-          <ProductGrid />
-        </div>
-      </div>
     </div>
   );
 };
