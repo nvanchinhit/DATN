@@ -5,23 +5,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// 👉 Dữ liệu mẫu được định nghĩa trực tiếp trong file
+// Định nghĩa kiểu dữ liệu cho một chuyên khoa
 interface Specialization {
   id: number;
   name: string;
   image: string;
 }
 
-const allSpecialties: Specialization[] = [
-  { id: 1, name: 'Tim mạch', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/140955-icon-tim-mach.png' },
-  { id: 2, name: 'Da liễu', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/141009-icon-da-lieu.png' },
-  { id: 3, name: 'Nhi khoa', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/141158-icon-nhi-khoa.png' },
-  { id: 4, name: 'Sản phụ khoa', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/141212-icon-san-phu-khoa.png' },
-  { id: 5, name: 'Tai Mũi Họng', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/141022-icon-tai-mui-hong.png'},
-  { id: 6, name: 'Cơ Xương Khớp', image: 'https://cdn.bookingcare.vn/fr/w300/2023/12/29/140943-icon-co-xuong-khop.png'}
-];
-
-// Component SpecialtyCard (có thể đặt trong file riêng hoặc ngay tại đây)
+// Component thẻ chuyên khoa (không đổi)
 function SpecialtyCard({ id, name, image, onClick }: Specialization & { onClick: (id: number) => void }) {
   return (
     <div
@@ -36,20 +27,36 @@ function SpecialtyCard({ id, name, image, onClick }: Specialization & { onClick:
   );
 }
 
+// Component trang chính
 export default function SpecialtyPage() {
   const [data, setData] = useState<Specialization[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Mô phỏng fetch bằng cách dùng dữ liệu mẫu
-    setTimeout(() => {
-      setData(allSpecialties);
-      setLoading(false);
-    }, 300);
+    const fetchSpecialties = async () => {
+      try {
+        // Gọi API backend (đảm bảo cổng 5000 là đúng)
+        const response = await fetch('http://localhost:5000/api/specializations'); 
+        if (!response.ok) {
+          throw new Error('Không thể kết nối đến server.');
+        }
+        const specialtiesData: Specialization[] = await response.json();
+        setData(specialtiesData);
+      } catch (err: any) {
+        console.error("Lỗi khi fetch dữ liệu chuyên khoa:", err);
+        setError(err.message || 'Đã có lỗi xảy ra khi tải dữ liệu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpecialties();
   }, []);
 
   const handleClick = (id: number) => {
+    // Điều hướng đến trang đặt lịch với ID chuyên khoa trong URL
     router.push(`/bookingdoctor?specialization=${id}`);
   };
 
@@ -60,9 +67,11 @@ export default function SpecialtyPage() {
           🔬 Danh sách Chuyên khoa
         </h1>
         {loading ? (
-          <p className="text-center text-blue-500 text-lg">Đang tải...</p>
+          <p className="text-center text-blue-500 text-lg">Đang tải danh sách chuyên khoa...</p>
+        ) : error ? (
+          <p className="text-center text-red-500 text-lg">{error}</p>
         ) : data.length === 0 ? (
-          <p className="text-center text-red-500">Không có chuyên khoa nào!</p>
+          <p className="text-center text-gray-500">Không tìm thấy chuyên khoa nào.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {data.map(sp => (
