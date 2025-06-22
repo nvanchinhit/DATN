@@ -1,3 +1,5 @@
+// File: routes/api.js
+
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db.config');
@@ -41,7 +43,6 @@ router.get('/specializations', (req, res) => {
 
 /**
  * API: LẤY THÔNG TIN CỦA MỘT CHUYÊN KHOA DỰA VÀO ID
- * Được dùng ở trang /bookingdoctor để lấy tên chuyên khoa
  */
 router.get('/specializations/:id', (req, res) => {
   const { id } = req.params;
@@ -59,14 +60,13 @@ router.get('/specializations/:id', (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy chuyên khoa.' });
     }
-    res.json(results[0]); // Trả về đối tượng duy nhất, không phải mảng
+    res.json(results[0]);
   });
 });
 
 
 /**
- * API: LẤY DANH SÁCH BÁC SĨ THEO ID CHUYÊN KHOA
- * Được dùng ở trang /bookingdoctor
+ * ✅ API ĐÃ SỬA LỖI: LẤY DANH SÁCH BÁC SĨ THEO ID CHUYÊN KHOA
  */
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
@@ -75,8 +75,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
     return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
   }
 
-  // Chú ý: Cột trong database của bạn là specialization_id
-  // Dùng AS để đổi tên cột cho khớp với interface ở frontend
+  // Thêm 'consultation_fee' vào câu lệnh SELECT
   const sql = `
     SELECT 
       id, 
@@ -84,6 +83,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
       img, 
       introduction, 
       specialization_id,
+      consultation_fee,
       certificate_image AS certificate,
       degree_image AS degree
     FROM doctors 
@@ -100,8 +100,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
 });
 
 /**
- * API: LẤY LỊCH LÀM VIỆC CỦA MỘT BÁC SĨ (PHIÊN BẢN NÂNG CẤP)
- * Trả về các khoảng thời gian (start - end)
+ * API: LẤY LỊCH LÀM VIỆC CỦA MỘT BÁC SĨ
  */
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
@@ -110,7 +109,6 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
     return res.status(400).json({ error: 'Thiếu ID của bác sĩ.' });
   }
 
-  // 1. Lấy cả start_time và end_time
   const sql = `
     SELECT 
       slot_date, 
@@ -127,18 +125,14 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       return res.status(500).json({ error: 'Lỗi server.' });
     }
 
-    // 2. Xử lý và nhóm kết quả thành một cấu trúc mới
-    // Từ: [{ date, start, end }, ...]
-    // Thành: { '2025-06-21': [{start: '08:00', end: '09:00'}, {start: '09:00', end: '10:00'}] }
     const groupedSlots = results.reduce((acc, slot) => {
       const date = new Date(slot.slot_date).toISOString().split('T')[0];
-      const startTime = slot.start_time.substring(0, 5); // Lấy HH:mm
-      const endTime = slot.end_time.substring(0, 5); // Lấy HH:mm
+      const startTime = slot.start_time.substring(0, 5);
+      const endTime = slot.end_time.substring(0, 5);
 
       if (!acc[date]) {
         acc[date] = [];
       }
-      // Đẩy một object chứa cả start và end vào mảng
       acc[date].push({ start: startTime, end: endTime });
       return acc;
     }, {});

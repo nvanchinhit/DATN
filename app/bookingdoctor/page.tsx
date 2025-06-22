@@ -4,7 +4,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, Clock, X, Loader2 } from 'lucide-react';
+import { Calendar, Clock, X, Loader2, Wallet } from 'lucide-react';
 
 // --- INTERFACES ---
 interface Specialization {
@@ -19,6 +19,7 @@ interface Doctor {
   img: string;
   introduction: string;
   specialization_id: number;
+  consultation_fee: number;
   certificate: string;
   degree: string;
 }
@@ -51,17 +52,14 @@ function BookingDoctorPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<TimeSlotItem | null>(null); 
   const [doctorForDetails, setDoctorForDetails] = useState<Doctor | null>(null);
-
   const [timeSlots, setTimeSlots] = useState<TimeSlots>({});
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   // --- EFFECTS ---
-
   useEffect(() => {
     if (specialtyId) {
       const fetchBookingData = async () => {
@@ -128,6 +126,16 @@ function BookingDoctorPage() {
     alert(`🎉 Đặt lịch thành công!\n\nBác sĩ: ${doctorName}\nChuyên khoa: ${specialty?.name}\nNgày khám: ${bookingDate}\nGiờ khám: ${bookingTime}`);
   };
 
+  const formatCurrency = (amount: number) => {
+    if (amount === null || amount === undefined) {
+      return "Chưa cập nhật";
+    }
+    if (amount === 0) {
+      return "Miễn phí";
+    }
+    return amount.toLocaleString('vi-VN') + ' đ';
+  };
+
   // --- RENDER LOGIC ---
   if (loading) return <div className="flex h-screen items-center justify-center text-blue-600">Đang tải thông tin...</div>;
   if (error) return <div className="flex h-screen items-center justify-center text-red-600">{error}</div>;
@@ -138,7 +146,6 @@ function BookingDoctorPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* ✅ DÒNG NÀY ĐÃ ĐƯỢC SỬA LỖI */}
         <header className='mb-8 text-center'>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Đặt lịch khám Chuyên khoa</h1>
           <h2 className="text-2xl md:text-3xl font-semibold text-blue-600 mt-2">{specialty.name}</h2>
@@ -157,14 +164,19 @@ function BookingDoctorPage() {
                       selectedDoctorId === doctor.id ? 'bg-blue-50 border-blue-500 scale-105 shadow-md' : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'
                     }`}
                   >
-                    <img src={doctor.img} alt={doctor.name} className="w-16 h-16 rounded-full object-cover"/>
+                    <img src={doctor.img} alt={doctor.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0"/>
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-800">{doctor.name}</h4>
-                      <p className="text-sm text-gray-500 line-clamp-2">{doctor.introduction || 'Chưa có thông tin giới thiệu.'}</p>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{doctor.introduction || 'Chưa có thông tin giới thiệu.'}</p>
+                      
+                      <div className="mt-2 flex items-center gap-2 text-green-600 font-semibold">
+                        <Wallet size={16} />
+                        <span>Giá khám: {formatCurrency(doctor.consultation_fee)}</span>
+                      </div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDoctorForDetails(doctor); }}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-semibold whitespace-nowrap"
+                      className="text-blue-600 hover:text-blue-800 text-sm font-semibold whitespace-nowrap self-center"
                     >
                       Xem chi tiết
                     </button>
@@ -230,6 +242,7 @@ function BookingDoctorPage() {
           </div>
         </div>
       </div>
+      
       {doctorForDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={() => setDoctorForDetails(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -239,6 +252,9 @@ function BookingDoctorPage() {
                 <img src={doctorForDetails.img} alt={doctorForDetails.name} className="w-32 h-32 rounded-full object-cover border-4 border-blue-100 shadow-lg mb-4"/>
                 <h3 className="text-xl font-bold text-gray-900">{doctorForDetails.name}</h3>
                 <p className="text-blue-600 font-semibold">{specialty?.name}</p>
+                <div className="mt-3 bg-green-50 text-green-700 font-bold px-3 py-1.5 rounded-full text-sm">
+                  {formatCurrency(doctorForDetails.consultation_fee)}
+                </div>
               </div>
               <div className="md:col-span-2 space-y-4">
                 <div><h4 className="font-semibold text-gray-700 border-b pb-1 mb-2">Giới thiệu</h4><p className="text-gray-600 text-justify leading-relaxed">{doctorForDetails.introduction}</p></div>
