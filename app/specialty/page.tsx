@@ -1,5 +1,3 @@
-// File: app/specialty/page.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -12,14 +10,21 @@ interface Specialization {
   image: string;
 }
 
-// Component thẻ chuyên khoa (không đổi)
+// Địa chỉ API backend (có thể đưa ra file .env nếu cần)
+const API_BASE_URL = 'http://localhost:5000';
+
+// Component thẻ chuyên khoa
 function SpecialtyCard({ id, name, image, onClick }: Specialization & { onClick: (id: number) => void }) {
   return (
     <div
       onClick={() => onClick(id)}
       className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden cursor-pointer group"
     >
-      <img src={image} alt={name} className="w-full h-40 object-cover" />
+      <img
+        src={`${API_BASE_URL}${image}`} // ✅ THÊM domain đầy đủ vào src ảnh
+        alt={name}
+        className="w-full h-40 object-cover"
+      />
       <div className="p-4">
         <h3 className="text-lg font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{name}</h3>
       </div>
@@ -37,8 +42,7 @@ export default function SpecialtyPage() {
   useEffect(() => {
     const fetchSpecialties = async () => {
       try {
-        // Gọi API backend (đảm bảo cổng 5000 là đúng)
-        const response = await fetch('http://localhost:5000/api/specializations'); 
+        const response = await fetch(`${API_BASE_URL}/api/specializations`);
         if (!response.ok) {
           throw new Error('Không thể kết nối đến server.');
         }
@@ -56,7 +60,6 @@ export default function SpecialtyPage() {
   }, []);
 
   const handleClick = (id: number) => {
-    // Điều hướng đến trang đặt lịch với ID chuyên khoa trong URL
     router.push(`/bookingdoctor?specialization=${id}`);
   };
 
