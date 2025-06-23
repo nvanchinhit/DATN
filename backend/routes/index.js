@@ -55,7 +55,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const sql = `
     SELECT 
       id, name, img, introduction, specialization_id,
-      consultation_fee, certificate_image AS certificate, degree_image AS degree
+      certificate_image AS certificate, degree_image AS degree
     FROM doctors 
     WHERE specialization_id = ? AND account_status = 'active'
   `;
@@ -98,10 +98,19 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
 
 // ================== API CHUYÊN KHOA (CRUD) ==================
 
-// Lấy tất cả chuyên khoa
+// GET tất cả hoặc theo từ khóa ?search=
 router.get('/specializations', (req, res) => {
-  const sql = "SELECT id, name, image FROM specializations";
-  db.query(sql, (err, results) => {
+  const search = req.query.search;
+
+  let sql = "SELECT id, name, image FROM specializations";
+  let values = [];
+
+  if (search) {
+    sql += " WHERE name LIKE ?";
+    values.push(`%${search}%`);
+  }
+
+  db.query(sql, values, (err, results) => {
     if (err) {
       console.error("Lỗi lấy chuyên khoa:", err);
       return res.status(500).json({ error: "Lỗi server." });
