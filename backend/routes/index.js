@@ -84,13 +84,26 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       return res.status(500).json({ error: 'Lỗi server.' });
     }
 
-    const groupedSlots = results.reduce((acc, slot) => {
-      const date = new Date(slot.slot_date).toISOString().split('T')[0];
-      const start = slot.start_time.substring(0, 5);
-      const end = slot.end_time.substring(0, 5);
-      if (!acc[date]) acc[date] = [];
-      acc[date].push({ start, end });
-      return acc;
+  // ĐOẠN CODE MỚI ĐÃ SỬA LỖI
+const groupedSlots = results.reduce((acc, slot) => {
+  // Lấy ra đối tượng Date từ kết quả của DB
+  const dateObj = new Date(slot.slot_date);
+
+  // Lấy các thành phần năm, tháng, ngày một cách an toàn,
+  // không bị ảnh hưởng bởi múi giờ.
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // getMonth() trả về 0-11
+  const day = String(dateObj.getDate()).padStart(2, '0');
+
+  // Tạo chuỗi YYYY-MM-DD
+  const date = `${year}-${month}-${day}`;
+
+  const start = slot.start_time.substring(0, 5);
+  const end = slot.end_time.substring(0, 5);
+
+  if (!acc[date]) acc[date] = [];
+  acc[date].push({ start, end });
+  return acc;
     }, {});
     res.json(groupedSlots);
   });
