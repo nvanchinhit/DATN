@@ -26,27 +26,25 @@ const formatDateToYYYYMMDD = (dateInput) => {
 exports.getProfile = (req, res) => {
   const userId = req.user.id;
 
-  db.query(
-    'SELECT id, name, email, phone, gender, dob, avatar, address, cccd FROM customers WHERE id = ?',
-    [userId],
-    (err, results) => {
-      if (err) {
-        console.error("❌ Lỗi khi lấy hồ sơ:", err);
-        return res.status(500).json({ success: false, message: 'Lỗi server.' });
-      }
+  const sql = 'SELECT id, name, email, phone, gender, birthday, avatar, address FROM customers WHERE id = ?';
 
-      if (results.length === 0) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
-      }
-      
-      const userProfile = results[0];
-      // SỬA LỖI TIMEZONE NGAY TẠI ĐÂY
-      userProfile.dob = formatDateToYYYYMMDD(userProfile.dob);
-
-      res.status(200).json({ success: true, data: userProfile });
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Lỗi khi lấy hồ sơ:", err);
+      return res.status(500).json({ success: false, message: 'Lỗi server.' });
     }
-  );
+
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
+    }
+
+    const userProfile = results[0];
+    userProfile.birthday = formatDateToYYYYMMDD(userProfile.birthday);
+
+    res.status(200).json({ success: true, data: userProfile });
+  });
 };
+
 
 /**
  * Cập nhật hồ sơ của người dùng đã xác thực
@@ -57,6 +55,12 @@ exports.updateProfile = (req, res) => {
 
   if (req.file) {
     fieldsToUpdate.avatar = `/uploads/${req.file.filename}`;
+  }
+
+  // ✅ Chuyển đổi trường 'dob' thành 'birthday' nếu cần
+  if (fieldsToUpdate.dob) {
+    fieldsToUpdate.birthday = fieldsToUpdate.dob;
+    delete fieldsToUpdate.dob;
   }
 
   if (Object.keys(fieldsToUpdate).length === 0) {
@@ -74,9 +78,11 @@ exports.updateProfile = (req, res) => {
       }
       return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật.' });
     }
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
     }
+
     res.status(200).json({ success: true, message: 'Cập nhật hồ sơ thành công!' });
   });
 };

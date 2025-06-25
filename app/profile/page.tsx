@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Interface cho dữ liệu người dùng
 interface Customer {
@@ -48,7 +49,7 @@ export default function ProfilePage() {
     const fetchData = async () => {
       try {
         setError(null); setPageLoading(true);
-        const res = await fetch(`/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) {
           if (res.status === 401 || res.status === 403) { alert("Phiên đăng nhập đã hết hạn."); logout(); }
           throw new Error('Không thể tải dữ liệu hồ sơ.');
@@ -110,14 +111,14 @@ export default function ProfilePage() {
     }
 
     try {
-      const res = await fetch(`/api/users/profile`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: dataToUpdate });
+      const res = await fetch(`${API_URL}/api/users/profile`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: dataToUpdate });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Cập nhật thất bại.');
 
       alert('Cập nhật thành công!');
       
       // Tải lại dữ liệu mới nhất
-      const newRes = await fetch(`/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const newRes = await fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
       const newResult = await newRes.json();
       const newData = newResult.data;
       if (newData.dob) newData.dob = newData.dob.split('T')[0];
