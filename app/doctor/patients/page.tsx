@@ -35,6 +35,21 @@ const patientList: Patient[] = [
 ];
 
 export default function PatientListPage() {
+  // Hàm xử lý liên hệ
+  const handleContact = (phone: string) => {
+    alert(`Liên hệ bệnh nhân qua số: ${phone}`);
+    // Hoặc mở tel:
+    // window.location.href = `tel:${phone}`;
+  };
+
+  // Hàm xử lý hủy lịch
+  const handleCancel = (id: number) => {
+    if (confirm('Bạn có chắc muốn hủy lịch khám này không?')) {
+      // Xử lý gọi API hủy ở đây
+      alert(`Đã hủy lịch khám của bệnh nhân ID: ${id}`);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       <Sidebardoctor />
@@ -61,6 +76,21 @@ export default function PatientListPage() {
                 </p>
                 <p className="text-sm text-gray-700">⏰ Giờ: {p.time}</p>
                 <p className="text-sm text-gray-700">📝 Lý do: {p.reason}</p>
+
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => handleContact(p.phone)}
+                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                  >
+                    📞 Liên hệ
+                  </button>
+                  <button
+                    onClick={() => handleCancel(p.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm"
+                  >
+                    ❌ Hủy lịch
+                  </button>
+                </div>
               </div>
             ))}
           </div>

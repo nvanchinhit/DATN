@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // 1. Định nghĩa kiểu cho lỗi
 type FormErrors = {
@@ -67,8 +68,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    // 7. Chạy validation toàn bộ form trước khi submit
     const validationErrors: FormErrors = {};
     Object.keys(form).forEach(key => {
         const error = validateField(key, form[key as keyof typeof form]);
@@ -80,11 +79,11 @@ export default function LoginPage() {
     if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
         setIsSubmitting(false);
-        return; // Dừng lại nếu có lỗi
+        return;
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

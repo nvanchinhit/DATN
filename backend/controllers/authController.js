@@ -1,77 +1,99 @@
 const db = require('../config/db.config');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const sendMail = require("../utils/mailer"); // Gửi mail xác thực
 
+const secret = process.env.JWT_SECRET || "your_default_secret";
+
+// ===================== ĐĂNG KÝ =====================
 exports.register = async (req, res) => {
-  // <<< THAY ĐỔI: Bỏ `address` khỏi req.body
   const { name, email, password, phone } = req.body;
 
-  // Kiểm tra dữ liệu đầu vào
-  if (!name || !email || !password || !phone) { // Thêm phone vào check
+  if (!name || !email || !password || !phone) {
     return res.status(400).json({ msg: "Vui lòng nhập đầy đủ thông tin bắt buộc!" });
   }
 
-  // Kiểm tra biến môi trường
-  const secret = process.env.JWT_SECRET || "your_default_secret";
-  if (!process.env.JWT_SECRET) {
-    console.warn("⚠️ Chưa có biến môi trường JWT_SECRET. Đang dùng giá trị mặc định.");
-  }
+  db.query("SELECT * FROM customers WHERE email = ?", [email], async (err, result) => {
+    if (err) return res.status(500).json({ msg: "Lỗi server khi kiểm tra email!" });
+
+    if (result.length > 0) {
+      return res.status(400).json({ msg: "Email đã được đăng ký!" });
+    }
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      db.query(
+        "INSERT INTO customers (name, email, password, phone, role_id) VALUES (?, ?, ?, ?, ?)",
+        [name, email, hashedPassword, phone, 2],
+        async (err, result) => {
+          if (err) return res.status(500).json({ msg: "Lỗi khi lưu thông tin người dùng!" });
+
+          const userId = result.insertId;
+
+          // Gửi email xác thực
+          const verifyToken = jwt.sign({ id: userId }, secret, { expiresIn: "1d" });
+          const verifyUrl = `http://localhost:3000/verify-email?token=${verifyToken}`;
+
+          try {
+            await sendMail({
+              to: email,
+              subject: "Xác thực tài khoản",
+              html: `
+                <p>Xin chào <strong>${name}</strong>,</p>
+                <p>Vui lòng bấm vào liên kết dưới đây để xác thực tài khoản:</p>
+                <a href="${verifyUrl}">${verifyUrl}</a>
+                <p>Liên kết này sẽ hết hạn sau 24 giờ.</p>
+              `
+            });
+          } catch (mailErr) {
+            console.error("❌ Gửi mail thất bại:", mailErr);
+            // Không dừng chương trình nếu lỗi gửi mail
+          }
+
+          const token = jwt.sign({ id: userId, email }, secret, { expiresIn: "7d" });
+
+          res.status(201).json({
+            msg: "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
+            token,
+            user: { id: userId, name, email, phone },
+          });
+        }
+      );
+    } catch (hashErr) {
+      return res.status(500).json({ msg: "Lỗi khi xử lý mật khẩu!" });
+    }
+  });
+};
+
+// ===================== XÁC THỰC EMAIL =====================
+exports.verifyEmail = (req, res) => {
+  const { token } = req.query;
+
+  if (!token) return res.status(400).json({ msg: "Thiếu token xác thực!" });
 
   try {
-    // Kiểm tra email đã tồn tại chưa
-    db.query("SELECT * FROM customers WHERE email = ?", [email], async (err, result) => {
+    const decoded = jwt.verify(token, secret);
+    const userId = decoded.id;
+
+    db.query("UPDATE customers SET is_verified = true WHERE id = ?", [userId], (err, result) => {
       if (err) {
-        console.error("❌ Lỗi truy vấn SELECT:", err);
-        return res.status(500).json({ msg: "Lỗi server khi kiểm tra email!" });
+        console.error("❌ Lỗi cập nhật xác thực:", err);
+        return res.status(500).json({ msg: "Lỗi server khi xác thực tài khoản!" });
       }
 
-      if (result.length > 0) {
-        return res.status(400).json({ msg: "Email đã được đăng ký!" });
+      if (result.affectedRows === 0) {
+        return res.status(400).json({ msg: "Tài khoản không tồn tại!" });
       }
 
-      try {
-        // Mã hóa mật khẩu
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // <<< THAY ĐỔI: Bỏ `address` khỏi câu lệnh INSERT
-        db.query(
-          "INSERT INTO customers (name, email, password, phone, role_id) VALUES (?, ?, ?, ?, ?)",
-          [name, email, hashedPassword, phone, 2], // <<< THAY ĐỔI: Bỏ `address` khỏi mảng giá trị
-          (err, result) => {
-            if (err) {
-              console.error("❌ Lỗi truy vấn INSERT:", err);
-              return res.status(500).json({ msg: "Lỗi khi lưu thông tin người dùng!" });
-            }
-
-            // Tạo token JWT
-            const token = jwt.sign({ id: result.insertId, email }, secret, {
-              expiresIn: "7d",
-            });
-
-            res.status(201).json({
-              msg: "Đăng ký thành công!",
-              token,
-              // <<< THAY ĐỔI: Bỏ `address` khỏi đối tượng user trả về
-              user: {
-                id: result.insertId,
-                name,
-                email,
-                phone,
-              },
-            });
-          }
-        );
-      } catch (hashErr) {
-        console.error("❌ Lỗi mã hóa mật khẩu:", hashErr);
-        return res.status(500).json({ msg: "Lỗi khi xử lý mật khẩu!" });
-      }
+      res.json({ msg: "Tài khoản đã được xác thực thành công!" });
     });
   } catch (err) {
-    console.error("❌ Lỗi không xác định:", err);
-    return res.status(500).json({ msg: "Đã có lỗi xảy ra!" });
+    return res.status(400).json({ msg: "Token không hợp lệ hoặc đã hết hạn!" });
   }
 };
 
+// ===================== ĐĂNG NHẬP =====================
 exports.login = (req, res) => {
   const { email, password } = req.body;
 
@@ -87,16 +109,17 @@ exports.login = (req, res) => {
     }
 
     const user = result[0];
-    const isMatch = await bcrypt.compare(password, user.password);
 
+    if (!user.is_verified) {
+      return res.status(403).json({ msg: "Vui lòng xác thực email trước khi đăng nhập!" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Mật khẩu không chính xác!" });
     }
 
-    const secret = process.env.JWT_SECRET || "your_default_secret";
-    const token = jwt.sign({ id: user.id, email: user.email }, secret, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ id: user.id, email: user.email }, secret, { expiresIn: "7d" });
 
     res.status(200).json({
       msg: "Đăng nhập thành công!",
@@ -110,4 +133,60 @@ exports.login = (req, res) => {
       },
     });
   });
+};
+exports.forgotPassword = (req, res) => {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ msg: "Vui lòng nhập email!" });
+
+  db.query("SELECT * FROM customers WHERE email = ?", [email], (err, result) => {
+    if (err) return res.status(500).json({ msg: "Lỗi server!" });
+    if (result.length === 0) {
+      return res.status(400).json({ msg: "Email không tồn tại trong hệ thống!" });
+    }
+
+    const user = result[0];
+    const resetToken = jwt.sign({ id: user.id }, secret, { expiresIn: "15m" });
+    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+
+    sendMail({
+      to: email,
+      subject: "Đặt lại mật khẩu",
+      html: `<p>Xin chào ${user.name},</p>
+             <p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để thực hiện:</p>
+             <a href="${resetUrl}">${resetUrl}</a>
+             <p>Liên kết có hiệu lực trong 15 phút.</p>`
+    })
+      .then(() => {
+        res.json({ msg: "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư!" });
+      })
+      .catch((err) => {
+        console.error("❌ Gửi mail thất bại:", err);
+        res.status(500).json({ msg: "Lỗi khi gửi email!" });
+      });
+  });
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ msg: "Thiếu token hoặc mật khẩu mới!" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, secret);
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    db.query("UPDATE customers SET password = ? WHERE id = ?", [hashed, decoded.id], (err) => {
+      if (err) {
+        console.error("❌ Lỗi cập nhật mật khẩu:", err);
+        return res.status(500).json({ msg: "Không thể cập nhật mật khẩu!" });
+      }
+
+      res.json({ msg: "Đặt lại mật khẩu thành công!" });
+    });
+  } catch (err) {
+    return res.status(400).json({ msg: "Token không hợp lệ hoặc đã hết hạn!" });
+  }
 };

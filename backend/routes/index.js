@@ -194,5 +194,43 @@ router.delete('/specializations/:id', (req, res) => {
     res.json({ message: 'Xóa thành công!' });
   });
 });
+router.put('/customers/:id', upload.single('avatar'), (req, res) => {
+  const { id } = req.params;
+  const { name, phone, gender, birthday, address } = req.body;
+
+  // Kiểm tra dữ liệu đầu vào
+  if (!name || !phone) {
+    return res.status(400).json({ error: 'Tên và số điện thoại là bắt buộc.' });
+  }
+
+  // Xử lý ảnh nếu có upload
+  let avatarPath = null;
+  if (req.file) {
+    avatarPath = `/uploads/${req.file.filename}`;
+  }
+
+  // Câu lệnh SQL cập nhật
+  const sql = `
+    UPDATE customers 
+    SET name = ?, phone = ?, gender = ?, birthday = ?, address = ?${avatarPath ? ', avatar = ?' : ''} 
+    WHERE id = ?
+  `;
+
+  // Tạo mảng giá trị truyền vào câu lệnh SQL
+  const values = [name, phone, gender || null, birthday || null, address || null];
+  if (avatarPath) values.push(avatarPath);
+  values.push(id); // cuối cùng là id để WHERE
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("Lỗi cập nhật khách hàng:", err);
+      return res.status(500).json({ error: 'Lỗi cập nhật thông tin.' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
+    }
+    res.json({ message: 'Cập nhật thành công!' });
+  });
+});
 
 module.exports = router;
