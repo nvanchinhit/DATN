@@ -48,6 +48,32 @@ router.get('/products-by-brand', (req, res) => {
 });
 
 // ================== API BÁC SĨ & LỊCH KHÁM ==================
+router.get('/doctors/top', (req, res) => {
+  const sql = `
+  SELECT 
+  d.id, 
+  d.name, 
+  d.img, 
+  s.name AS specialty,
+  GROUP_CONCAT(DISTINCT DATE_FORMAT(ts.slot_date, '%Y-%m-%d')) AS available_dates
+FROM doctors d
+JOIN specializations s ON d.specialization_id = s.id
+LEFT JOIN doctor_time_slot ts ON ts.doctor_id = d.id
+WHERE d.account_status = 'active'
+GROUP BY d.id
+LIMIT 4
+
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Lỗi truy vấn top bác sĩ:', err);
+      return res.status(500).json({ error: 'Lỗi server' });
+    }
+    res.json(results);
+  });
+});
+
+
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
   if (!specializationId) return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
@@ -84,15 +110,12 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       return res.status(500).json({ error: 'Lỗi server.' });
     }
 
-  // ĐOẠN CODE MỚI ĐÃ SỬA LỖI
+ 
 const groupedSlots = results.reduce((acc, slot) => {
-  // Lấy ra đối tượng Date từ kết quả của DB
   const dateObj = new Date(slot.slot_date);
 
-  // Lấy các thành phần năm, tháng, ngày một cách an toàn,
-  // không bị ảnh hưởng bởi múi giờ.
   const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // getMonth() trả về 0-11
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); 
   const day = String(dateObj.getDate()).padStart(2, '0');
 
   // Tạo chuỗi YYYY-MM-DD
@@ -131,6 +154,22 @@ router.get('/specializations', (req, res) => {
     res.json(results);
   });
 });
+router.get('/specializations/top', (req, res) => {
+  const sql = `
+    SELECT id, name, image 
+    FROM specializations 
+    ORDER BY id DESC 
+    LIMIT 4
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn chuyên khoa:", err);
+      return res.status(500).json({ error: "Lỗi server." });
+    }
+    res.json(results);
+  });
+});
+
 
 // Lấy 1 chuyên khoa theo ID
 router.get('/specializations/:id', (req, res) => {
@@ -192,44 +231,6 @@ router.delete('/specializations/:id', (req, res) => {
     if (err) return res.status(500).json({ error: 'Lỗi xóa.' });
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy chuyên khoa.' });
     res.json({ message: 'Xóa thành công!' });
-  });
-});
-router.put('/customers/:id', upload.single('avatar'), (req, res) => {
-  const { id } = req.params;
-  const { name, phone, gender, birthday, address } = req.body;
-
-  // Kiểm tra dữ liệu đầu vào
-  if (!name || !phone) {
-    return res.status(400).json({ error: 'Tên và số điện thoại là bắt buộc.' });
-  }
-
-  // Xử lý ảnh nếu có upload
-  let avatarPath = null;
-  if (req.file) {
-    avatarPath = `/uploads/${req.file.filename}`;
-  }
-
-  // Câu lệnh SQL cập nhật
-  const sql = `
-    UPDATE customers 
-    SET name = ?, phone = ?, gender = ?, birthday = ?, address = ?${avatarPath ? ', avatar = ?' : ''} 
-    WHERE id = ?
-  `;
-
-  // Tạo mảng giá trị truyền vào câu lệnh SQL
-  const values = [name, phone, gender || null, birthday || null, address || null];
-  if (avatarPath) values.push(avatarPath);
-  values.push(id); // cuối cùng là id để WHERE
-
-  db.query(sql, values, (err, result) => {
-    if (err) {
-      console.error("Lỗi cập nhật khách hàng:", err);
-      return res.status(500).json({ error: 'Lỗi cập nhật thông tin.' });
-    }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Không tìm thấy khách hàng.' });
-    }
-    res.json({ message: 'Cập nhật thành công!' });
   });
 });
 
