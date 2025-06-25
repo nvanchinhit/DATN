@@ -1,50 +1,36 @@
-// Auth middleware for protecting routes
+// backend/middleware/auth.middleware.js
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key";
 
 /**
- * Verify JWT token
+ * Middleware để xác minh token JWT từ header Authorization.
  */
 exports.verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: "Yêu cầu cần token xác thực." });
+  }
+
+  const token = authHeader.split(' ')[1];
+
   try {
-    // Get token from authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'No token provided' 
-      });
-    }
-    
-    const token = authHeader.split(' ')[1];
-    
-    // In a real implementation, this would verify the JWT token
-    // For demo purposes, we're mocking this behavior
-    
-    // Mock user object that would normally come from token verification
-    req.user = {
-      id: '123',
-      email: 'user@example.com',
-      role: 'user'
-    };
-    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // Gắn thông tin người dùng vào request để các xử lý sau sử dụng
+    req.user = decoded; 
     next();
-  } catch (error) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Invalid or expired token' 
-    });
+  } catch (err) {
+    return res.status(403).json({ success: false, message: "Token không hợp lệ hoặc đã hết hạn." });
   }
 };
 
 /**
- * Check if user has admin role
+ * Middleware để kiểm tra vai trò admin.
  */
 exports.isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && req.user.role_id === 1) { // Giả sử role_id=1 là admin
     next();
   } else {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Access denied: Admin role required' 
-    });
+    return res.status(403).json({ success: false, message: 'Từ chối truy cập: Yêu cầu quyền Admin.' });
   }
 };

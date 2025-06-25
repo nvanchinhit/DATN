@@ -1,90 +1,82 @@
-// User controller for managing user-related operations
+// backend/controllers/user.controller.js
+const db = require('../config/db.config');
 
 /**
- * Get public profile of a user
+ * Hàm helper để định dạng ngày tháng an toàn, tránh lỗi timezone
+ * @param {Date | string} dateInput - Ngày tháng từ database
+ * @returns {string | null} - Chuỗi ngày tháng dạng YYYY-MM-DD hoặc null
  */
-exports.getPublicProfile = async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // This would fetch data from the database in a real implementation
-    const mockUser = {
-      id,
-      name: 'Sample User',
-      bio: 'This is a sample user profile',
-      createdAt: new Date(),
-    };
-    
-    res.status(200).json({ success: true, data: mockUser });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+const formatDateToYYYYMMDD = (dateInput) => {
+  if (!dateInput) return null;
+  const date = new Date(dateInput);
+  // Thêm chênh lệch múi giờ của client để bù lại phần bị trừ đi khi chuyển sang UTC
+  // Ví dụ: new Date('2017-02-10T00:00:00') ở GMT+7 -> toISOString() -> '2017-02-09T17:00:00.000Z'
+  // getTimezoneOffset() của GMT+7 là -420 (phút).
+  // Bù lại bằng cách cộng thêm số phút đó.
+  date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**
- * Get authenticated user's profile
+ * Lấy hồ sơ của người dùng đã xác thực
  */
-exports.getProfile = async (req, res) => {
-  try {
-    // In a real implementation, this would use req.user from the auth middleware
-    const userId = req.user.id;
-    
-    // Mock response for demonstration
-    const mockProfile = {
-      id: userId,
-      name: 'Authenticated User',
-      email: 'user@example.com',
-      bio: 'This is my profile',
-      createdAt: new Date(),
-      lastLogin: new Date(),
-    };
-    
-    res.status(200).json({ success: true, data: mockProfile });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+exports.getProfile = (req, res) => {
+  const userId = req.user.id;
+
+  db.query(
+    'SELECT id, name, email, phone, gender, dob, avatar, address, cccd FROM customers WHERE id = ?',
+    [userId],
+    (err, results) => {
+      if (err) {
+        console.error("❌ Lỗi khi lấy hồ sơ:", err);
+        return res.status(500).json({ success: false, message: 'Lỗi server.' });
+      }
+
+      if (results.length === 0) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
+      }
+      
+      const userProfile = results[0];
+      // SỬA LỖI TIMEZONE NGAY TẠI ĐÂY
+      userProfile.dob = formatDateToYYYYMMDD(userProfile.dob);
+
+      res.status(200).json({ success: true, data: userProfile });
+    }
+  );
 };
 
 /**
- * Update authenticated user's profile
+ * Cập nhật hồ sơ của người dùng đã xác thực
  */
-exports.updateProfile = async (req, res) => {
-  try {
-    const { name, bio } = req.body;
-    const userId = req.user.id;
-    
-    // In a real implementation, this would update the database
-    const updatedProfile = {
-      id: userId,
-      name: name || 'Authenticated User',
-      bio: bio || 'Updated profile',
-      updatedAt: new Date(),
-    };
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Profile updated successfully',
-      data: updatedProfile 
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+exports.updateProfile = (req, res) => {
+  const userId = req.user.id;
+  const fieldsToUpdate = { ...req.body };
 
-/**
- * Delete authenticated user's account
- */
-exports.deleteAccount = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    // In a real implementation, this would delete the user from the database
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Account deleted successfully' 
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+  if (req.file) {
+    fieldsToUpdate.avatar = `/uploads/${req.file.filename}`;
   }
+
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    return res.status(400).json({ success: false, message: 'Không có thông tin nào để cập nhật.' });
+  }
+
+  const sql = 'UPDATE customers SET ? WHERE id = ?';
+  const values = [fieldsToUpdate, userId];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("❌ Lỗi khi cập nhật hồ sơ:", err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ success: false, message: 'Email này đã được sử dụng.' });
+      }
+      return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật.' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
+    }
+    res.status(200).json({ success: true, message: 'Cập nhật hồ sơ thành công!' });
+  });
 };
