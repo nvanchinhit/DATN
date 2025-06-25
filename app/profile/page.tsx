@@ -12,10 +12,9 @@ interface Customer {
   name: string;
   phone: string | null;
   gender: 'Nam' | 'Nữ' | 'Khác' | null;
-  dob: string | null; // Luôn ở định dạng YYYY-MM-DD
+  birthday: string | null;
   avatar: string | null;
   address: string | null;
-  cccd: string | null;
 }
 
 export default function ProfilePage() {
@@ -34,7 +33,7 @@ export default function ProfilePage() {
   // State quản lý chế độ sửa cho các trường
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
-  const [isEditingDob, setIsEditingDob] = useState(false);
+  const [isEditingBirthday, setIsEditingBirthday] = useState(false);
 
 
   // --- Phần 2: Logic và các hàm xử lý ---
@@ -57,12 +56,6 @@ export default function ProfilePage() {
         const result = await res.json();
         const data: Customer = result.data;
         
-        // SỬA LỖI 1: XỬ LÝ NGÀY SINH ĐÚNG CÁCH (TIMEZONE BUG)
-        // Lấy chuỗi ngày tháng từ DB và chỉ lấy phần YYYY-MM-DD để tránh lỗi múi giờ.
-        if (data.dob) {
-          data.dob = data.dob.split('T')[0];
-        }
-
         setProfileData(data);
         setFormData(data);
       } catch (err: any) { setError(err.message); } finally { setPageLoading(false); }
@@ -70,11 +63,12 @@ export default function ProfilePage() {
     fetchData();
   }, [authLoading, authUser, token, router, logout]);
 
-  // Xử lý thay đổi trên các ô input (dùng chung cho cả text và date)
+  // Xử lý thay đổi trên các ô input
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // Xử lý khi chọn file ảnh
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -91,19 +85,21 @@ export default function ProfilePage() {
     // Tắt tất cả các chế độ sửa
     setIsEditingEmail(false);
     setIsEditingPhone(false);
-    setIsEditingDob(false);
+    setIsEditingBirthday(false);
 
     const dataToUpdate = new FormData();
+    // Chỉ gửi đi những trường có thay đổi
     Object.keys(formData).forEach(key => {
       const formKey = key as keyof Customer;
       const currentValue = formData[formKey] ?? '';
       const originalValue = profileData[formKey] ?? '';
-      // Chỉ gửi đi những trường có thay đổi
       if (currentValue !== originalValue) {
         dataToUpdate.append(formKey, String(currentValue));
       }
     });
-    if (avatarFile) dataToUpdate.append('avatar', avatarFile);
+    if (avatarFile) {
+      dataToUpdate.append('avatar', avatarFile);
+    }
 
     if (Array.from(dataToUpdate.keys()).length === 0) {
       alert('Không có thông tin nào thay đổi.');
@@ -117,11 +113,10 @@ export default function ProfilePage() {
 
       alert('Cập nhật thành công!');
       
-      // Tải lại dữ liệu mới nhất
+      // Tải lại dữ liệu mới nhất từ server
       const newRes = await fetch(`${API_URL}/api/users/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
       const newResult = await newRes.json();
       const newData = newResult.data;
-      if (newData.dob) newData.dob = newData.dob.split('T')[0];
       setProfileData(newData);
       setFormData(newData);
       setAvatarFile(null);
@@ -132,21 +127,21 @@ export default function ProfilePage() {
   };
 
   // Hàm helper để hiển thị ngày tháng định dạng DD/MM/YYYY
-  const formatDateForDisplay = (isoDate: string | null | undefined): string => {
-    if (!isoDate) return 'Chưa có';
-    const dateParts = isoDate.split('-');
+  const formatDateForDisplay = (yyyy_mm_dd: string | null | undefined): string => {
+    if (!yyyy_mm_dd) return 'Chưa có';
+    const dateParts = yyyy_mm_dd.split('-');
     if (dateParts.length !== 3) return '';
     const [year, month, day] = dateParts;
     return `${day}/${month}/${year}`;
   };
 
+  
+  // --- Phần 3: Giao diện (JSX) ---
   if (authLoading || pageLoading) return <p className="p-6 text-center text-lg">Đang tải trang hồ sơ...</p>;
   if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
   if (!profileData) return <p className="p-6 text-center">Không thể hiển thị thông tin người dùng.</p>;
 
-  
-  // --- Phần 3: Giao diện (JSX) ---
-  const displayAvatar = avatarPreview || profileData.avatar;
+  const displayAvatar = avatarPreview || (profileData.avatar ? `${API_URL}${profileData.avatar}` : '/placeholder-avatar.png');
 
   return (
     <div className="bg-gray-100 py-6 px-4">
@@ -154,7 +149,7 @@ export default function ProfilePage() {
         {/* === Sidebar === */}
         <aside className="w-1/4 hidden lg:block">
           <div className="flex items-center gap-3 pb-4 border-b mb-4">
-            <img src={displayAvatar ? displayAvatar : '/placeholder-avatar.png'} alt="Avatar" className="w-12 h-12 rounded-full object-cover" onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }} />
+            <img src={displayAvatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover" onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }} />
             <div>
               <p className="font-semibold truncate">{profileData.name}</p>
               <a href="#profile-form" className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1">
@@ -163,13 +158,13 @@ export default function ProfilePage() {
               </a>
             </div>
           </div>
+          {/* ----- Sidebar đã được cập nhật ----- */}
           <nav className="space-y-2">
             <a href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>📅</span> Đặt Lịch Khám</a>
             <div>
               <a href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>👤</span> Tài Khoản Của Tôi</a>
               <div className="pl-8 mt-2 space-y-2 text-gray-600">
                 <a href="/profile" className="block text-blue-600 font-semibold">Hồ Sơ</a>
-               
                 <a href="#" className="block hover:text-blue-600">Địa Chỉ</a>
                 <a href="#" className="block hover:text-blue-600">Đổi Mật Khẩu</a>
               </div>
@@ -198,7 +193,6 @@ export default function ProfilePage() {
                 <input id="name" name="name" value={formData.name || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Nhập tên của bạn"/>
               </div>
               
-              {/* SỬA LỖI 2: Cập nhật giao diện và logic cho Email */}
               <div className="md:col-span-1 text-right text-gray-500">Email</div>
               <div className="md:col-span-2 flex items-center gap-2">
                 {isEditingEmail ? (
@@ -214,7 +208,6 @@ export default function ProfilePage() {
                 )}
               </div>
               
-              {/* SỬA LỖI 2: Cập nhật giao diện và logic cho Số điện thoại */}
               <div className="md:col-span-1 text-right text-gray-500">Số điện thoại</div>
               <div className="md:col-span-2 flex items-center gap-2">
                 {isEditingPhone ? (
@@ -240,28 +233,46 @@ export default function ProfilePage() {
                   ))}
               </div>
 
-              {/* SỬA LỖI 2: Cập nhật giao diện và logic cho Ngày sinh */}
               <div className="md:col-span-1 text-right text-gray-500">Ngày sinh</div>
               <div className="md:col-span-2 flex items-center gap-2">
-                {isEditingDob ? (
+                {isEditingBirthday ? (
                   <>
-                    <input type="date" name="dob" value={formData.dob || ''} onChange={handleChange} className="p-2 border rounded-md bg-white w-full md:w-2/3 focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
-                    <button type="button" onClick={() => setIsEditingDob(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">OK</button>
+                    <input type="date" name="birthday" value={formData.birthday || ''} onChange={handleChange} className="p-2 border rounded-md bg-white w-full md:w-2/3 focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
+                    <button type="button" onClick={() => setIsEditingBirthday(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">OK</button>
                   </>
                 ) : (
                   <>
-                    <p className="font-medium text-gray-800">{formatDateForDisplay(formData.dob)}</p>
-                    <button type="button" onClick={() => setIsEditingDob(true)} className="text-sm text-blue-600 hover:underline">Thay đổi</button>
+                    <p className="font-medium text-gray-800">{formatDateForDisplay(formData.birthday)}</p>
+                    <button type="button" onClick={() => setIsEditingBirthday(true)} className="text-sm text-blue-600 hover:underline">Thay đổi</button>
                   </>
                 )}
               </div>
-
+              
               <div className="md:col-span-1 text-right text-gray-500">Chọn Ảnh</div>
-              <div className="md:col-span-2 flex flex-col items-start">
-                  <img src={displayAvatar ? displayAvatar : '/placeholder-avatar.png'} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover mb-4 border" onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }}/>
-                  <input type="file" accept="image/*" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" />
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="border px-4 py-1.5 rounded-md text-sm hover:bg-gray-50">Chọn tệp</button>
+              <div className="md:col-span-2 flex items-center gap-6">
+                <img 
+                  src={displayAvatar}
+                  alt="Avatar Preview" 
+                  className="w-24 h-24 rounded-full object-cover border" 
+                  onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }}
+                />
+                <div>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={fileInputRef} 
+                    onChange={handleAvatarChange} 
+                    className="hidden" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="border px-4 py-1.5 rounded-md text-sm hover:bg-gray-50"
+                  >
+                    Chọn tệp
+                  </button>
                   <p className="text-xs text-gray-400 mt-2">Dung lượng tối đa 1MB. Định dạng: .JPEG, .PNG</p>
+                </div>
               </div>
               
               <div className="md:col-span-1"></div>
