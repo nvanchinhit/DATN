@@ -164,13 +164,12 @@ export default function ProfilePage() {
             </div>
           </div>
           <nav className="space-y-2">
-            <a href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>🔔</span> Thông Báo</a>
             <a href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>📅</span> Đặt Lịch Khám</a>
             <div>
               <a href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>👤</span> Tài Khoản Của Tôi</a>
               <div className="pl-8 mt-2 space-y-2 text-gray-600">
                 <a href="/profile" className="block text-blue-600 font-semibold">Hồ Sơ</a>
-                <a href="#" className="block hover:text-blue-600">Ngân Hàng</a>
+               
                 <a href="#" className="block hover:text-blue-600">Địa Chỉ</a>
                 <a href="#" className="block hover:text-blue-600">Đổi Mật Khẩu</a>
               </div>
