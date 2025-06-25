@@ -198,7 +198,7 @@ export default function ProfilePage() {
                 {isEditingEmail ? (
                   <>
                     <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Nhập email mới"/>
-                    <button type="button" onClick={() => setIsEditingEmail(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">OK</button>
+                    <button type="button" onClick={() => setIsEditingEmail(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button>
                   </>
                 ) : (
                   <>
@@ -213,7 +213,7 @@ export default function ProfilePage() {
                 {isEditingPhone ? (
                    <>
                     <input type="tel" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Nhập SĐT mới"/>
-                    <button type="button" onClick={() => setIsEditingPhone(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">OK</button>
+                    <button type="button" onClick={() => setIsEditingPhone(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button>
                   </>
                 ) : (
                    <>
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                 {isEditingBirthday ? (
                   <>
                     <input type="date" name="birthday" value={formData.birthday || ''} onChange={handleChange} className="p-2 border rounded-md bg-white w-full md:w-2/3 focus:ring-2 focus:ring-blue-400 focus:border-transparent"/>
-                    <button type="button" onClick={() => setIsEditingBirthday(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">OK</button>
+                    <button type="button" onClick={() => setIsEditingBirthday(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button>
                   </>
                 ) : (
                   <>
