@@ -35,21 +35,33 @@ exports.register = async (req, res) => {
           const verifyToken = jwt.sign({ id: userId }, secret, { expiresIn: "1d" });
           const verifyUrl = `http://localhost:3000/verify-email?token=${verifyToken}`;
 
-          try {
-            await sendMail({
-              to: email,
-              subject: "Xác thực tài khoản",
-              html: `
-                <p>Xin chào <strong>${name}</strong>,</p>
-                <p>Vui lòng bấm vào liên kết dưới đây để xác thực tài khoản:</p>
-                <a href="${verifyUrl}">${verifyUrl}</a>
-                <p>Liên kết này sẽ hết hạn sau 24 giờ.</p>
-              `
-            });
-          } catch (mailErr) {
-            console.error("❌ Gửi mail thất bại:", mailErr);
-            // Không dừng chương trình nếu lỗi gửi mail
-          }
+try {
+  await sendMail({
+    to: email,
+    subject: "Xác thực tài khoản",
+    html: `
+      <div style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #111;">
+        <h2 style="color: #1d4ed8;">Chào mừng, ${name}!</h2>
+        <p>Cảm ơn bạn đã đăng ký. Vui lòng xác thực tài khoản của bạn bằng cách nhấn vào nút dưới đây:</p>
+        
+        <div style="margin: 24px 0;">
+          <a href="${verifyUrl}" 
+             style="background-color: #10b981; color: white; padding: 12px 24px; border-radius: 8px; 
+                    text-decoration: none; display: inline-block; font-weight: bold;">
+            Xác thực tài khoản
+          </a>
+        </div>
+
+        <p>Nếu bạn không thực hiện hành động này, vui lòng bỏ qua email này.</p>
+        <p style="color: #6b7280; font-size: 14px;">Liên kết sẽ hết hạn sau 24 giờ.</p>
+      </div>
+    `
+  });
+} catch (err) {
+  console.error("❌ Gửi email xác thực thất bại:", err);
+  res.status(500).json({ msg: "Lỗi khi gửi email xác thực!" });
+}
+
 
           const token = jwt.sign({ id: userId, email }, secret, { expiresIn: "7d" });
 
@@ -189,4 +201,48 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     return res.status(400).json({ msg: "Token không hợp lệ hoặc đã hết hạn!" });
   }
+};
+exports.resendVerification = (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ msg: "Vui lòng nhập email!" });
+
+  db.query("SELECT * FROM customers WHERE email = ?", [email], (err, result) => {
+    if (err) return res.status(500).json({ msg: "Lỗi server!" });
+    if (result.length === 0) return res.status(400).json({ msg: "Email không tồn tại!" });
+
+    const user = result[0];
+
+    if (user.is_verified) {
+      return res.status(400).json({ msg: "Tài khoản đã được xác thực rồi!" });
+    }
+
+    const verifyToken = jwt.sign({ id: user.id }, secret, { expiresIn: "1d" });
+    const verifyUrl = `http://localhost:3000/verify-email?token=${verifyToken}`;
+
+    sendMail({
+      to: user.email,
+      subject: "Xác thực tài khoản lại",
+      html: `
+        <div style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #111;">
+          <h2 style="color: #1d4ed8;">Xin chào, ${user.name}!</h2>
+          <p>Bạn đã yêu cầu gửi lại email xác thực. Vui lòng nhấn vào nút dưới đây:</p>
+          <div style="margin: 24px 0;">
+            <a href="${verifyUrl}" 
+              style="background-color: #10b981; color: white; padding: 12px 24px; border-radius: 8px; 
+              text-decoration: none; display: inline-block; font-weight: bold;">
+              Xác thực tài khoản
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">Liên kết có hiệu lực trong 24 giờ.</p>
+        </div>
+      `
+    })
+      .then(() => {
+        res.json({ msg: "Đã gửi lại email xác thực!" });
+      })
+      .catch((err) => {
+        console.error("❌ Gửi lại email thất bại:", err);
+        res.status(500).json({ msg: "Lỗi khi gửi lại email xác thực!" });
+      });
+  });
 };

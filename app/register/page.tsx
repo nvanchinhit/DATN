@@ -7,12 +7,14 @@ import Image from "next/image";
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // 1. Bỏ `address` khỏi kiểu FormErrors
+// THAY ĐỔI: Thêm `terms` vào kiểu lỗi để xác thực checkbox điều khoản
 type FormErrors = {
   name?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
   phone?: string;
+  terms?: string;
 };
 
 export default function RegisterPage() {
@@ -24,7 +26,9 @@ export default function RegisterPage() {
     confirmPassword: "",
     phone: ""
   });
-
+  
+  // THAY ĐỔI: Thêm state cho checkbox điều khoản
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,6 +38,16 @@ export default function RegisterPage() {
 
     if (errors[name as keyof FormErrors]) {
       setErrors({ ...errors, [name]: undefined });
+    }
+  };
+
+  // THAY ĐỔI: Thêm hàm xử lý cho checkbox
+  const handleTermsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    setTermsAccepted(isChecked);
+    // Xóa lỗi nếu người dùng đã check vào ô
+    if (isChecked && errors.terms) {
+      setErrors(prevErrors => ({ ...prevErrors, terms: undefined }));
     }
   };
 
@@ -92,6 +106,11 @@ export default function RegisterPage() {
         validationErrors[key as keyof FormErrors] = error;
       }
     });
+    
+    // THAY ĐỔI: Thêm logic xác thực cho checkbox điều khoản
+    if (!termsAccepted) {
+      validationErrors.terms = "Bạn phải đồng ý với điều khoản và dịch vụ.";
+    }
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -136,8 +155,10 @@ export default function RegisterPage() {
         </p>
 
         {/* 4. Bỏ ô input "Địa chỉ" khỏi form */}
-        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md mx-auto">
+        {/* THAY ĐỔI: Tăng khoảng cách các ô nhập liệu từ space-y-4 -> space-y-5 */}
+        <form onSubmit={handleSubmit} className="space-y-5 w-full max-w-md mx-auto">
           <div>
+            {/* THAY ĐỔI: Chuyển nền xám sang nền trắng có viền */}
             <Input
               type="text"
               name="name"
@@ -145,7 +166,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Họ và tên (ít nhất 6 ký tự)"
-              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : ''}`}
+              className={`h-12 border border-gray-300 focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : ''}`}
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
@@ -158,7 +179,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Email"
-              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
+              className={`h-12 border border-gray-300 focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
             />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
@@ -171,7 +192,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Mật khẩu"
-              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''}`}
+              className={`h-12 border border-gray-300 focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''}`}
             />
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
           </div>
@@ -184,11 +205,10 @@ export default function RegisterPage() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Nhập lại mật khẩu"
-              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+              className={`h-12 border border-gray-300 focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
             />
             {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
           </div>
-
           <div>
             <Input
               type="text"
@@ -197,12 +217,29 @@ export default function RegisterPage() {
               onChange={handleChange}
               onBlur={handleBlur}
               placeholder="Số điện thoại"
-              className={`h-12 bg-gray-100 focus:bg-white focus:ring-2 focus:ring-blue-500 ${errors.phone ? 'border-red-500' : ''}`}
+              className={`h-12 border border-gray-300 focus:ring-2 focus:ring-blue-500 ${errors.phone ? 'border-red-500' : ''}`}
             />
             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
           </div>
-
-          {/* Ô nhập địa chỉ đã được xóa */}
+ <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={handleTermsChange}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="terms" className="text-sm text-gray-600">
+                Tôi đồng ý với các{" "}
+                <Link href="/terms-of-service" className="text-blue-600 hover:underline">
+                  Điều khoản và Dịch vụ
+                </Link>
+                .
+              </label>
+            </div>
+            {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
+          </div>
 
           <Button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg h-12 font-semibold mt-6 disabled:bg-blue-400 disabled:cursor-not-allowed">
             {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
@@ -214,11 +251,32 @@ export default function RegisterPage() {
           </p>
         </form>
       </div>
-
       {/* Right - Banner */}
-      <div className="hidden md:flex w-1/2 bg-[#0066ff] items-center justify-center relative overflow-hidden">
-        {/* ...Nội dung không đổi... */}
-      </div>
+<div className="hidden md:flex w-1/2 bg-[#0066ff] items-center justify-center relative overflow-hidden">
+  {/* Image Background with Overlay */}
+  <div className="absolute inset-0 z-0">
+    <Image
+      src="https://www.shutterstock.com/shutterstock/photos/2608071701/display_1500/stock-photo-lab-scientist-and-people-with-medical-research-high-five-and-colleagues-with-sticky-notes-or-2608071701.jpg"
+      alt="Bác sĩ thân thiện tại phòng khám"
+      layout="fill"
+      objectFit="cover"
+      className="opacity-20" // Điều chỉnh độ mờ của ảnh để lớp phủ màu xanh nổi bật
+    />
+  </div>
+
+  {/* Content */}
+  <div className="relative z-10 flex flex-col items-start p-16 text-white">
+    <h3 className="text-4xl lg:text-5xl font-bold leading-tight">
+      Sức Khỏe Của Bạn,
+      <br />
+      Sứ Mệnh Của Chúng Tôi.
+    </h3>
+    <div className="w-24 h-1.5 bg-white rounded-full mt-6 mb-8"></div>
+    <p className="text-lg text-white/90 max-w-md">
+      Nền tảng y tế số hàng đầu, kết nối bạn với đội ngũ y bác sĩ chuyên nghiệp một cách nhanh chóng và tiện lợi.
+    </p>
+  </div>
+</div>
     </div>
   );
 }
