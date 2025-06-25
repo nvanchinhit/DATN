@@ -8,6 +8,7 @@ import { Calendar, Clock, Loader2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import DoctorDetailsModal from './DoctorDetailsModal'; // Import component Modal
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // --- INTERFACES ---
 interface Specialization {
@@ -69,10 +70,11 @@ function BookingDoctorPage() {
         setLoading(true);
         setError(null);
         try {
-          const [specialtyRes, doctorsRes] = await Promise.all([
-            fetch(`http://localhost:5000/api/specializations/${specialtyId}`),
-            fetch(`http://localhost:5000/api/doctors-by-specialization/${specialtyId}`),
-          ]);
+        // Gọi chuyên khoa và danh sách bác sĩ
+const [specialtyRes, doctorsRes] = await Promise.all([
+  fetch(`${API_URL}/api/specializations/${specialtyId}`),
+  fetch(`${API_URL}/api/doctors-by-specialization/${specialtyId}`),
+]);
           if (!specialtyRes.ok || !doctorsRes.ok) {
             throw new Error('Không thể tải dữ liệu. Vui lòng thử lại sau.');
           }
@@ -104,7 +106,9 @@ function BookingDoctorPage() {
       setSelectedDate(null);
       setSelectedTime(null);
       try {
-        const res = await fetch(`http://localhost:5000/api/doctors/${selectedDoctorId}/time-slots`);
+        // Gọi lịch khám bác sĩ
+const res = await fetch(`${API_URL}/api/doctors/${selectedDoctorId}/time-slots`);
+
         if (!res.ok) throw new Error('Không thể tải lịch làm việc của bác sĩ.');
         const slotsData = await res.json();
         setTimeSlots(slotsData);
@@ -224,21 +228,24 @@ function BookingDoctorPage() {
               ) : !selectedDateKey || !timeSlots[selectedDateKey] || timeSlots[selectedDateKey].length === 0 ? (
                 <p className="text-gray-500 text-sm">Không có khung giờ trống cho ngày này.</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timeSlots[selectedDateKey]?.map((slot) => (
-                    <button
-                      key={`${slot.start}-${slot.end}`}
-                      onClick={() => setSelectedTime(slot)}
-                      className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
-                        selectedTime?.start === slot.start && selectedTime?.end === slot.end
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-gray-100 hover:bg-blue-100 text-gray-700'
-                      }`}
-                    >
-                      {`${slot.start} - ${slot.end}`}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+  {timeSlots[selectedDateKey]?.map((slot) => {
+    const isSelected = selectedTime?.start === slot.start && selectedTime?.end === slot.end;
+    return (
+      <button
+        key={`${slot.start}-${slot.end}`}
+        onClick={() => setSelectedTime(slot)}
+        className={`px-4 py-3 rounded-xl border text-sm font-semibold shadow-sm transition duration-200
+          ${isSelected
+            ? 'bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-400'}`}
+      >
+        🕓 {slot.start} - {slot.end}
+      </button>
+    );
+  })}
+</div>
+
               )}
             </div>
 

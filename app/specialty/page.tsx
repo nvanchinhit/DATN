@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 
 /* ---------- TYPES ---------- */
 interface Specialization {
@@ -9,8 +11,6 @@ interface Specialization {
   name: string;
   image: string;
 }
-
-const API_BASE_URL = 'http://localhost:5000';
 
 /* ---------- CARD ---------- */
 function SpecialtyCard({
@@ -22,7 +22,7 @@ function SpecialtyCard({
       className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-transform hover:-translate-y-2 overflow-hidden cursor-pointer group"
     >
       <img
-        src={`${API_BASE_URL}${image}`}
+        src={`${API_URL}${image}`}
         alt={name}
         className="w-full h-40 object-cover"
       />
@@ -49,7 +49,7 @@ export default function SpecialtyPage() {
   useEffect(() => {
     const fetchSpecialties = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/specializations`);
+        const res = await fetch(`${API_URL}/api/specializations`);
         if (!res.ok) throw new Error('Không thể kết nối đến server.');
         setData(await res.json());
       } catch (e: any) {
