@@ -26,7 +26,7 @@ const upload = multer({ storage: storage });
 
 
 // ================== ĐIỀU PHỐI ROUTER CHÍNH ==================
-const authRoutes = require('./auth.routes');
+const authRoutes = require('./authRoutes');
 const userRoutes = require('./user.routes');
 
 // Gắn các router con vào đường dẫn tương ứng
