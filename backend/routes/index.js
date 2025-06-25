@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// ================== CẤU HÌNH UPLOAD ẢNH (Giữ nguyên) ==================
+// ================== CẤU HÌNH UPLOAD ẢNH ==================
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads');
 
 // SỬA LỖI Ở ĐÂY: UPLOAD_DÍR -> UPLOAD_DIR
@@ -25,21 +25,16 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// ================== ĐIỀU PHỐI ROUTER (Phần quan trọng nhất) ==================
-// 1. Import các router con mà chúng ta đã tạo
-const authRoutes = require('./auth.routes'); // Route cho /register, /login
-const userRoutes = require('./user.routes'); // Route cho /profile
+// ================== ĐIỀU PHỐI ROUTER CHÍNH ==================
+const authRoutes = require('./auth.routes');
+const userRoutes = require('./user.routes');
 
-// 2. Gắn các router con vào đường dẫn tương ứng
-// Mọi request tới /api/auth/* sẽ được authRoutes xử lý
+// Gắn các router con vào đường dẫn tương ứng
 router.use('/auth', authRoutes);
-
-// Mọi request tới /api/users/* sẽ được userRoutes xử lý (GET, PUT profile)
 router.use('/users', userRoutes);
 
 
-// ================== CÁC API CŨ CỦA BẠN (Giữ nguyên) ==================
-// Các API này vẫn hoạt động bình thường
+// ================== CÁC API KHÁC ==================
 
 // === API SẢN PHẨM ===
 router.get('/products', (req, res) => {
@@ -62,6 +57,32 @@ router.get('/products-by-brand', (req, res) => {
 });
 
 // === API BÁC SĨ & LỊCH KHÁM ===
+
+// Lấy top 4 bác sĩ nổi bật
+router.get('/doctors/top', (req, res) => {
+  const sql = `
+    SELECT 
+      d.id, 
+      d.name, 
+      d.img, 
+      s.name AS specialty,
+      GROUP_CONCAT(DISTINCT DATE_FORMAT(ts.slot_date, '%Y-%m-%d')) AS available_dates
+    FROM doctors d
+    JOIN specializations s ON d.specialization_id = s.id
+    LEFT JOIN doctor_time_slot ts ON ts.doctor_id = d.id
+    WHERE d.account_status = 'active'
+    GROUP BY d.id
+    LIMIT 4`;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Lỗi truy vấn top bác sĩ:', err);
+      return res.status(500).json({ error: 'Lỗi server' });
+    }
+    res.json(results);
+  });
+});
+
+// Lấy danh sách bác sĩ theo chuyên khoa
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
   if (!specializationId) return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
@@ -71,8 +92,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
       id, name, img, introduction, specialization_id,
       certificate_image AS certificate, degree_image AS degree
     FROM doctors 
-    WHERE specialization_id = ? AND account_status = 'active'
-  `;
+    WHERE specialization_id = ? AND account_status = 'active'`;
   db.query(sql, [specializationId], (err, results) => {
     if (err) {
       console.error("Lỗi truy vấn bác sĩ:", err);
@@ -82,93 +102,115 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   });
 });
 
+// Lấy các khung giờ trống của một bác sĩ
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
-    const { doctorId } = req.params;
-    if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
-  
-    const sql = `
-      SELECT slot_date, start_time, end_time
-      FROM doctor_time_slot 
-      WHERE doctor_id = ? AND slot_date >= CURDATE()
-      ORDER BY slot_date, start_time
-    `;
-    db.query(sql, [doctorId], (err, results) => {
-      if (err) {
-        console.error("Lỗi truy vấn slot:", err);
-        return res.status(500).json({ error: 'Lỗi server.' });
-      }
-      const groupedSlots = results.reduce((acc, slot) => {
-        const dateObj = new Date(slot.slot_date);
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const date = `${year}-${month}-${day}`;
-        const start = slot.start_time.substring(0, 5);
-        const end = slot.end_time.substring(0, 5);
-  
-        if (!acc[date]) acc[date] = [];
-        acc[date].push({ start, end });
-        return acc;
-      }, {});
-      res.json(groupedSlots);
-    });
+  const { doctorId } = req.params;
+  if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
+
+  const sql = `
+    SELECT slot_date, start_time, end_time
+    FROM doctor_time_slot 
+    WHERE doctor_id = ? AND slot_date >= CURDATE()
+    ORDER BY slot_date, start_time`;
+  db.query(sql, [doctorId], (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn slot:", err);
+      return res.status(500).json({ error: 'Lỗi server.' });
+    }
+    const groupedSlots = results.reduce((acc, slot) => {
+      const date = new Date(slot.slot_date).toISOString().split('T')[0];
+      const start = slot.start_time.substring(0, 5);
+      const end = slot.end_time.substring(0, 5);
+
+      if (!acc[date]) acc[date] = [];
+      acc[date].push({ start, end });
+      return acc;
+    }, {});
+    res.json(groupedSlots);
+  });
 });
 
 // === API CHUYÊN KHOA (CRUD) ===
-// (Giữ nguyên toàn bộ các route GET, POST, PUT, DELETE cho /specializations)
+
+// Lấy tất cả chuyên khoa hoặc tìm kiếm
 router.get('/specializations', (req, res) => {
-    const search = req.query.search;
-    let sql = "SELECT id, name, image FROM specializations";
-    let values = [];
-    if (search) {
-      sql += " WHERE name LIKE ?";
-      values.push(`%${search}%`);
-    }
-    db.query(sql, values, (err, results) => {
-      if (err) return res.status(500).json({ error: "Lỗi server." });
-      res.json(results);
-    });
+  const search = req.query.search;
+  let sql = "SELECT id, name, image FROM specializations";
+  let values = [];
+  if (search) {
+    sql += " WHERE name LIKE ?";
+    values.push(`%${search}%`);
+  }
+  db.query(sql, values, (err, results) => {
+    if (err) return res.status(500).json({ error: "Lỗi server." });
+    res.json(results);
+  });
 });
+
+// Lấy top 4 chuyên khoa nổi bật
+router.get('/specializations/top', (req, res) => {
+  const sql = `
+    SELECT id, name, image 
+    FROM specializations 
+    ORDER BY id DESC 
+    LIMIT 4`;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn chuyên khoa:", err);
+      return res.status(500).json({ error: "Lỗi server." });
+    }
+    res.json(results);
+  });
+});
+
+// Lấy 1 chuyên khoa theo ID
 router.get('/specializations/:id', (req, res) => {
-    const { id } = req.params;
-    db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Lỗi server.' });
-      if (results.length === 0) return res.status(404).json({ error: 'Không tìm thấy.' });
-      res.json(results[0]);
-    });
+  const { id } = req.params;
+  db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
+    if (err) return res.status(500).json({ error: 'Lỗi server.' });
+    if (results.length === 0) return res.status(404).json({ error: 'Không tìm thấy.' });
+    res.json(results[0]);
+  });
 });
+
+// Thêm chuyên khoa
 router.post('/specializations', upload.single('image'), (req, res) => {
-    const { name } = req.body;
-    if (!req.file || !name) return res.status(400).json({ error: 'Thiếu tên hoặc ảnh.' });
-    const imageUrl = `/uploads/${req.file.filename}`;
-    db.query('INSERT INTO specializations (name, image) VALUES (?, ?)', [name, imageUrl], (err, result) => {
-      if (err) return res.status(500).json({ error: 'Lỗi khi thêm chuyên khoa.' });
-      res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl }});
-    });
+  const { name } = req.body;
+  if (!req.file || !name) return res.status(400).json({ error: 'Thiếu tên hoặc ảnh.' });
+  const imageUrl = `/uploads/${req.file.filename}`;
+  db.query('INSERT INTO specializations (name, image) VALUES (?, ?)', [name, imageUrl], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi khi thêm chuyên khoa.' });
+    res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl } });
+  });
 });
+
+// Cập nhật chuyên khoa
 router.put('/specializations/:id', upload.single('image'), (req, res) => {
-    const { id } = req.params;
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ error: 'Tên là bắt buộc.' });
-    if (req.file) {
-      const imageUrl = `/uploads/${req.file.filename}`;
-      db.query('UPDATE specializations SET name = ?, image = ? WHERE id = ?', [name, imageUrl, id], (err, result) => {
-        if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
-        res.json({ message: 'Cập nhật thành công!' });
-      });
-    } else {
-      db.query('UPDATE specializations SET name = ? WHERE id = ?', [name, id], (err, result) => {
-        if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
-        res.json({ message: 'Cập nhật tên thành công!' });
-      });
-    }
-});
-router.delete('/specializations/:id', (req, res) => {
-    const { id } = req.params;
-    db.query('DELETE FROM specializations WHERE id = ?', [id], (err, result) => {
-      if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi xóa' : 'Không tìm thấy' });
-      res.json({ message: 'Xóa thành công!' });
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Tên là bắt buộc.' });
+  if (req.file) {
+    const imageUrl = `/uploads/${req.file.filename}`;
+    db.query('UPDATE specializations SET name = ?, image = ? WHERE id = ?', [name, imageUrl, id], (err, result) => {
+      if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
+      res.json({ message: 'Cập nhật thành công!' });
     });
+  } else {
+    db.query('UPDATE specializations SET name = ? WHERE id = ?', [name, id], (err, result) => {
+      if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
+      res.json({ message: 'Cập nhật tên thành công!' });
+    });
+  }
+});
+
+// Xóa chuyên khoa
+router.delete('/specializations/:id', (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM specializations WHERE id = ?', [id], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi xóa.' });
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy chuyên khoa.' });
+    res.json({ message: 'Xóa thành công!' });
+  });
 });
 
 module.exports = router;
