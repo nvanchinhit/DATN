@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Eye, Pencil, Trash2, PlusCircle, Search, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Eye, Pencil, Trash2, PlusCircle, Search, X, LoaderCircle, AlertTriangle } from 'lucide-react';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// 1. Cập nhật Interface: status giờ là 'Đang hoạt động' | 'Chờ xét duyệt'
+// Interface Doctor không thay đổi
 interface Doctor {
   id: number;
   name: string;
@@ -17,67 +18,79 @@ interface Doctor {
   introduction: string;
 }
 
-// 2. Cập nhật Dữ liệu Mẫu với trạng thái mới
-const initialDoctors: Doctor[] = [
-  {
-    id: 201,
-    name: 'GS.TS. Trần Văn An',
-    phone: '0905123456',
-    email: 'an.tv@clinic.vn',
-    img: 'https://cdn.bookingcare.vn/fr/w200/2023/11/27/111857-bsckii-nguyen-thi-nu.jpg',
-    specialization: 'Tim mạch',
-    status: 'Đang hoạt động',
-    certificate: 'https://i.imgur.com/r3eYFRC.jpeg',
-    degree: 'https://i.imgur.com/T0azHTQ.jpeg',
-    introduction: 'Hơn 20 năm kinh nghiệm trong lĩnh vực tim mạch can thiệp, từng tu nghiệp tại Pháp và Hoa Kỳ. Là chuyên gia hàng đầu về đặt stent và các thủ thuật tim mạch phức tạp.',
-  },
-  {
-    id: 202,
-    name: 'BSCKII. Nguyễn Thị Lan',
-    phone: '0912987654',
-    email: 'lan.nt@clinic.vn',
-    img: 'https://cdn.bookingcare.vn/fr/w200/2024/01/10/144612-bs-hoang-cuong.jpg',
-    specialization: 'Da liễu',
-    status: 'Đang hoạt động',
-    certificate: 'https://i.imgur.com/r3eYFRC.jpeg',
-    degree: 'https://i.imgur.com/T0azHTQ.jpeg',
-    introduction: 'Chuyên gia về các bệnh da liễu thẩm mỹ, ứng dụng công nghệ laser tiên tiến trong điều trị nám, tàn nhang và trẻ hóa da. Rất mát tay và được nhiều bệnh nhân tin tưởng.',
-  },
-  {
-    id: 203,
-    name: 'ThS.BS. Lê Hoàng Minh',
-    phone: '0988112233',
-    email: 'minh.lh@clinic.vn',
-    img: 'https://cdn.bookingcare.vn/fr/w200/2023/06/06/171556-bs-ma-thanh-xuan.jpg',
-    specialization: 'Nhi khoa',
-    status: 'Đang hoạt động',
-    certificate: 'https://i.imgur.com/r3eYFRC.jpeg',
-    degree: 'https://i.imgur.com/T0azHTQ.jpeg',
-    introduction: 'Tận tâm với sức khỏe trẻ em, đặc biệt có chuyên môn sâu về các vấn đề dinh dưỡng, tiêu hóa và tiêm chủng mở rộng. Luôn nhẹ nhàng và thấu hiểu tâm lý trẻ nhỏ.',
-  },
-  {
-    id: 204,
-    name: 'BS. Phạm Thu Hà',
-    phone: '0934555888',
-    email: 'ha.pt@clinic.vn',
-    img: 'https://cdn.bookingcare.vn/fr/w200/2023/12/11/110542-bsckii-tran-thi-huyen-trang.jpg',
-    specialization: 'Sản phụ khoa',
-    status: 'Chờ xét duyệt', // Cập nhật trạng thái
-    certificate: 'https://i.imgur.com/r3eYFRC.jpeg',
-    degree: 'https://i.imgur.com/T0azHTQ.jpeg',
-    introduction: 'Hồ sơ mới, đang chờ hội đồng y khoa phê duyệt chứng chỉ và bằng cấp.',
-  },
-];
-
-const specializations = [...new Set(initialDoctors.map(d => d.specialization))];
-const statuses = [...new Set(initialDoctors.map(d => d.status))];
+// Interface DoctorFromAPI không thay đổi
+interface DoctorFromAPI {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  img: string;
+  specialty_name: string;
+  account_status: 'active' | string;
+  certificate_image: string;
+  degree_image: string;
+  introduction: string;
+}
 
 export default function DoctorsPage() {
-  const [doctors, setDoctors] = useState<Doctor[]>(initialDoctors);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialization, setFilterSpecialization] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Sử dụng hằng số API_URL đã được định nghĩa ở ngoài
+        const response = await fetch(`${API_URL}/api/doctors`); 
+        if (!response.ok) {
+          throw new Error('Không thể kết nối tới server. Vui lòng thử lại sau.');
+        }
+        const data: DoctorFromAPI[] = await response.json();
+        
+        const mappedDoctors: Doctor[] = data.map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          phone: doc.phone,
+          email: doc.email,
+          introduction: doc.introduction,
+          // Sử dụng API_URL để tạo đường dẫn tuyệt đối cho ảnh
+          img: doc.img ? `${API_URL}${doc.img}` : '/default-avatar.jpg',
+          certificate: doc.certificate_image ? `${API_URL}${doc.certificate_image}` : '',
+          degree: doc.degree_image ? `${API_URL}${doc.degree_image}` : '',
+          specialization: doc.specialty_name || 'Chưa cập nhật',
+          status: doc.account_status === 'active' ? 'Đang hoạt động' : 'Chờ xét duyệt',
+        }));
+        
+        setDoctors(mappedDoctors);
+
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Lỗi khi fetch dữ liệu bác sĩ:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, []); // API_URL là hằng số ngoài component, không cần đưa vào dependency array.
+
+  // Các phần còn lại không thay đổi
+  const specializations = useMemo(() => {
+    const allSpecs = doctors.map(d => d.specialization);
+    return [...new Set(allSpecs)];
+  }, [doctors]);
+
+  const statuses = useMemo(() => {
+    const allStatuses = doctors.map(d => d.status);
+    return [...new Set(allStatuses)];
+  }, [doctors]);
 
   const displayedDoctors = doctors
     .filter(doc => (filterStatus === 'all' ? true : doc.status === filterStatus))
@@ -95,8 +108,10 @@ export default function DoctorsPage() {
   const handleViewDetails = (doctor: Doctor) => setSelectedDoctor(doctor);
   const handleCloseModal = () => setSelectedDoctor(null);
 
+  // JSX giữ nguyên, không cần thay đổi
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">👨‍⚕️ Quản lý Bác sĩ</h1>
         <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-blue-700 transition">
@@ -104,11 +119,11 @@ export default function DoctorsPage() {
         </button>
       </div>
 
+      {/* Filter Section */}
       <div className="mb-6 p-4 bg-white rounded-xl shadow-md border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-            {/* 3. SỬA LỖI BÁO ĐỎ: Thêm type cho event của input */}
             <input 
               type="text"
               placeholder="Tìm theo tên, SĐT, mã BS..."
@@ -122,10 +137,11 @@ export default function DoctorsPage() {
         </div>
       </div>
 
+      {/* Table Section */}
       <div className="overflow-x-auto bg-white shadow-md rounded-xl">
         <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-100 text-gray-600 uppercase tracking-wide">
-            <tr>
+             <tr>
               <th className="px-6 py-4 border-b">Bác sĩ</th>
               <th className="px-6 py-4 border-b">Chuyên khoa</th>
               <th className="px-6 py-4 border-b">Trạng thái</th>
@@ -135,16 +151,19 @@ export default function DoctorsPage() {
             </tr>
           </thead>
           <tbody>
-            {displayedDoctors.length > 0 ? (
+            {loading ? (
+                <tr><td colSpan={6} className="text-center py-10 text-gray-500"><div className="flex justify-center items-center gap-2"><LoaderCircle className="animate-spin" size={20} /> Đang tải dữ liệu...</div></td></tr>
+            ) : error ? (
+                <tr><td colSpan={6} className="text-center py-10 text-red-500"><div className="flex justify-center items-center gap-2"><AlertTriangle size={20} /> {error}</div></td></tr>
+            ) : displayedDoctors.length > 0 ? (
               displayedDoctors.map((doc) => (
                 <tr key={doc.id} className="border-b hover:bg-gray-50 transition">
                   <td className="px-6 py-4 flex items-center gap-4">
-                    <img src={doc.img || '/default-avatar.jpg'} alt={doc.name} className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-md"/>
+                    <img src={doc.img} alt={doc.name} className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-md"/>
                     <div><p className="text-gray-900 font-semibold">{doc.name}</p><p className="text-gray-500 text-xs">{doc.email}</p></div>
                   </td>
                   <td className="px-6 py-4 text-gray-700">{doc.specialization}</td>
                   <td className="px-6 py-4">
-                    {/* 4. Cập nhật logic hiển thị màu cho trạng thái mới */}
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
                       doc.status === 'Đang hoạt động' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
@@ -167,6 +186,7 @@ export default function DoctorsPage() {
         </table>
       </div>
 
+      {/* Modal Section */}
       {selectedDoctor && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" onClick={handleCloseModal}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>

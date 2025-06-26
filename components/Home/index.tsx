@@ -4,25 +4,20 @@ import TrustIndicators from './TrustIndicators';
 import Services from './Services';
 import TopDoctors from './TopDoctors';
 import TopSpecialties from './TopSpecialties';
-import TopMedicines from './TopMedicines';
 import BookingSection from './BookingSection';
 import { ArrowRight, Phone, Mail, MapPin } from 'lucide-react';
 
 function Home() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Main Content */}
       <main>
         <HeroSection />
         <TrustIndicators />
         <TopDoctors />
         <TopSpecialties />
         <Services />
-        <TopMedicines />
         <BookingSection />
-        
-        {/* Contact Section */}
-        <section id="contact" className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
+                <section id="contact" className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-100">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Liên hệ với chúng tôi</h2>

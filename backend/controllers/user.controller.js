@@ -1,50 +1,48 @@
 // backend/controllers/user.controller.js
+
 const db = require('../config/db.config');
+const bcrypt = require('bcrypt'); // Thêm thư viện bcrypt
 
 /**
- * Hàm helper để định dạng ngày tháng an toàn, tránh lỗi timezone
- * @param {Date | string} dateInput - Ngày tháng từ database
- * @returns {string | null} - Chuỗi ngày tháng dạng YYYY-MM-DD hoặc null
+ * [FINAL FIX] Hàm helper để định dạng ngày tháng an toàn, miễn nhiễm với lỗi timezone.
+ * Luôn trả về chuỗi ngày tháng dạng YYYY-MM-DD chính xác.
+ * @param {Date | string | null} dateInput - Ngày tháng từ database, ví dụ: '2015-06-20'
+ * @returns {string | null}
  */
 const formatDateToYYYYMMDD = (dateInput) => {
   if (!dateInput) return null;
-  const date = new Date(dateInput);
-  // Thêm chênh lệch múi giờ của client để bù lại phần bị trừ đi khi chuyển sang UTC
-  // Ví dụ: new Date('2017-02-10T00:00:00') ở GMT+7 -> toISOString() -> '2017-02-09T17:00:00.000Z'
-  // getTimezoneOffset() của GMT+7 là -420 (phút).
-  // Bù lại bằng cách cộng thêm số phút đó.
-  date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+
+  try {
+    const date = new Date(dateInput);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    console.error("Lỗi định dạng ngày:", e);
+    return null; 
+  }
 };
+
 
 /**
  * Lấy hồ sơ của người dùng đã xác thực
  */
 exports.getProfile = (req, res) => {
   const userId = req.user.id;
-
   const sql = 'SELECT id, name, email, phone, gender, birthday, avatar, address FROM customers WHERE id = ?';
 
   db.query(sql, [userId], (err, results) => {
     if (err) {
       console.error("❌ Lỗi khi lấy hồ sơ:", err);
-      return res.status(500).json({ success: false, message: 'Lỗi server.' });
+      return res.status(500).json({ success: false, message: 'Lỗi server khi truy vấn hồ sơ.' });
     }
-
     if (results.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
     }
-
     const userProfile = results[0];
     userProfile.birthday = formatDateToYYYYMMDD(userProfile.birthday);
-
     res.status(200).json({ success: true, data: userProfile });
   });
 };
-
 
 /**
  * Cập nhật hồ sơ của người dùng đã xác thực
@@ -56,11 +54,13 @@ exports.updateProfile = (req, res) => {
   if (req.file) {
     fieldsToUpdate.avatar = `/uploads/${req.file.filename}`;
   }
+  
+  delete fieldsToUpdate.id;
+  delete fieldsToUpdate.role_id;
+  delete fieldsToUpdate.is_verified;
 
-  // ✅ Chuyển đổi trường 'dob' thành 'birthday' nếu cần
-  if (fieldsToUpdate.dob) {
-    fieldsToUpdate.birthday = fieldsToUpdate.dob;
-    delete fieldsToUpdate.dob;
+  if (fieldsToUpdate.hasOwnProperty('birthday') && fieldsToUpdate.birthday === '') {
+    fieldsToUpdate.birthday = null;
   }
 
   if (Object.keys(fieldsToUpdate).length === 0) {
@@ -76,13 +76,65 @@ exports.updateProfile = (req, res) => {
       if (err.code === 'ER_DUP_ENTRY') {
         return res.status(400).json({ success: false, message: 'Email này đã được sử dụng.' });
       }
+      if (err.code === 'ER_BAD_FIELD_ERROR') {
+          return res.status(400).json({ success: false, message: 'Một số trường thông tin không hợp lệ.' });
+      }
       return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật.' });
     }
-
     if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng để cập nhật.' });
+    }
+    res.status(200).json({ success: true, message: 'Cập nhật hồ sơ thành công!' });
+  });
+};
+
+/**
+ * [MỚI] Đổi mật khẩu cho người dùng đã xác thực
+ */
+exports.changePassword = (req, res) => {
+  const userId = req.user.id;
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mật khẩu hiện tại và mật khẩu mới.' });
+  }
+
+  const sqlSelect = 'SELECT password FROM customers WHERE id = ?';
+  db.query(sqlSelect, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ Lỗi khi lấy mật khẩu cũ:", err);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi lấy mật khẩu.' });
+    }
+    if (results.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng.' });
     }
 
-    res.status(200).json({ success: true, message: 'Cập nhật hồ sơ thành công!' });
+    const hashedPasswordInDb = results[0].password;
+
+    bcrypt.compare(current_password, hashedPasswordInDb, (compareErr, isMatch) => {
+      if (compareErr) {
+        console.error("❌ Lỗi khi so sánh mật khẩu:", compareErr);
+        return res.status(500).json({ success: false, message: 'Lỗi server khi xác thực.' });
+      }
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác.' });
+      }
+
+      bcrypt.hash(new_password, 10, (hashErr, newHashedPassword) => {
+        if (hashErr) {
+          console.error("❌ Lỗi khi mã hóa mật khẩu mới:", hashErr);
+          return res.status(500).json({ success: false, message: 'Lỗi server khi bảo mật mật khẩu.' });
+        }
+
+        const sqlUpdate = 'UPDATE customers SET password = ? WHERE id = ?';
+        db.query(sqlUpdate, [newHashedPassword, userId], (updateErr) => {
+          if (updateErr) {
+            console.error("❌ Lỗi khi cập nhật mật khẩu mới:", updateErr);
+            return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật mật khẩu.' });
+          }
+          res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });
+        });
+      });
+    });
   });
 };
