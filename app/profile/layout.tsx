@@ -3,7 +3,7 @@
 
 import { useEffect, useState, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/page';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;

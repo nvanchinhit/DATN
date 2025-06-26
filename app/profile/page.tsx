@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/contexts/AuthContext';
+import { useAuth } from '@/app/contexts/page';
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Customer {
@@ -126,31 +126,35 @@ export default function ProfilePage() {
       </div>
       <form className="mt-6" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8 items-center">
-              <div className="md:col-span-1 text-right text-gray-500">Tên đăng nhập</div>
-              <div className="md:col-span-2">
-                <p className="font-medium text-gray-800">{profileData.name}</p>
-                <p className="text-xs text-gray-400 mt-1">Tên đăng nhập chỉ có thể thay đổi một lần.</p>
-              </div>
-              <div className="md:col-span-1 text-right text-gray-500">Tên</div>
+
+              {/* <<< BỎ ĐI: Khối "Tên đăng nhập" đã được xóa khỏi đây */}
+
+              {/* <<< THAY ĐỔI: Sửa label "Tên" thành "Họ và Tên" cho rõ ràng */}
+              <div className="md:col-span-1 text-right text-gray-500">Họ và Tên</div>
               <div className="md:col-span-2">
                 <input id="name" name="name" value={formData.name || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="Nhập tên của bạn"/>
               </div>
+              
               <div className="md:col-span-1 text-right text-gray-500">Email</div>
               <div className="md:col-span-2 flex items-center gap-2">
                 {isEditingEmail ? (<><input type="email" name="email" value={formData.email || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md" placeholder="Nhập email mới"/><button type="button" onClick={() => setIsEditingEmail(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button></>) : (<><p className="font-medium text-gray-800">{formData.email || 'Chưa có'}</p><button type="button" onClick={() => setIsEditingEmail(true)} className="text-sm text-blue-600 hover:underline">Thay đổi</button></>)}
               </div>
+              
               <div className="md:col-span-1 text-right text-gray-500">Số điện thoại</div>
               <div className="md:col-span-2 flex items-center gap-2">
                 {isEditingPhone ? (<><input type="tel" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full md:w-2/3 p-2 border rounded-md" placeholder="Nhập SĐT mới"/><button type="button" onClick={() => setIsEditingPhone(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button></>) : (<><p className="font-medium text-gray-800">{formData.phone ? `********${formData.phone.slice(-2)}` : 'Chưa có'}</p><button type="button" onClick={() => setIsEditingPhone(true)} className="text-sm text-blue-600 hover:underline">Thay đổi</button></>)}
               </div>
+              
               <div className="md:col-span-1 text-right text-gray-500">Giới tính</div>
               <div className="md:col-span-2 flex gap-6 items-center">
                   {['Nam', 'Nữ', 'Khác'].map(option => (<label key={option} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="gender" value={option} checked={formData.gender === option} onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(p => ({...p, gender: e.target.value as any}))} className="form-radio text-blue-600 h-4 w-4"/>{option}</label>))}
               </div>
+              
               <div className="md:col-span-1 text-right text-gray-500">Ngày sinh</div>
               <div className="md:col-span-2 flex items-center gap-2">
                 {isEditingBirthday ? (<><input type="date" name="birthday" value={formData.birthday || ''} onChange={handleChange} className="p-2 border rounded-md w-full md:w-2/3"/><button type="button" onClick={() => setIsEditingBirthday(false)} className="text-sm text-blue-600 hover:underline flex-shrink-0">Lưu</button></>) : (<><p className="font-medium text-gray-800">{formatDateForDisplay(formData.birthday)}</p><button type="button" onClick={() => setIsEditingBirthday(true)} className="text-sm text-blue-600 hover:underline">Thay đổi</button></>)}
               </div>
+              
               <div className="md:col-span-1 text-right text-gray-500">Chọn Ảnh</div>
               <div className="md:col-span-2 flex items-center gap-6">
                 <img src={displayAvatar} alt="Avatar Preview" className="w-24 h-24 rounded-full object-cover border" onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }}/>
@@ -160,6 +164,7 @@ export default function ProfilePage() {
                   <p className="text-xs text-gray-400 mt-2">Dung lượng tối đa 1MB. Định dạng: .JPEG, .PNG</p>
                 </div>
               </div>
+
               <div className="md:col-span-1"></div>
               <div className="md:col-span-2">
                 <button type="submit" className="bg-blue-600 text-white px-10 py-2 rounded-md hover:bg-blue-700 transition-colors">Lưu</button>
