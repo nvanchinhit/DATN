@@ -84,34 +84,39 @@ export default function Header() {
             <Link href="/" className="hover:text-blue-600 no-underline">Trang chủ</Link>
             <Link href="/shop" className="hover:text-blue-600 no-underline">Sản phẩm</Link>
             <Link href="/specialty" className="hover:text-blue-600 no-underline">Đặt lịch khám</Link>
-            <Link href="#" className="hover:text-blue-600 no-underline">Về chúng tôi</Link>
-            <Link href="#" className="hover:text-blue-600 no-underline">Tin tức</Link>
-            <Link href="#" className="hover:text-blue-600 no-underline">Liên hệ</Link>
+            <Link href="/about-us" className="hover:text-blue-600 no-underline">Về chúng tôi</Link>
+            <Link href="/contact-us" className="hover:text-blue-600 no-underline">Liên hệ</Link>
           </nav>
 
-          <Link href="/account" className="text-xl hover:text-blue-600 no-underline">👤</Link>
-          <Link href="/cart" className="text-xl hover:text-blue-600 no-underline">🛒</Link>
-
           {user ? (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
-                👋 Xin chào, <strong>{user.name}</strong>
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-red-600 hover:underline"
-              >
-                Đăng xuất
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="text-sm text-blue-600 no-underline hover:text-blue-800"
-            >
-              Đăng nhập / Đăng ký
-            </Link>
-          )}
+  <div className="flex items-center space-x-2">
+    <span className="text-sm text-gray-700">
+      👋 Xin chào, <strong>{user.name}</strong>
+    </span>
+
+    <Link
+      href="/profile"
+      className="text-sm text-green-600 hover:underline"
+    >
+      Xem hồ sơ
+    </Link>
+
+    <button
+      onClick={handleLogout}
+      className="text-sm text-red-600 hover:underline"
+    >
+      Đăng xuất
+    </button>
+  </div>
+) : (
+  <Link
+    href="/login"
+    className="text-sm text-blue-600 no-underline hover:text-blue-800"
+  >
+    Đăng nhập / Đăng ký
+  </Link>
+)}
+
         </div>
       </div>
     </header>

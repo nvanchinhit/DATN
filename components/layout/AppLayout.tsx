@@ -8,7 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   // Các đường dẫn không cần Header/Footer
-  const noLayoutPaths = ['/admin', '/login', '/register', '/doctor'];
+  const noLayoutPaths = ['/admin', '/login', '/register', '/doctor', '/forgot-password','/reset-password'];
 
   // Kiểm tra nếu bất kỳ path nào trong danh sách là tiền tố của pathname
   const hideLayout = noLayoutPaths.some((path) => pathname.startsWith(path));
