@@ -84,8 +84,6 @@ export default function AboutUsPage() {
                 </Link>
             </section>
           </div>
-
-          {/* Sidebar - Contact Info */}
           <aside className="bg-white p-6 rounded-lg shadow-lg h-fit">
             <h3 className="text-2xl font-bold text-gray-800 border-b pb-3 mb-4">Thông Tin Liên Hệ</h3>
             <ul className="space-y-4 text-gray-700">

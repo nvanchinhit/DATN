@@ -25,18 +25,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// ================== ĐIỀU PHỐI ROUTER CHÍNH ==================
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./user.routes');
+const doctorRoutes = require('./doctor.routes');
 
-// Gắn các router con vào đường dẫn tương ứng
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/doctors', doctorRoutes);
 
-
-// ================== CÁC API KHÁC ==================
-
-// === API SẢN PHẨM ===
 router.get('/products', (req, res) => {
   db.query('SELECT * FROM products', (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -56,9 +52,6 @@ router.get('/products-by-brand', (req, res) => {
   });
 });
 
-// === API BÁC SĨ & LỊCH KHÁM ===
-
-// Lấy top 4 bác sĩ nổi bật
 router.get('/doctors/top', (req, res) => {
   const sql = `
     SELECT 
@@ -81,8 +74,6 @@ router.get('/doctors/top', (req, res) => {
     res.json(results);
   });
 });
-
-// Lấy danh sách bác sĩ theo chuyên khoa
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
   if (!specializationId) return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
@@ -101,8 +92,6 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
     res.json(results);
   });
 });
-
-// Lấy các khung giờ trống của một bác sĩ
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
@@ -129,10 +118,6 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
     res.json(groupedSlots);
   });
 });
-
-// === API CHUYÊN KHOA (CRUD) ===
-
-// Lấy tất cả chuyên khoa hoặc tìm kiếm
 router.get('/specializations', (req, res) => {
   const search = req.query.search;
   let sql = "SELECT id, name, image FROM specializations";
@@ -146,8 +131,6 @@ router.get('/specializations', (req, res) => {
     res.json(results);
   });
 });
-
-// Lấy top 4 chuyên khoa nổi bật
 router.get('/specializations/top', (req, res) => {
   const sql = `
     SELECT id, name, image 
@@ -162,8 +145,6 @@ router.get('/specializations/top', (req, res) => {
     res.json(results);
   });
 });
-
-// Lấy 1 chuyên khoa theo ID
 router.get('/specializations/:id', (req, res) => {
   const { id } = req.params;
   db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
@@ -172,8 +153,6 @@ router.get('/specializations/:id', (req, res) => {
     res.json(results[0]);
   });
 });
-
-// Thêm chuyên khoa
 router.post('/specializations', upload.single('image'), (req, res) => {
   const { name } = req.body;
   if (!req.file || !name) return res.status(400).json({ error: 'Thiếu tên hoặc ảnh.' });
@@ -183,8 +162,6 @@ router.post('/specializations', upload.single('image'), (req, res) => {
     res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl } });
   });
 });
-
-// Cập nhật chuyên khoa
 router.put('/specializations/:id', upload.single('image'), (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
@@ -202,8 +179,6 @@ router.put('/specializations/:id', upload.single('image'), (req, res) => {
     });
   }
 });
-
-// Xóa chuyên khoa
 router.delete('/specializations/:id', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM specializations WHERE id = ?', [id], (err, result) => {
@@ -212,5 +187,31 @@ router.delete('/specializations/:id', (req, res) => {
     res.json({ message: 'Xóa thành công!' });
   });
 });
+// GET: Lấy danh sách tất cả các bác sĩ (chỉ lấy các bác sĩ đang hoạt động)
+router.get('/doctors', (req, res) => {
+  // Câu lệnh SQL chọn các cột cần thiết, TRÁNH lấy cột password để bảo mật
+  const sql = `
+    SELECT 
+      d.id, 
+      d.name, 
+      d.phone, 
+      d.email, 
+      d.img, 
+      d.introduction, 
+      d.certificate_image, 
+      d.degree_image, 
+      d.account_status,
+      s.name AS specialty_name 
+    FROM doctors d
+    LEFT JOIN specializations s ON d.specialization_id = s.id
+    WHERE d.account_status = 'active'`; // Chỉ lấy các bác sĩ có tài khoản đang hoạt động
 
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn danh sách bác sĩ:", err);
+      return res.status(500).json({ error: 'Lỗi server khi truy vấn dữ liệu.' });
+    }
+    res.json(results);
+  });
+});
 module.exports = router;

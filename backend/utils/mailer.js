@@ -22,4 +22,4 @@ async function sendMail({ to, subject, html }) {
   return transport.sendMail(options);
 }
 
-module.exports = sendMail; // ✅ xuất trực tiếp hàm để dùng: sendMail(...)
+module.exports = sendMail;
