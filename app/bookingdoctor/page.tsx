@@ -6,6 +6,7 @@ import { Calendar, Clock, Loader2 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import DoctorDetailsModal from "./DoctorDetailsModal";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Specialization {
   id: number;
@@ -64,8 +65,8 @@ function BookingDoctorPage() {
         setError(null);
         try {
           const [specialtyRes, doctorsRes] = await Promise.all([
-            fetch(`http://localhost:5000/api/specializations/${specialtyId}`),
-            fetch(`http://localhost:5000/api/doctors-by-specialization/${specialtyId}`),
+ fetch(`${API_URL}/api/specializations/${specialtyId}`),
+            fetch(`${API_URL}/api/doctors-by-specialization/${specialtyId}`),
           ]);
           if (!specialtyRes.ok || !doctorsRes.ok) throw new Error("Không thể tải dữ liệu.");
           setSpecialty(await specialtyRes.json());
@@ -95,7 +96,7 @@ function BookingDoctorPage() {
       setSelectedDate(null);
       setSelectedTime(null);
       try {
-        const res = await fetch(`http://localhost:5000/api/doctors/${selectedDoctorId}/time-slots`);
+     const res = await fetch(`${API_URL}/api/doctors/${selectedDoctorId}/time-slots`);
         if (!res.ok) throw new Error("Không thể tải lịch làm việc của bác sĩ.");
         const slotsData = await res.json();
         setTimeSlots(slotsData);
