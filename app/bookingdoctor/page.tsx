@@ -14,6 +14,13 @@ interface Specialization {
   image: string;
 }
 
+// Tìm interface này và thêm trường is_booked
+interface TimeSlotItem {
+  id: number;    
+  start: string;
+  end: string;
+  is_booked: boolean; // <-- THÊM DÒNG NÀY
+}
 interface Doctor {
   id: number;
   name: string;
@@ -251,21 +258,26 @@ function BookingDoctorPage() {
                 <p className="text-gray-500 text-sm">Không có khung giờ trống cho ngày này.</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                   {timeSlots[selectedDateKey].map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => setSelectedTime(slot)}
-                      type="button"
-                      className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
-                        selectedTime?.id === slot.id
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-gray-100 hover:bg-blue-100 text-gray-700"
-                      }`}
-                    >
-                      {slot.start} - {slot.end}
-                    </button>
-                  ))}
-                </div>
+   {timeSlots[selectedDateKey].map((slot) => (
+    <button
+      key={slot.id}
+      onClick={() => setSelectedTime(slot)}
+      // Vô hiệu hóa nút nếu đã được đặt
+      disabled={slot.is_booked} 
+      type="button"
+      // Cập nhật class để thay đổi giao diện
+      className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
+        selectedTime?.id === slot.id
+          ? "bg-blue-600 text-white shadow-md"
+          : slot.is_booked
+          ? "bg-gray-200 text-gray-400 cursor-not-allowed line-through" // Style cho slot đã đặt
+          : "bg-gray-100 hover:bg-blue-100 text-gray-700" // Style cho slot còn trống
+      }`}
+    >
+      {slot.start} - {slot.end}
+    </button>
+  ))}
+</div>
               )}
             </div>
 

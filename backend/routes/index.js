@@ -96,21 +96,27 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   });
 });
 
-// ✅ SỬA Ở ĐÂY: Thay đổi cách lấy time-slots
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
-  // Dùng DATE_FORMAT để MySQL trả về chuỗi 'YYYY-MM-DD'
+  // Câu SQL mới sử dụng LEFT JOIN để kiểm tra các slot đã được đặt
   const sql = `
     SELECT 
-      id, 
-      DATE_FORMAT(slot_date, '%Y-%m-%d') AS slot_date,
-      start_time, 
-      end_time
-    FROM doctor_time_slot 
-    WHERE doctor_id = ? AND slot_date >= CURDATE()
-    ORDER BY slot_date, start_time`;
+      dts.id, 
+      DATE_FORMAT(dts.slot_date, '%Y-%m-%d') AS slot_date,
+      dts.start_time, 
+      dts.end_time,
+      -- Thêm cột is_booked: nếu a.id không rỗng, tức là đã có lịch hẹn -> true
+      CASE WHEN a.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_booked
+    FROM 
+      doctor_time_slot AS dts
+    LEFT JOIN 
+      appointments AS a ON dts.id = a.time_slot_id
+    WHERE 
+      dts.doctor_id = ? AND dts.slot_date >= CURDATE()
+    ORDER BY 
+      dts.slot_date, dts.start_time`;
     
   db.query(sql, [doctorId], (err, results) => {
     if (err) {
@@ -118,10 +124,9 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       return res.status(500).json({ error: 'Lỗi server.' });
     }
     
-    // Logic gom nhóm giờ đây làm việc với chuỗi, rất an toàn.
+    // Logic gom nhóm giờ đây sẽ nhận được cả trường is_booked
     const groupedSlots = results.reduce((acc, slot) => {
-      const date = slot.slot_date; // Đây đã là chuỗi '2025-06-30'
-
+      const date = slot.slot_date; 
       const start = slot.start_time.substring(0, 5);
       const end = slot.end_time.substring(0, 5);
 
@@ -131,7 +136,8 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       acc[date].push({ 
         id: slot.id,
         start, 
-        end 
+        end,
+        is_booked: !!slot.is_booked // Chuyển đổi 0/1 thành true/false
       });
       return acc;
     }, {});
