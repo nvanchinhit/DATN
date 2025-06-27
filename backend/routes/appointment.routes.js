@@ -1,12 +1,11 @@
 // File: routes/appointments.js
-
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db.config'); // Đảm bảo file này export kết nối MySQL
+const db = require('../config/db.config');
 
-// Middleware kiểm tra JSON body (nếu chưa có ở app chính, nhớ thêm)
-// app.use(express.json());
-
+// =========================
+// ĐẶT LỊCH KHÁM MỚI (POST)
+// =========================
 router.post('/', (req, res) => {
   const {
     doctor_id,
@@ -19,22 +18,20 @@ router.post('/', (req, res) => {
     address,
     payment_status = 'Chưa thanh toán',
     status = 'Chưa xác nhận',
-    time_slot_id
+    time_slot_id,
   } = req.body;
 
-  // Kiểm tra dữ liệu bắt buộc
   if (
     !doctor_id ||
     !Number.isInteger(time_slot_id) ||
     !name ||
-    age === undefined ||
+    typeof age === 'undefined' ||
     !phone ||
     !email
   ) {
     return res.status(400).json({ error: 'Thiếu hoặc sai kiểu dữ liệu bắt buộc.' });
   }
 
-  // Kiểm tra khung giờ đã được đặt chưa
   const checkSql = `SELECT id FROM appointments WHERE time_slot_id = ?`;
   db.query(checkSql, [time_slot_id], (err, booked) => {
     if (err) {
@@ -46,7 +43,6 @@ router.post('/', (req, res) => {
       return res.status(409).json({ error: 'Khung giờ này đã có người đặt.' });
     }
 
-    // Lưu lịch hẹn với address
     const insertSql = `
       INSERT INTO appointments
       (doctor_id, time_slot_id, name, age, gender, email, phone, reason, payment_status, doctor_confirmation, status, address)
@@ -62,14 +58,51 @@ router.post('/', (req, res) => {
           return res.status(500).json({ error: 'Không thể lưu lịch hẹn.' });
         }
 
-        return res.status(201).json({
+        res.status(201).json({
           message: '✅ Đặt lịch thành công!',
-          appointmentId: result.insertId
+          appointmentId: result.insertId,
         });
       }
     );
   });
 });
 
+
+// ==============================
+// LẤY CHI TIẾT LỊCH THEO SLOT_ID
+// ==============================
+router.get('/slot/:slotId', (req, res) => {
+  const slotId = req.params.slotId;
+  const sql = `
+    SELECT 
+      a.id, a.reason, a.payment_status, a.doctor_confirmation, a.status, a.address,
+      a.name AS patient_name, a.email, a.phone
+    FROM appointments a
+    WHERE a.time_slot_id = ?
+    LIMIT 1
+  `;
+  db.query(sql, [slotId], (err, results) => {
+    if (err) return res.status(500).json({ error: 'Lỗi server khi truy vấn' });
+    if (results.length === 0) return res.status(404).json({ error: 'Không có lịch hẹn nào cho slot này' });
+    res.json(results[0]);
+  });
+});
+
+
+// ==============================
+// BÁC SĨ XÁC NHẬN LỊCH KHÁM
+// ==============================
+router.put('/:id/confirm', (req, res) => {
+  const id = req.params.id;
+  db.query(
+    "UPDATE appointments SET doctor_confirmation = 'Đã xác nhận' WHERE id = ?",
+    [id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: 'Lỗi khi xác nhận' });
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn' });
+      res.json({ message: '✅ Đã xác nhận lịch hẹn!' });
+    }
+  );
+});
 
 module.exports = router;

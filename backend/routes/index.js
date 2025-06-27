@@ -7,12 +7,9 @@ const fs = require('fs');
 
 // ================== CẤU HÌNH UPLOAD ẢNH ==================
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads');
-
-// SỬA LỖI Ở ĐÂY: UPLOAD_DÍR -> UPLOAD_DIR
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, UPLOAD_DIR);
@@ -21,20 +18,22 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
-
 const upload = multer({ storage: storage });
-
 
 // ================== ĐIỀU PHỐI ROUTER CHÍNH ==================
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./user.routes');
 const doctorRoutes = require('./doctor.routes');
 const appointmentRoutes = require('./appointment.routes');
-router.use('/appointments', appointmentRoutes);
+const dashboardRoutes = require('./dashboard.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/appointments', appointmentRoutes);
+router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:id
+
+// Các route khác (sản phẩm, chuyên khoa, slot, v.v... giữ nguyên như cũ)
 
 router.get('/products', (req, res) => {
   db.query('SELECT * FROM products', (err, result) => {
@@ -45,9 +44,7 @@ router.get('/products', (req, res) => {
 
 router.get('/products-by-brand', (req, res) => {
   const { brand_id } = req.query;
-  const sql = brand_id
-    ? 'SELECT * FROM products WHERE brand_id = ?'
-    : 'SELECT * FROM products';
+  const sql = brand_id ? 'SELECT * FROM products WHERE brand_id = ?' : 'SELECT * FROM products';
   const values = brand_id ? [brand_id] : [];
   db.query(sql, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -70,13 +67,11 @@ router.get('/doctors/top', (req, res) => {
     GROUP BY d.id
     LIMIT 4`;
   db.query(sql, (err, results) => {
-    if (err) {
-      console.error('Lỗi truy vấn top bác sĩ:', err);
-      return res.status(500).json({ error: 'Lỗi server' });
-    }
+    if (err) return res.status(500).json({ error: 'Lỗi server' });
     res.json(results);
   });
 });
+
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
   if (!specializationId) return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
@@ -88,10 +83,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
     FROM doctors 
     WHERE specialization_id = ? AND account_status = 'active'`;
   db.query(sql, [specializationId], (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn bác sĩ:", err);
-      return res.status(500).json({ error: 'Lỗi server.' });
-    }
+    if (err) return res.status(500).json({ error: 'Lỗi server.' });
     res.json(results);
   });
 });
@@ -100,51 +92,31 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
-  // Câu SQL mới sử dụng LEFT JOIN để kiểm tra các slot đã được đặt
   const sql = `
     SELECT 
       dts.id, 
       DATE_FORMAT(dts.slot_date, '%Y-%m-%d') AS slot_date,
       dts.start_time, 
       dts.end_time,
-      -- Thêm cột is_booked: nếu a.id không rỗng, tức là đã có lịch hẹn -> true
       CASE WHEN a.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_booked
-    FROM 
-      doctor_time_slot AS dts
-    LEFT JOIN 
-      appointments AS a ON dts.id = a.time_slot_id
-    WHERE 
-      dts.doctor_id = ? AND dts.slot_date >= CURDATE()
-    ORDER BY 
-      dts.slot_date, dts.start_time`;
-    
+    FROM doctor_time_slot AS dts
+    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id
+    WHERE dts.doctor_id = ? AND dts.slot_date >= CURDATE()
+    ORDER BY dts.slot_date, dts.start_time`;
   db.query(sql, [doctorId], (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn slot:", err);
-      return res.status(500).json({ error: 'Lỗi server.' });
-    }
-    
-    // Logic gom nhóm giờ đây sẽ nhận được cả trường is_booked
+    if (err) return res.status(500).json({ error: 'Lỗi server.' });
     const groupedSlots = results.reduce((acc, slot) => {
       const date = slot.slot_date; 
       const start = slot.start_time.substring(0, 5);
       const end = slot.end_time.substring(0, 5);
-
-      if (!acc[date]) {
-          acc[date] = [];
-      }
-      acc[date].push({ 
-        id: slot.id,
-        start, 
-        end,
-        is_booked: !!slot.is_booked // Chuyển đổi 0/1 thành true/false
-      });
+      if (!acc[date]) acc[date] = [];
+      acc[date].push({ id: slot.id, start, end, is_booked: !!slot.is_booked });
       return acc;
     }, {});
-    
     res.json(groupedSlots);
   });
 });
+
 router.get('/specializations', (req, res) => {
   const search = req.query.search;
   let sql = "SELECT id, name, image FROM specializations";
@@ -158,20 +130,15 @@ router.get('/specializations', (req, res) => {
     res.json(results);
   });
 });
+
 router.get('/specializations/top', (req, res) => {
-  const sql = `
-    SELECT id, name, image 
-    FROM specializations 
-    ORDER BY id DESC 
-    LIMIT 4`;
+  const sql = `SELECT id, name, image FROM specializations ORDER BY id DESC LIMIT 4`;
   db.query(sql, (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn chuyên khoa:", err);
-      return res.status(500).json({ error: "Lỗi server." });
-    }
+    if (err) return res.status(500).json({ error: "Lỗi server." });
     res.json(results);
   });
 });
+
 router.get('/specializations/:id', (req, res) => {
   const { id } = req.params;
   db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
@@ -180,6 +147,7 @@ router.get('/specializations/:id', (req, res) => {
     res.json(results[0]);
   });
 });
+
 router.post('/specializations', upload.single('image'), (req, res) => {
   const { name } = req.body;
   if (!req.file || !name) return res.status(400).json({ error: 'Thiếu tên hoặc ảnh.' });
@@ -189,6 +157,7 @@ router.post('/specializations', upload.single('image'), (req, res) => {
     res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl } });
   });
 });
+
 router.put('/specializations/:id', upload.single('image'), (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
@@ -215,9 +184,9 @@ router.delete('/specializations/:id', (req, res) => {
     res.json({ message: 'Xóa thành công!' });
   });
 });
+
 // GET: Lấy danh sách tất cả các bác sĩ (chỉ lấy các bác sĩ đang hoạt động)
 router.get('/doctors', (req, res) => {
-  // Câu lệnh SQL chọn các cột cần thiết, TRÁNH lấy cột password để bảo mật
   const sql = `
     SELECT 
       d.id, 
@@ -232,14 +201,11 @@ router.get('/doctors', (req, res) => {
       s.name AS specialty_name 
     FROM doctors d
     LEFT JOIN specializations s ON d.specialization_id = s.id
-    WHERE d.account_status = 'active'`; // Chỉ lấy các bác sĩ có tài khoản đang hoạt động
-
+    WHERE d.account_status = 'active'`;
   db.query(sql, (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn danh sách bác sĩ:", err);
-      return res.status(500).json({ error: 'Lỗi server khi truy vấn dữ liệu.' });
-    }
+    if (err) return res.status(500).json({ error: 'Lỗi server khi truy vấn dữ liệu.' });
     res.json(results);
   });
 });
+
 module.exports = router;
