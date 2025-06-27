@@ -29,7 +29,7 @@ router.get("/:id", (req, res) => {
   });
 });
 
-// ✅ Cập nhật hồ sơ bác sĩ (kèm ảnh, trạng thái về pending)
+// ✅ Cập nhật hồ sơ bác sĩ (chỉ set 'pending' nếu cập nhật bằng cấp/chứng chỉ)
 router.put(
   "/:id",
   upload.fields([
@@ -53,18 +53,23 @@ router.put(
     const certificate = req.files?.certificate_image?.[0]?.filename || null;
     const degree = req.files?.degree_image?.[0]?.filename || null;
 
-    const updateSql = `
+    // Xác định xem có cần set lại trạng thái pending hay không
+    const shouldSetPending = certificate || degree;
+
+    // ⚙️ Xây dựng câu lệnh SQL
+    let updateSql = `
       UPDATE doctors SET
         name = ?, email = ?, phone = ?, 
         specialization_id = ?, introduction = ?, 
-        education = ?, experience = ?, 
-        account_status = 'pending'
+        education = ?, experience = ?
+        ${shouldSetPending ? ", account_status = 'pending'" : ""}
         ${img ? ', img = ?' : ''}
         ${certificate ? ', certificate_image = ?' : ''}
         ${degree ? ', degree_image = ?' : ''}
       WHERE id = ?
     `;
 
+    // ⚙️ Chuẩn bị dữ liệu tương ứng
     const values = [
       name,
       email,
@@ -79,13 +84,14 @@ router.put(
       doctorId,
     ];
 
+    // 🛠️ Thực thi truy vấn cập nhật
     db.query(updateSql, values, (err, result) => {
       if (err) {
         console.error("❌ Lỗi cập nhật:", err);
         return res.status(500).json({ error: "Lỗi cập nhật hồ sơ bác sĩ" });
       }
 
-      // Trả lại bản ghi sau khi cập nhật
+      // ✅ Lấy lại thông tin bác sĩ sau khi cập nhật
       db.query("SELECT * FROM doctors WHERE id = ?", [doctorId], (err2, rows) => {
         if (err2 || rows.length === 0) {
           return res.status(500).json({ error: "Không thể lấy lại thông tin" });
@@ -95,5 +101,7 @@ router.put(
     });
   }
 );
+
+
 
 module.exports = router;

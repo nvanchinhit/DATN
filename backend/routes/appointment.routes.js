@@ -67,7 +67,6 @@ router.post('/', (req, res) => {
   });
 });
 
-
 // ==============================
 // LẤY CHI TIẾT LỊCH THEO SLOT_ID
 // ==============================
@@ -88,21 +87,35 @@ router.get('/slot/:slotId', (req, res) => {
   });
 });
 
-
-// ==============================
-// BÁC SĨ XÁC NHẬN LỊCH KHÁM
-// ==============================
+// ==================================
+// BÁC SĨ XÁC NHẬN → XÓA LỊCH HẸN LUÔN
+// ==================================
 router.put('/:id/confirm', (req, res) => {
-  const id = req.params.id;
-  db.query(
-    "UPDATE appointments SET doctor_confirmation = 'Đã xác nhận' WHERE id = ?",
-    [id],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: 'Lỗi khi xác nhận' });
-      if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn' });
-      res.json({ message: '✅ Đã xác nhận lịch hẹn!' });
+  const appointmentId = req.params.id;
+
+  // Lấy slot_id để thông báo giải phóng slot
+  const getSql = `SELECT time_slot_id FROM appointments WHERE id = ?`;
+  db.query(getSql, [appointmentId], (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy lịch hẹn để xác nhận' });
     }
-  );
+
+    const slotId = results[0].time_slot_id;
+
+    // Xóa lịch hẹn để giải phóng slot
+    const deleteSql = `DELETE FROM appointments WHERE id = ?`;
+    db.query(deleteSql, [appointmentId], (err2, result) => {
+      if (err2) {
+        return res.status(500).json({ error: '❌ Lỗi khi xóa lịch hẹn' });
+      }
+
+      res.json({
+        message: '✅ Lịch hẹn đã xác nhận và khung giờ được giải phóng.',
+        freedSlotId: slotId,
+        redirect: '/doctor/schedule', // frontend dùng để chuyển trang nếu muốn
+      });
+    });
+  });
 });
 
 module.exports = router;

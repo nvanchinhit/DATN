@@ -1,7 +1,7 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Sidebardoctor from '@/components/layout/Sidebardoctor';
-import React from 'react';
 
 interface Patient {
   id: number;
@@ -35,20 +35,53 @@ const patientList: Patient[] = [
 ];
 
 export default function PatientListPage() {
+  const doctorId = 1;
+  const [status, setStatus] = useState<'loading' | 'pending' | 'active'>('loading');
+
+  // Kiểm tra trạng thái tài khoản
+  useEffect(() => {
+    fetch(`http://localhost:5000/api/doctors/${doctorId}`)
+      .then((res) => res.json())
+      .then((info) => {
+        if (info.account_status === 'active') {
+          setStatus('active');
+        } else {
+          setStatus('pending');
+        }
+      })
+      .catch(() => setStatus('pending'));
+  }, []);
+
   // Hàm xử lý liên hệ
   const handleContact = (phone: string) => {
     alert(`Liên hệ bệnh nhân qua số: ${phone}`);
-    // Hoặc mở tel:
     // window.location.href = `tel:${phone}`;
   };
 
   // Hàm xử lý hủy lịch
   const handleCancel = (id: number) => {
     if (confirm('Bạn có chắc muốn hủy lịch khám này không?')) {
-      // Xử lý gọi API hủy ở đây
       alert(`Đã hủy lịch khám của bệnh nhân ID: ${id}`);
     }
   };
+
+  // Loading
+  if (status === 'loading') return <p className="p-6">Đang tải dữ liệu...</p>;
+
+  // Nếu đang chờ duyệt
+  if (status === 'pending') {
+    return (
+      <div className="flex h-screen font-sans bg-gray-50">
+        <Sidebardoctor />
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-4 rounded shadow max-w-lg">
+            <h2 className="text-xl font-semibold mb-2">⏳ Tài khoản đang chờ xét duyệt</h2>
+            <p>Vui lòng chờ quản trị viên phê duyệt tài khoản của bạn để sử dụng các chức năng quản lý.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">

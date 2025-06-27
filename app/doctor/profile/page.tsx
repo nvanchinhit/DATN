@@ -7,11 +7,14 @@ export default function DoctorProfilePage() {
   const [doctor, setDoctor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newCertificate, setNewCertificate] = useState<File | null>(null);
   const [newDegree, setNewDegree] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null); // Modal ảnh
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const doctorId = 1;
+
+  const requiredFields = ['name', 'email', 'phone', 'specialization_id', 'introduction', 'education', 'experience'];
 
   useEffect(() => {
     fetch(`http://localhost:5000/api/doctors/${doctorId}`)
@@ -19,6 +22,11 @@ export default function DoctorProfilePage() {
       .then((data) => {
         setDoctor(data);
         setLoading(false);
+
+        const isProfileIncomplete = requiredFields.some((field) => !data[field]);
+        if (isProfileIncomplete || data.account_status === 'pending') {
+          setIsEditing(true);
+        }
       })
       .catch((err) => {
         console.error('❌ Lỗi khi tải hồ sơ:', err);
@@ -41,6 +49,13 @@ export default function DoctorProfilePage() {
     formData.append('education', doctor.education || '');
     formData.append('experience', doctor.experience || '');
 
+    const isSensitiveChange = !!(newCertificate || newDegree);
+
+    formData.append(
+      'account_status',
+      isSensitiveChange ? 'pending' : doctor.account_status || 'pending'
+    );
+
     if (newImage) formData.append('img', newImage);
     if (newCertificate) formData.append('certificate_image', newCertificate);
     if (newDegree) formData.append('degree_image', newDegree);
@@ -58,7 +73,12 @@ export default function DoctorProfilePage() {
         setNewImage(null);
         setNewCertificate(null);
         setNewDegree(null);
-        alert('✅ Hồ sơ đã được cập nhật! Tài khoản đang chờ xét duyệt.');
+
+        if (isSensitiveChange) {
+          alert('✅ Đã cập nhật! Tài khoản đang chờ xét duyệt do có thay đổi bằng cấp/chứng chỉ.');
+        } else {
+          alert('✅ Đã cập nhật hồ sơ thành công.');
+        }
       } else {
         alert('❌ Cập nhật thất bại!');
       }
@@ -78,7 +98,7 @@ export default function DoctorProfilePage() {
         <div className="flex-1 flex items-center justify-center p-6 text-center">
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-4 rounded shadow max-w-lg">
             <h2 className="text-2xl font-semibold mb-2">⏳ Tài khoản đang chờ xét duyệt</h2>
-            <p className="text-base">Vui lòng chờ quản trị viên phê duyệt tài khoản của bạn để sử dụng các chức năng quản lý.</p>
+            <p className="text-base">Vui lòng chờ quản trị viên phê duyệt tài khoản của bạn để sử dụng các chức năng.</p>
           </div>
         </div>
       </div>
@@ -88,11 +108,11 @@ export default function DoctorProfilePage() {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <div className="flex-1 p-6 flex items-center justify-center overflow-y-auto">
-        <div className="w-full max-w-2xl bg-white p-8 rounded shadow-lg">
+      <div className="flex-1 p-8 overflow-y-auto"> {/* Changed p-6 to p-8, removed items-center and justify-center */}
+        <div className="w-full max-w-4xl mx-auto bg-white p-8 rounded shadow-lg"> {/* Increased max-w-2xl to max-w-4xl and added mx-auto */}
           <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">Hồ sơ Bác sĩ</h1>
 
-          {/* Ảnh đại diện */}
+          {/* Avatar */}
           <div className="flex items-center gap-4 mb-6">
             <img
               src={
@@ -105,7 +125,7 @@ export default function DoctorProfilePage() {
               alt="Ảnh bác sĩ"
               className="w-24 h-24 rounded-full border object-cover"
             />
-            <div>
+            <div className="flex-1"> {/* Added flex-1 here to allow content to take available space */}
               {isEditing && (
                 <input
                   type="file"
@@ -121,14 +141,14 @@ export default function DoctorProfilePage() {
                     name="name"
                     value={doctor.name}
                     onChange={handleChange}
-                    className="text-xl font-semibold border px-2 py-1 rounded w-full"
+                    className="text-xl font-semibold border px-2 py-1 rounded w-full mb-2" // Added mb-2 for spacing
                   />
                   <input
                     type="text"
                     name="email"
                     value={doctor.email}
                     onChange={handleChange}
-                    className="text-sm border px-2 py-1 mt-2 rounded w-full"
+                    className="text-sm border px-2 py-1 mt-2 rounded w-full mb-2" // Added mb-2 for spacing
                   />
                   <input
                     type="text"
@@ -148,31 +168,22 @@ export default function DoctorProfilePage() {
             </div>
           </div>
 
-          {/* Các thông tin khác */}
-          {[
-            { label: 'Chuyên khoa', name: 'specialization_id', type: 'number' },
+          {/* Thông tin khác */}
+          {[{ label: 'Chuyên khoa', name: 'specialization_id', type: 'number' },
             { label: 'Trình độ học vấn', name: 'education', type: 'text' },
             { label: 'Giới thiệu', name: 'introduction', type: 'textarea' },
-            { label: 'Kinh nghiệm', name: 'experience', type: 'textarea' },
+            { label: 'Kinh nghiệm', name: 'experience', type: 'textarea' }
           ].map(({ label, name, type }) => (
             <div key={name} className="mb-5">
               <h3 className="text-xl font-semibold text-gray-800 mb-2">{label}</h3>
               {isEditing ? (
                 type === 'textarea' ? (
-                  <textarea
-                    name={name}
-                    value={doctor[name] || ''}
-                    onChange={handleChange}
-                    className="w-full border px-2 py-1 rounded"
+                  <textarea name={name} value={doctor[name] || ''} onChange={handleChange}
+                    className="w-full border px-2 py-1 rounded min-h-[100px]" // Added min-h for textareas
                   />
                 ) : (
-                  <input
-                    type={type}
-                    name={name}
-                    value={doctor[name] || ''}
-                    onChange={handleChange}
-                    className="w-full border px-2 py-1 rounded"
-                  />
+                  <input type={type} name={name} value={doctor[name] || ''} onChange={handleChange}
+                    className="w-full border px-2 py-1 rounded" />
                 )
               ) : (
                 <p className="text-base text-gray-700">{doctor[name] || 'Chưa cập nhật'}</p>
@@ -180,74 +191,61 @@ export default function DoctorProfilePage() {
             </div>
           ))}
 
-          {/* Ảnh chứng chỉ & bằng cấp */}
-          {[
-            { label: 'Chứng chỉ', name: 'certificate_image', setter: setNewCertificate },
-            { label: 'Bằng cấp', name: 'degree_image', setter: setNewDegree },
-          ].map(({ label, name, setter }) => (
-            <div key={name} className="mb-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">{label}</h3>
-              {isEditing ? (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setter(e.target.files?.[0] || null)}
-                />
-              ) : doctor[name] ? (
-                <div className="flex justify-center">
-                  <img
-                    src={`/uploads/${doctor[name]}`}
-                    alt={label}
-                    className="w-60 rounded shadow cursor-pointer hover:scale-105 transition"
-                    onClick={() => setPreviewImage(`/uploads/${doctor[name]}`)}
-                  />
-                </div>
-              ) : (
-                <p className="text-base text-gray-600">Chưa có {label.toLowerCase()}</p>
-              )}
-            </div>
-          ))}
+          {/* Chứng chỉ và bằng cấp */}
+          <div className="flex flex-col md:flex-row md:space-x-8 mb-6">
+              {[{ label: 'Chứng chỉ', name: 'certificate_image', setter: setNewCertificate },
+                  { label: 'Bằng cấp', name: 'degree_image', setter: setNewDegree }
+              ].map(({ label, name, setter }) => (
+                  <div key={name} className="flex-1 mb-4 md:mb-0">
+                      <h3 className="text-xl font-semibold text-gray-800 mb-2">{label}</h3>
+                      {isEditing ? (
+                          <input type="file" accept="image/*" onChange={(e) => setter(e.target.files?.[0] || null)} />
+                      ) : doctor[name] ? (
+                          <div className="flex justify-center">
+                              <img src={`/uploads/${doctor[name]}`} alt={label}
+                                  className="w-60 rounded shadow cursor-pointer hover:scale-105 transition"
+                                  onClick={() => setPreviewImage(`/uploads/${doctor[name]}`)} />
+                          </div>
+                      ) : (
+                          <p className="text-base text-gray-600">Chưa có {label.toLowerCase()}</p>
+                      )}
+                  </div>
+              ))}
+          </div>
 
-          {/* Nút lưu */}
-          {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            >
-              ✏️ Chỉnh sửa thông tin
-            </button>
-          ) : (
-            <div className="flex gap-4">
-              <button
-                onClick={handleSave}
-                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-              >
+          {/* Nút lưu và hủy */}
+          {isEditing && (
+            <div className="flex gap-4 mt-6"> {/* Added mt-6 for more top margin */}
+              <button onClick={handleSave} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
                 💾 Lưu lại
               </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setNewImage(null);
-                  setNewCertificate(null);
-                  setNewDegree(null);
-                }}
-                className="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500"
-              >
+              <button onClick={() => {
+                setIsEditing(false);
+                setNewImage(null);
+                setNewCertificate(null);
+                setNewDegree(null);
+              }} className="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500">
                 ❌ Hủy
               </button>
             </div>
+          )}
+
+          {!isEditing && doctor.account_status === 'active' && (
+            <button onClick={() => setIsEditing(true)}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mt-6"> {/* Added mt-6 */}
+              ✏️ Chỉnh sửa thông tin
+            </button>
           )}
         </div>
 
         {/* Modal phóng to ảnh */}
         {previewImage && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"> {/* Added p-4 */}
             <div className="relative">
-              <img src={previewImage} alt="Xem ảnh" className="max-w-full max-h-[90vh] rounded shadow-lg" />
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="absolute top-2 right-2 text-white bg-black bg-opacity-50 px-2 py-1 rounded hover:bg-opacity-80"
-              >
+              <img src={previewImage} alt="Xem ảnh"
+                className="max-w-full max-h-[90vh] rounded shadow-lg" />
+              <button onClick={() => setPreviewImage(null)}
+                className="absolute top-2 right-2 text-white bg-black bg-opacity-50 px-2 py-1 rounded hover:bg-opacity-80">
                 ✖
               </button>
             </div>

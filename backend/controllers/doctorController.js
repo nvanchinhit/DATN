@@ -147,9 +147,12 @@ exports.updateDoctor = (req, res) => {
   if (certificate) { fields.push("certificate_image = ?"); values.push(certificate); }
   if (degree) { fields.push("degree_image = ?"); values.push(degree); }
 
-  // Mỗi lần chỉnh sửa đều chuyển về trạng thái pending
+  // 🔍 Chỉ khi cập nhật bằng cấp hoặc chứng chỉ thì mới chuyển về trạng thái pending
+if (certificate || degree) {
   fields.push("account_status = ?");
   values.push("pending");
+}
+
 
   values.push(doctorId);
 
