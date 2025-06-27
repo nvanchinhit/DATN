@@ -29,6 +29,8 @@ const upload = multer({ storage: storage });
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./user.routes');
 const doctorRoutes = require('./doctor.routes');
+const appointmentRoutes = require('./appointment.routes');
+router.use('/appointments', appointmentRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -94,14 +96,16 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   });
 });
 
+// ✅ SỬA Ở ĐÂY: Thay đổi cách lấy time-slots
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
-  // SỬA ĐỔI Ở ĐÂY: Sử dụng DATE_FORMAT để đảm bảo chuỗi ngày tháng không đổi
+  // Dùng DATE_FORMAT để MySQL trả về chuỗi 'YYYY-MM-DD'
   const sql = `
     SELECT 
-      DATE_FORMAT(slot_date, '%Y-%m-%d') AS slot_date, -- Trả về chuỗi 'YYYY-MM-DD'
+      id, 
+      DATE_FORMAT(slot_date, '%Y-%m-%d') AS slot_date,
       start_time, 
       end_time
     FROM doctor_time_slot 
@@ -114,15 +118,21 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       return res.status(500).json({ error: 'Lỗi server.' });
     }
     
-    // Bây giờ việc nhóm dữ liệu sẽ đơn giản hơn vì slot_date đã là chuỗi
+    // Logic gom nhóm giờ đây làm việc với chuỗi, rất an toàn.
     const groupedSlots = results.reduce((acc, slot) => {
-      // `slot.slot_date` bây giờ là một chuỗi 'YYYY-MM-DD' chuẩn, không bị ảnh hưởng bởi múi giờ
-      const date = slot.slot_date; 
+      const date = slot.slot_date; // Đây đã là chuỗi '2025-06-30'
+
       const start = slot.start_time.substring(0, 5);
       const end = slot.end_time.substring(0, 5);
 
-      if (!acc[date]) acc[date] = [];
-      acc[date].push({ start, end });
+      if (!acc[date]) {
+          acc[date] = [];
+      }
+      acc[date].push({ 
+        id: slot.id,
+        start, 
+        end 
+      });
       return acc;
     }, {});
     
@@ -190,6 +200,7 @@ router.put('/specializations/:id', upload.single('image'), (req, res) => {
     });
   }
 });
+
 router.delete('/specializations/:id', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM specializations WHERE id = ?', [id], (err, result) => {

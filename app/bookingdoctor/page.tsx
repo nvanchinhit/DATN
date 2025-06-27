@@ -26,6 +26,7 @@ interface Doctor {
 }
 
 interface TimeSlotItem {
+  id: number;    
   start: string;
   end: string;
 }
@@ -65,7 +66,7 @@ function BookingDoctorPage() {
         setError(null);
         try {
           const [specialtyRes, doctorsRes] = await Promise.all([
- fetch(`${API_URL}/api/specializations/${specialtyId}`),
+            fetch(`${API_URL}/api/specializations/${specialtyId}`),
             fetch(`${API_URL}/api/doctors-by-specialization/${specialtyId}`),
           ]);
           if (!specialtyRes.ok || !doctorsRes.ok) throw new Error("Không thể tải dữ liệu.");
@@ -96,7 +97,7 @@ function BookingDoctorPage() {
       setSelectedDate(null);
       setSelectedTime(null);
       try {
-     const res = await fetch(`${API_URL}/api/doctors/${selectedDoctorId}/time-slots`);
+        const res = await fetch(`${API_URL}/api/doctors/${selectedDoctorId}/time-slots`);
         if (!res.ok) throw new Error("Không thể tải lịch làm việc của bác sĩ.");
         const slotsData = await res.json();
         setTimeSlots(slotsData);
@@ -110,30 +111,51 @@ function BookingDoctorPage() {
     fetchTimeSlots();
   }, [selectedDoctorId]);
 
+  // ✅ SỬA Ở ĐÂY: Hàm xử lý đặt lịch để tạo chuỗi ngày YYYY-MM-DD đúng cách
   const handleBooking = () => {
     if (!selectedDoctorId || !selectedDate || !selectedTime) {
-      alert("Vui lòng chọn đầy đủ thông tin: Bác sĩ, Ngày, và Giờ khám.");
+      alert("Vui lòng chọn đầy đủ thông tin.");
       return;
     }
-    const doctor = doctors.find((d) => d.id === selectedDoctorId);
+
+    const doctor = doctors.find(d => d.id === selectedDoctorId);
     if (!doctor || !specialty) {
-      alert("Không tìm thấy thông tin bác sĩ hoặc chuyên khoa.");
+      alert("Thiếu thông tin bác sĩ hoặc chuyên khoa.");
       return;
     }
-    const dateStr = selectedDate.toISOString().split("T")[0];
+
+    // Tạo chuỗi YYYY-MM-DD từ object Date một cách an toàn
+    // KHÔNG DÙNG toISOString() vì nó sẽ chuyển về UTC và làm lệch ngày
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
     const bookingData = {
       doctorId: doctor.id,
       doctorName: doctor.name,
       specialty: specialty.name,
-      date: dateStr,
-      time: { start: selectedTime.start, end: selectedTime.end },
+      date: dateStr, // Dùng chuỗi đã được định dạng đúng
+      time: {
+        id: selectedTime.id,
+        start: selectedTime.start,
+        end: selectedTime.end
+      },
+      time_slot_id: selectedTime.id
     };
+
+    console.log("📦 Dữ liệu gửi đi:", bookingData); // Kiểm tra kỹ
+
     const encoded = encodeURIComponent(JSON.stringify(bookingData));
     router.push(`/checkout?data=${encoded}`);
   };
 
   const availableDates = Object.keys(timeSlots).filter(date => timeSlots[date].length > 0);
-  const availableDateObjects = availableDates.map(d => new Date(d));
+  
+  // ✅ SỬA Ở ĐÂY: Tạo Date object cho DatePicker một cách an toàn
+  // Thêm 'T00:00:00' để JS hiểu đây là ngày giờ local, không phải UTC, tránh bị lệch ngày
+  const availableDateObjects = availableDates.map(d => new Date(d + 'T00:00:00'));
+
   const selectedDateKey = selectedDate
     ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
     : null;
@@ -205,8 +227,12 @@ function BookingDoctorPage() {
               ) : (
                 <DatePicker
                   selected={selectedDate}
-                  onChange={(date) => setSelectedDate(date as Date)}
-                  includeDates={availableDateObjects.map(d => new Date(d.valueOf() + d.getTimezoneOffset() * 60 * 1000))}
+                  onChange={(date) => {
+                    setSelectedDate(date as Date)
+                    setSelectedTime(null); // Reset giờ khi chọn ngày mới
+                  }}
+                  // ✅ SỬA Ở ĐÂY: Dùng mảng Date objects đã được tạo đúng cách
+                  includeDates={availableDateObjects}
                   dateFormat="dd/MM/yyyy"
                   placeholderText="Chọn một ngày"
                   className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500"
@@ -225,17 +251,18 @@ function BookingDoctorPage() {
                 <p className="text-gray-500 text-sm">Không có khung giờ trống cho ngày này.</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timeSlots[selectedDateKey]?.map((slot) => (
+                   {timeSlots[selectedDateKey].map((slot) => (
                     <button
-                      key={`${slot.start}-${slot.end}`}
+                      key={slot.id}
                       onClick={() => setSelectedTime(slot)}
+                      type="button"
                       className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
-                        selectedTime?.start === slot.start && selectedTime?.end === slot.end
+                        selectedTime?.id === slot.id
                           ? "bg-blue-600 text-white shadow-md"
                           : "bg-gray-100 hover:bg-blue-100 text-gray-700"
                       }`}
                     >
-                      {`${slot.start} - ${slot.end}`}
+                      {slot.start} - {slot.end}
                     </button>
                   ))}
                 </div>
@@ -256,7 +283,7 @@ function BookingDoctorPage() {
       {doctorForDetails && (
         <DoctorDetailsModal
           doctor={doctorForDetails}
-          specialtyName={specialty.name}
+          specialtyName={specialty!.name}
           onClose={() => setDoctorForDetails(null)}
         />
       )}
