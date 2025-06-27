@@ -25,6 +25,7 @@ interface Doctor {
 }
 
 interface TimeSlotItem {
+  id: number;    
   start: string;
   end: string;
 }
@@ -109,27 +110,43 @@ function BookingDoctorPage() {
     fetchTimeSlots();
   }, [selectedDoctorId]);
 
-  const handleBooking = () => {
-    if (!selectedDoctorId || !selectedDate || !selectedTime) {
-      alert("Vui lòng chọn đầy đủ thông tin: Bác sĩ, Ngày, và Giờ khám.");
-      return;
-    }
-    const doctor = doctors.find((d) => d.id === selectedDoctorId);
-    if (!doctor || !specialty) {
-      alert("Không tìm thấy thông tin bác sĩ hoặc chuyên khoa.");
-      return;
-    }
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const bookingData = {
-      doctorId: doctor.id,
-      doctorName: doctor.name,
-      specialty: specialty.name,
-      date: dateStr,
-      time: { start: selectedTime.start, end: selectedTime.end },
-    };
-    const encoded = encodeURIComponent(JSON.stringify(bookingData));
-    router.push(`/checkout?data=${encoded}`);
+  
+const handleBooking = () => {
+   console.log("🕓 selectedTime gửi đi:", selectedTime);
+
+  if (!selectedDoctorId || !selectedDate || !selectedTime) {
+    alert("Vui lòng chọn đầy đủ thông tin.");
+    return;
+  }
+
+  const doctor = doctors.find(d => d.id === selectedDoctorId);
+  if (!doctor || !specialty) {
+    alert("Thiếu thông tin bác sĩ hoặc chuyên khoa.");
+    return;
+  }
+
+  const dateStr = selectedDate.toISOString().split("T")[0];
+
+  const bookingData = {
+    doctorId: doctor.id,
+    doctorName: doctor.name,
+    specialty: specialty.name,
+    date: dateStr,
+    time: {
+      id: selectedTime.id,
+      start: selectedTime.start,
+      end: selectedTime.end
+    },
+    time_slot_id: selectedTime.id
   };
+
+  console.log("📦 bookingData gửi đi:", bookingData); // ✅ kiểm tra kỹ
+
+  const encoded = encodeURIComponent(JSON.stringify(bookingData));
+  router.push(`/checkout?data=${encoded}`);
+};
+
+
 
   const availableDates = Object.keys(timeSlots).filter(date => timeSlots[date].length > 0);
   const availableDateObjects = availableDates.map(d => new Date(d));
@@ -224,18 +241,23 @@ function BookingDoctorPage() {
                 <p className="text-gray-500 text-sm">Không có khung giờ trống cho ngày này.</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timeSlots[selectedDateKey]?.map((slot) => (
-                    <button
-                      key={`${slot.start}-${slot.end}`}
-                      onClick={() => setSelectedTime(slot)}
-                      className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
-                        selectedTime?.start === slot.start && selectedTime?.end === slot.end
-                          ? "bg-blue-600 text-white shadow-md"
-                          : "bg-gray-100 hover:bg-blue-100 text-gray-700"
-                      }`}
-                    >
-                      {`${slot.start} - ${slot.end}`}
-                    </button>
+                   {timeSlots[selectedDateKey].map((slot) => (
+       <button
+  key={slot.id}
+  onClick={() => {
+    console.log("🔍 slot được chọn:", slot); // ✅ kiểm tra slot có id
+    setSelectedTime(slot);
+  }}
+  type="button"
+  className={`p-2.5 rounded-lg font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 ${
+    selectedTime?.id === slot.id
+      ? "bg-blue-600 text-white shadow-md"
+      : "bg-gray-100 hover:bg-blue-100 text-gray-700"
+  }`}
+>
+  {slot.start} - {slot.end}
+</button>
+
                   ))}
                 </div>
               )}

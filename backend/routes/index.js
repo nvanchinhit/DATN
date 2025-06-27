@@ -28,6 +28,8 @@ const upload = multer({ storage: storage });
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./user.routes');
 const doctorRoutes = require('./doctor.routes');
+const appointmentRoutes = require('./appointment.routes');
+router.use('/appointments', appointmentRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -97,26 +99,30 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
   const sql = `
-    SELECT slot_date, start_time, end_time
-    FROM doctor_time_slot 
-    WHERE doctor_id = ? AND slot_date >= CURDATE()
-    ORDER BY slot_date, start_time`;
-  db.query(sql, [doctorId], (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn slot:", err);
-      return res.status(500).json({ error: 'Lỗi server.' });
-    }
-    const groupedSlots = results.reduce((acc, slot) => {
-      const date = new Date(slot.slot_date).toISOString().split('T')[0];
-      const start = slot.start_time.substring(0, 5);
-      const end = slot.end_time.substring(0, 5);
+  SELECT id, slot_date, start_time, end_time
+  FROM doctor_time_slot 
+  WHERE doctor_id = ? AND slot_date >= CURDATE()
+  ORDER BY slot_date, start_time`;
+db.query(sql, [doctorId], (err, results) => {
+  if (err) {
+    console.error("Lỗi truy vấn slot:", err);
+    return res.status(500).json({ error: 'Lỗi server.' });
+  }
+  const groupedSlots = results.reduce((acc, slot) => {
+    const date = new Date(slot.slot_date).toISOString().split('T')[0];
+    const start = slot.start_time.substring(0, 5);
+    const end = slot.end_time.substring(0, 5);
 
-      if (!acc[date]) acc[date] = [];
-      acc[date].push({ start, end });
-      return acc;
-    }, {});
-    res.json(groupedSlots);
-  });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push({ 
+      id: slot.id,  // Thêm trường id vào đây
+      start, 
+      end 
+    });
+    return acc;
+  }, {});
+  res.json(groupedSlots);
+});
 });
 router.get('/specializations', (req, res) => {
   const search = req.query.search;
@@ -179,6 +185,7 @@ router.put('/specializations/:id', upload.single('image'), (req, res) => {
     });
   }
 });
+
 router.delete('/specializations/:id', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM specializations WHERE id = ?', [id], (err, result) => {
