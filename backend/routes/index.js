@@ -26,12 +26,17 @@ const userRoutes = require('./user.routes');
 const doctorRoutes = require('./doctor.routes');
 const appointmentRoutes = require('./appointment.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const medicalRecordRoutes = require('./medicalRecord.routes');
+
+
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/appointments', appointmentRoutes);
-router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:id
+router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:
+router.use('/medical-records', medicalRecordRoutes);
+
 
 // Các route khác (sản phẩm, chuyên khoa, slot, v.v... giữ nguyên như cũ)
 
@@ -207,5 +212,7 @@ router.get('/doctors', (req, res) => {
     res.json(results);
   });
 });
+
+
 
 module.exports = router;

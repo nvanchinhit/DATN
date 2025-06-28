@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th6 28, 2025 lúc 06:15 AM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.0.30
+-- Host: localhost:3306
+-- Generation Time: Jun 28, 2025 at 05:08 PM
+-- Server version: 8.0.30
+-- PHP Version: 8.1.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,27 +18,27 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `datn`
+-- Database: `datn`
 --
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `admins`
+-- Table structure for table `admins`
 --
 
 CREATE TABLE `admins` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL
+  `role_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `admins`
+-- Dumping data for table `admins`
 --
 
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `phone`, `created_at`, `role_id`) VALUES
@@ -47,50 +47,55 @@ INSERT INTO `admins` (`id`, `name`, `email`, `password`, `phone`, `created_at`, 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `appointments`
+-- Table structure for table `appointments`
 --
 
 CREATE TABLE `appointments` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `age` int(11) DEFAULT NULL,
-  `gender` enum('Nam','Nữ','Khác') DEFAULT 'Khác',
-  `email` varchar(100) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `reason` text DEFAULT NULL,
-  `payment_status` enum('Chưa thanh toán','Đã thanh toán') DEFAULT 'Chưa thanh toán',
-  `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') DEFAULT 'Chưa xác nhận',
-  `time_slot_id` int(11) DEFAULT NULL,
-  `status` varchar(50) NOT NULL DEFAULT 'Chưa xác nhận',
-  `address` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `age` int DEFAULT NULL,
+  `gender` enum('Nam','Nữ','Khác') COLLATE utf8mb4_general_ci DEFAULT 'Khác',
+  `email` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `reason` text COLLATE utf8mb4_general_ci,
+  `payment_status` enum('Chưa thanh toán','Đã thanh toán') COLLATE utf8mb4_general_ci DEFAULT 'Chưa thanh toán',
+  `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') COLLATE utf8mb4_general_ci DEFAULT 'Chưa xác nhận',
+  `time_slot_id` int DEFAULT NULL,
+  `status` varchar(50) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Chưa xác nhận',
+  `address` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `appointments`
+-- Dumping data for table `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `doctor_id`, `reason`, `payment_status`, `doctor_confirmation`, `time_slot_id`, `status`, `address`) VALUES
-(1, 'Nguyễn Văn A', 32, 'Nam', 'a@gmail.com', '0123456789', 1, 'Khám tổng quát', 'Đã thanh toán', 'Đã xác nhận', NULL, 'Chưa xác nhận', NULL),
-(2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', 2, 'Nổi mẩn da', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
-(3, 'Nguyễn Minh Tuấn', 40, 'Nữ', 'ntmtuan205@gmail.com', '0889130129', 1, '', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
-(4, 'Nguyễn Minh Tuấn', 14, 'Nam', 'ntmtuan205@gmail.com', '0889130129', 1, 'â', 'Chưa thanh toán', 'Chưa xác nhận', 209, 'Chưa xác nhận', '37 Beech'),
-(5, 'Nguyễn Văn Chính', 20, 'Nam', 'vanchinh20055@gmail.com', '0335942740', 8, 'demo code', 'Chưa thanh toán', 'Chưa xác nhận', 241, 'Chưa xác nhận', 'Thượng Sơn');
+INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `customer_id`, `doctor_id`, `reason`, `payment_status`, `doctor_confirmation`, `time_slot_id`, `status`, `address`) VALUES
+(1, 'Nguyễn Văn A', 32, 'Nam', 'a@gmail.com', '0123456789', NULL, 1, 'Khám tổng quát', 'Đã thanh toán', 'Đã xác nhận', NULL, 'Chưa xác nhận', NULL),
+(2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', NULL, 2, 'Nổi mẩn da', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
+(3, 'Nguyễn Minh Tuấn', 40, 'Nữ', 'ntmtuan205@gmail.com', '0889130129', NULL, 1, '', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
+(5, 'Nguyễn Văn Chính', 20, 'Nam', 'vanchinh20055@gmail.com', '0335942740', NULL, 8, 'demo code', 'Chưa thanh toán', 'Chưa xác nhận', 241, 'Chưa xác nhận', 'Thượng Sơn'),
+(8, 'LÊ CÔNG TUẤN', 33, 'Khác', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'cvxcvxvc', 'Chưa thanh toán', 'Chưa xác nhận', 206, 'Đã xác nhận', 'vs'),
+(17, 'LÊ CÔNG TUẤN', 42, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'fsdafds', 'Chưa thanh toán', 'Chưa xác nhận', 306, 'Chưa xác nhận', ''),
+(18, 'LÊ CÔNG TUẤN', 43, 'Nữ', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'beba', 'Chưa thanh toán', 'Chưa xác nhận', 307, 'Chưa xác nhận', 'k47 nguyễn lương bằng'),
+(19, 'Phan viết lực ', 43, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'áccss', 'Chưa thanh toán', 'Đã xác nhận', 308, 'Đã xác nhận', 'k47 nguyễn lương bằng'),
+(20, 'LÊ CÔNG TUẤN  444', 55, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'zvvxc', 'Chưa thanh toán', 'Chưa xác nhận', 309, 'Đã xác nhận', 'fafsgsad');
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `brands`
+-- Table structure for table `brands`
 --
 
 CREATE TABLE `brands` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `logo` varchar(255) NOT NULL
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `logo` varchar(255) COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `brands`
+-- Dumping data for table `brands`
 --
 
 INSERT INTO `brands` (`id`, `name`, `logo`) VALUES
@@ -106,19 +111,19 @@ INSERT INTO `brands` (`id`, `name`, `logo`) VALUES
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `comments`
+-- Table structure for table `comments`
 --
 
 CREATE TABLE `comments` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `product_id` int(11) DEFAULT NULL,
-  `content` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `content` text COLLATE utf8mb4_general_ci,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `comments`
+-- Dumping data for table `comments`
 --
 
 INSERT INTO `comments` (`id`, `customer_id`, `product_id`, `content`, `created_at`) VALUES
@@ -128,18 +133,18 @@ INSERT INTO `comments` (`id`, `customer_id`, `product_id`, `content`, `created_a
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `comment_likes`
+-- Table structure for table `comment_likes`
 --
 
 CREATE TABLE `comment_likes` (
-  `id` int(11) NOT NULL,
-  `comment_id` int(11) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `comment_id` int DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `comment_likes`
+-- Dumping data for table `comment_likes`
 --
 
 INSERT INTO `comment_likes` (`id`, `comment_id`, `customer_id`, `created_at`) VALUES
@@ -149,32 +154,32 @@ INSERT INTO `comment_likes` (`id`, `comment_id`, `customer_id`, `created_at`) VA
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `customers`
+-- Table structure for table `customers`
 --
 
 CREATE TABLE `customers` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `gender` enum('Nam','Nữ','Khác') DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gender` enum('Nam','Nữ','Khác') COLLATE utf8mb4_general_ci DEFAULT NULL,
   `birthday` date DEFAULT NULL,
-  `address` text DEFAULT NULL,
-  `avatar` varchar(255) DEFAULT NULL,
-  `is_verified` tinyint(1) DEFAULT 0,
+  `address` text COLLATE utf8mb4_general_ci,
+  `avatar` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT '0',
   `created_at` datetime DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL
+  `role_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `customers`
+-- Dumping data for table `customers`
 --
 
 INSERT INTO `customers` (`id`, `name`, `email`, `password`, `phone`, `gender`, `birthday`, `address`, `avatar`, `is_verified`, `created_at`, `role_id`) VALUES
 (1, 'Trần Thị Khách', 'khach1@example.com', '123456', '0909123456', NULL, NULL, '123 Lê Lợi, Q1', NULL, 0, '2025-06-07 14:02:51', 2),
 (2, 'Phạm Văn Mua', 'khach2@example.com', '123456', '0909234567', NULL, NULL, '456 Nguyễn Huệ, Q1', NULL, 0, '2025-06-07 14:02:51', 2),
-(3, 'LÊ CÔNG TUẤN', 'tuanlcpd10779@gmail.com', '$2b$10$YPtKLl4SwNUWh9yzJ467se6e.1WI8MBQl2Qo1ugImzJsKEK0TKfr6', '0342907002', NULL, NULL, 'k47 nguyễn lương bằng', NULL, 0, NULL, 2),
+(3, 'LÊ CÔNG TUẤN', 'tuanlcpd10779@gmail.com', '$2b$10$YPtKLl4SwNUWh9yzJ467se6e.1WI8MBQl2Qo1ugImzJsKEK0TKfr6', '0342907002', NULL, NULL, 'k47 nguyễn lương bằng', NULL, 1, NULL, 2),
 (4, '1', '1@gmail.com', '$2b$10$ismZdaLNyA799ui91w8THuSzyBoubxrb8mNC6mWzT6SJW/awONtGe', '1', NULL, NULL, '1', NULL, 0, NULL, 2),
 (5, 'Nguyễn Văn Chinh', 'vanchinh@gmail.com', '$2b$10$6xSocNzDeYLYwuViP33SD.G9TWBP/mV9mWtAmQEhML.RSu3LY4Cvy', '0344757955', 'Nam', '0000-00-00', 'Hà Tĩnh', '/uploads/1750822486115-Blue Pink Modern Flat Illustrative Heart Care Logo.png', 0, NULL, 2),
 (8, 'Nguyễn Văn A', 'chubedu2005@gmail.com', '$2b$10$SR76wvO5gccaCmikmOWCS.wVTdMLOalSw6PlAPee1a1wbz81eWXFK', '0909123456', NULL, NULL, NULL, NULL, 0, NULL, 2),
@@ -184,27 +189,27 @@ INSERT INTO `customers` (`id`, `name`, `email`, `password`, `phone`, `gender`, `
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `doctors`
+-- Table structure for table `doctors`
 --
 
 CREATE TABLE `doctors` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `specialization_id` int(11) DEFAULT NULL,
-  `img` varchar(255) DEFAULT NULL,
-  `introduction` text DEFAULT NULL COMMENT 'Mô tả, giới thiệu về bác sĩ',
-  `certificate_image` varchar(255) DEFAULT NULL,
-  `degree_image` varchar(255) DEFAULT NULL COMMENT 'URL hình ảnh bằng cấp',
-  `experience` text DEFAULT NULL,
-  `account_status` varchar(50) DEFAULT '''active''',
-  `role_id` int(11) DEFAULT NULL
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `specialization_id` int DEFAULT NULL,
+  `img` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `introduction` text COLLATE utf8mb4_general_ci COMMENT 'Mô tả, giới thiệu về bác sĩ',
+  `certificate_image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `degree_image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'URL hình ảnh bằng cấp',
+  `experience` text COLLATE utf8mb4_general_ci,
+  `account_status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT '''active''',
+  `role_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `doctors`
+-- Dumping data for table `doctors`
 --
 
 INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `password`, `specialization_id`, `img`, `introduction`, `certificate_image`, `degree_image`, `experience`, `account_status`, `role_id`) VALUES
@@ -219,28 +224,29 @@ INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `password`, `specializati
 (9, 'BS. Trần Đình Long', '0909457892', 'bs9@example.com', '$2b$10$yzA567Bs9', 9, 'trandinhlong.jpg', NULL, 'cert_bs9.jpg', NULL, NULL, 'active', 3),
 (10, 'BS. Hà Huy Nam', '0909143678', 'bs10@example.com', '$2b$10$BCD890Bs10', 10, 'hahuynam.jpg', NULL, 'cert_bs10.jpg', NULL, NULL, 'active', 3),
 (12, 'VĂN CHINH', '0335942740', 'zvonimihenry7962@gmail.com', '$2b$10$F2xcC7KttOQXNaCUVTXY.uO/me9j/Ac7mBT1GDDjDyna/DvMvr12e', 1, '1751083761966-Thiáº¿t káº¿ chÆ°a cÃ³ tÃªn.png', 'tôi là chú bé đần', '1751083761968-sublikere.png', '1751083761967-2.png', '3 năm trong abcxyz', 'active', 3),
-(13, 'abcd', NULL, 'nguyenvanchinh200506@gmail.com', '$2b$10$XWAeDWIQLkgPpebHuOBm0.zUT9GJLpETPkm5zIeImNZY9ks/cesea', 8, NULL, NULL, NULL, NULL, NULL, 'inactive', 3);
+(13, 'abcd', NULL, 'nguyenvanchinh200506@gmail.com', '$2b$10$XWAeDWIQLkgPpebHuOBm0.zUT9GJLpETPkm5zIeImNZY9ks/cesea', 8, NULL, NULL, NULL, NULL, NULL, 'active', 3),
+(15, 'Tun Lê', '0342907002', 'tuanlcpd10779@gmail.com', '$2b$10$mPBcduGUFPdbQ7evOhdXvuAEwyYdneq6T1sf8VWj3iAR0U6Lz6AGK', 1, '1751116345174-TDCARE.png', 'ng', '1751116345179-TDCARE.png', '1751116345179-TDCARE.png', 'gs', 'active', 3);
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `doctor_time_slot`
+-- Table structure for table `doctor_time_slot`
 --
 
 CREATE TABLE `doctor_time_slot` (
-  `id` int(11) NOT NULL,
-  `doctor_id` int(11) NOT NULL,
+  `id` int NOT NULL,
+  `doctor_id` int NOT NULL,
   `slot_date` date NOT NULL,
   `start_time` time NOT NULL,
   `end_time` time NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `doctor_time_slot`
+-- Dumping data for table `doctor_time_slot`
 --
 
 INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `slot_date`, `start_time`, `end_time`) VALUES
-(206, 1, '2025-06-30', '08:00:00', '09:00:00'),
+(206, 15, '2025-06-30', '08:00:00', '09:00:00'),
 (207, 1, '2025-06-30', '09:15:00', '10:15:00'),
 (208, 1, '2025-06-30', '10:30:00', '11:30:00'),
 (209, 1, '2025-06-30', '13:30:00', '14:30:00'),
@@ -339,50 +345,56 @@ INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `slot_date`, `start_time`, `e
 (302, 10, '2025-06-24', '09:15:00', '10:15:00'),
 (303, 10, '2025-06-24', '10:30:00', '11:30:00'),
 (304, 10, '2025-06-24', '13:30:00', '14:30:00'),
-(305, 10, '2025-06-24', '14:45:00', '15:45:00');
+(305, 10, '2025-06-24', '14:45:00', '15:45:00'),
+(306, 15, '2025-06-30', '09:15:00', '10:15:00'),
+(307, 15, '2025-06-30', '10:30:00', '11:30:00'),
+(308, 15, '2025-06-30', '13:30:00', '14:30:00'),
+(309, 15, '2025-06-30', '14:45:00', '15:45:00');
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `medical_records`
+-- Table structure for table `medical_records`
 --
 
 CREATE TABLE `medical_records` (
-  `id` int(11) NOT NULL,
-  `appointment_id` int(11) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `diagnosis` text DEFAULT NULL,
-  `treatment` text DEFAULT NULL,
-  `notes` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `appointment_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
+  `diagnosis` text COLLATE utf8mb4_general_ci,
+  `treatment` text COLLATE utf8mb4_general_ci,
+  `notes` text COLLATE utf8mb4_general_ci,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `medical_records`
+-- Dumping data for table `medical_records`
 --
 
 INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id`, `diagnosis`, `treatment`, `notes`, `created_at`) VALUES
 (1, 1, 1, 1, 'Cảm cúm', 'Nghỉ ngơi và uống thuốc hạ sốt', 'Theo dõi 3 ngày', '2025-06-07 14:02:51'),
-(2, 2, 2, 2, 'Viêm da nhẹ', 'Bôi thuốc và tránh tiếp xúc hóa chất', 'Tái khám sau 1 tuần', '2025-06-07 14:02:51');
+(2, 2, 2, 2, 'Viêm da nhẹ', 'Bôi thuốc và tránh tiếp xúc hóa chất', 'Tái khám sau 1 tuần', '2025-06-07 14:02:51'),
+(3, 8, 15, 3, 'eff', 'fdads', 'đà', '2025-06-28 23:11:42'),
+(4, 20, 15, 3, 'ry', 'xhfdh', 'vb', '2025-06-29 00:06:46');
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `orders`
+-- Table structure for table `orders`
 --
 
 CREATE TABLE `orders` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
   `order_date` datetime DEFAULT NULL,
-  `status` varchar(100) DEFAULT NULL,
+  `status` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
-  `payment_status` varchar(100) DEFAULT NULL
+  `payment_status` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `orders`
+-- Dumping data for table `orders`
 --
 
 INSERT INTO `orders` (`id`, `customer_id`, `order_date`, `status`, `total_amount`, `payment_status`) VALUES
@@ -392,19 +404,19 @@ INSERT INTO `orders` (`id`, `customer_id`, `order_date`, `status`, `total_amount
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `order_details`
+-- Table structure for table `order_details`
 --
 
 CREATE TABLE `order_details` (
-  `id` int(11) NOT NULL,
-  `order_id` int(11) DEFAULT NULL,
-  `product_id` int(11) DEFAULT NULL,
-  `quantity` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `order_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `order_details`
+-- Dumping data for table `order_details`
 --
 
 INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `price`) VALUES
@@ -415,19 +427,19 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `price`
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `payments`
+-- Table structure for table `payments`
 --
 
 CREATE TABLE `payments` (
-  `id` int(11) NOT NULL,
-  `order_id` int(11) DEFAULT NULL,
-  `method` varchar(100) DEFAULT NULL,
-  `status` varchar(100) DEFAULT NULL,
+  `id` int NOT NULL,
+  `order_id` int DEFAULT NULL,
+  `method` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `payment_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `payments`
+-- Dumping data for table `payments`
 --
 
 INSERT INTO `payments` (`id`, `order_id`, `method`, `status`, `payment_date`) VALUES
@@ -437,19 +449,19 @@ INSERT INTO `payments` (`id`, `order_id`, `method`, `status`, `payment_date`) VA
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `prescriptions`
+-- Table structure for table `prescriptions`
 --
 
 CREATE TABLE `prescriptions` (
-  `id` int(11) NOT NULL,
-  `appointment_id` int(11) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `appointment_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `prescriptions`
+-- Dumping data for table `prescriptions`
 --
 
 INSERT INTO `prescriptions` (`id`, `appointment_id`, `doctor_id`, `customer_id`, `created_at`) VALUES
@@ -459,19 +471,19 @@ INSERT INTO `prescriptions` (`id`, `appointment_id`, `doctor_id`, `customer_id`,
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `prescription_items`
+-- Table structure for table `prescription_items`
 --
 
 CREATE TABLE `prescription_items` (
-  `id` int(11) NOT NULL,
-  `prescription_id` int(11) DEFAULT NULL,
-  `product_id` int(11) DEFAULT NULL,
-  `dosage` varchar(255) DEFAULT NULL,
-  `duration` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `prescription_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `dosage` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `duration` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `prescription_items`
+-- Dumping data for table `prescription_items`
 --
 
 INSERT INTO `prescription_items` (`id`, `prescription_id`, `product_id`, `dosage`, `duration`) VALUES
@@ -481,22 +493,22 @@ INSERT INTO `prescription_items` (`id`, `prescription_id`, `product_id`, `dosage
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `products`
+-- Table structure for table `products`
 --
 
 CREATE TABLE `products` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `description` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
   `price` decimal(10,2) DEFAULT NULL,
-  `stock` int(11) DEFAULT NULL,
+  `stock` int DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
-  `image` varchar(255) DEFAULT NULL,
-  `brand_id` int(11) DEFAULT NULL
+  `image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `brand_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `products`
+-- Dumping data for table `products`
 --
 
 INSERT INTO `products` (`id`, `name`, `description`, `price`, `stock`, `created_at`, `image`, `brand_id`) VALUES
@@ -512,20 +524,20 @@ INSERT INTO `products` (`id`, `name`, `description`, `price`, `stock`, `created_
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `ratings`
+-- Table structure for table `ratings`
 --
 
 CREATE TABLE `ratings` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `product_id` int(11) DEFAULT NULL,
-  `rating` int(11) DEFAULT NULL,
-  `comment` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
+  `product_id` int DEFAULT NULL,
+  `rating` int DEFAULT NULL,
+  `comment` text COLLATE utf8mb4_general_ci,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `ratings`
+-- Dumping data for table `ratings`
 --
 
 INSERT INTO `ratings` (`id`, `customer_id`, `product_id`, `rating`, `comment`, `created_at`) VALUES
@@ -535,16 +547,16 @@ INSERT INTO `ratings` (`id`, `customer_id`, `product_id`, `rating`, `comment`, `
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `role`
+-- Table structure for table `role`
 --
 
 CREATE TABLE `role` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `role`
+-- Dumping data for table `role`
 --
 
 INSERT INTO `role` (`id`, `name`) VALUES
@@ -555,17 +567,17 @@ INSERT INTO `role` (`id`, `name`) VALUES
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `specializations`
+-- Table structure for table `specializations`
 --
 
 CREATE TABLE `specializations` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `image` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `specializations`
+-- Dumping data for table `specializations`
 --
 
 INSERT INTO `specializations` (`id`, `name`, `image`) VALUES
@@ -581,11 +593,11 @@ INSERT INTO `specializations` (`id`, `name`, `image`) VALUES
 (10, 'Khoa hô hấp', NULL);
 
 --
--- Chỉ mục cho các bảng đã đổ
+-- Indexes for dumped tables
 --
 
 --
--- Chỉ mục cho bảng `admins`
+-- Indexes for table `admins`
 --
 ALTER TABLE `admins`
   ADD PRIMARY KEY (`id`),
@@ -593,21 +605,22 @@ ALTER TABLE `admins`
   ADD KEY `role_id` (`role_id`);
 
 --
--- Chỉ mục cho bảng `appointments`
+-- Indexes for table `appointments`
 --
 ALTER TABLE `appointments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `doctor_id` (`doctor_id`),
-  ADD KEY `appointments_ibfk_time_slot` (`time_slot_id`);
+  ADD KEY `appointments_ibfk_time_slot` (`time_slot_id`),
+  ADD KEY `fk_appointments_customers` (`customer_id`);
 
 --
--- Chỉ mục cho bảng `brands`
+-- Indexes for table `brands`
 --
 ALTER TABLE `brands`
   ADD PRIMARY KEY (`id`);
 
 --
--- Chỉ mục cho bảng `comments`
+-- Indexes for table `comments`
 --
 ALTER TABLE `comments`
   ADD PRIMARY KEY (`id`),
@@ -615,7 +628,7 @@ ALTER TABLE `comments`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `comment_likes`
+-- Indexes for table `comment_likes`
 --
 ALTER TABLE `comment_likes`
   ADD PRIMARY KEY (`id`),
@@ -623,7 +636,7 @@ ALTER TABLE `comment_likes`
   ADD KEY `customer_id` (`customer_id`);
 
 --
--- Chỉ mục cho bảng `customers`
+-- Indexes for table `customers`
 --
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`id`),
@@ -631,7 +644,7 @@ ALTER TABLE `customers`
   ADD KEY `role_id` (`role_id`);
 
 --
--- Chỉ mục cho bảng `doctors`
+-- Indexes for table `doctors`
 --
 ALTER TABLE `doctors`
   ADD PRIMARY KEY (`id`),
@@ -639,14 +652,14 @@ ALTER TABLE `doctors`
   ADD KEY `fk_doctors_specialization` (`specialization_id`);
 
 --
--- Chỉ mục cho bảng `doctor_time_slot`
+-- Indexes for table `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
   ADD PRIMARY KEY (`id`),
   ADD KEY `doctor_id` (`doctor_id`);
 
 --
--- Chỉ mục cho bảng `medical_records`
+-- Indexes for table `medical_records`
 --
 ALTER TABLE `medical_records`
   ADD PRIMARY KEY (`id`),
@@ -655,14 +668,14 @@ ALTER TABLE `medical_records`
   ADD KEY `customer_id` (`customer_id`);
 
 --
--- Chỉ mục cho bảng `orders`
+-- Indexes for table `orders`
 --
 ALTER TABLE `orders`
   ADD PRIMARY KEY (`id`),
   ADD KEY `customer_id` (`customer_id`);
 
 --
--- Chỉ mục cho bảng `order_details`
+-- Indexes for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD PRIMARY KEY (`id`),
@@ -670,14 +683,14 @@ ALTER TABLE `order_details`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `payments`
+-- Indexes for table `payments`
 --
 ALTER TABLE `payments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `order_id` (`order_id`);
 
 --
--- Chỉ mục cho bảng `prescriptions`
+-- Indexes for table `prescriptions`
 --
 ALTER TABLE `prescriptions`
   ADD PRIMARY KEY (`id`),
@@ -686,7 +699,7 @@ ALTER TABLE `prescriptions`
   ADD KEY `customer_id` (`customer_id`);
 
 --
--- Chỉ mục cho bảng `prescription_items`
+-- Indexes for table `prescription_items`
 --
 ALTER TABLE `prescription_items`
   ADD PRIMARY KEY (`id`),
@@ -694,14 +707,14 @@ ALTER TABLE `prescription_items`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `products`
+-- Indexes for table `products`
 --
 ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
   ADD KEY `products_ibfk_brand` (`brand_id`);
 
 --
--- Chỉ mục cho bảng `ratings`
+-- Indexes for table `ratings`
 --
 ALTER TABLE `ratings`
   ADD PRIMARY KEY (`id`),
@@ -709,182 +722,183 @@ ALTER TABLE `ratings`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `role`
+-- Indexes for table `role`
 --
 ALTER TABLE `role`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`);
 
 --
--- Chỉ mục cho bảng `specializations`
+-- Indexes for table `specializations`
 --
 ALTER TABLE `specializations`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT cho các bảng đã đổ
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT cho bảng `admins`
+-- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT cho bảng `appointments`
+-- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
--- AUTO_INCREMENT cho bảng `brands`
+-- AUTO_INCREMENT for table `brands`
 --
 ALTER TABLE `brands`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
--- AUTO_INCREMENT cho bảng `comments`
+-- AUTO_INCREMENT for table `comments`
 --
 ALTER TABLE `comments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `comment_likes`
+-- AUTO_INCREMENT for table `comment_likes`
 --
 ALTER TABLE `comment_likes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `customers`
+-- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
--- AUTO_INCREMENT cho bảng `doctors`
+-- AUTO_INCREMENT for table `doctors`
 --
 ALTER TABLE `doctors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
--- AUTO_INCREMENT cho bảng `doctor_time_slot`
+-- AUTO_INCREMENT for table `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=306;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=310;
 
 --
--- AUTO_INCREMENT cho bảng `medical_records`
+-- AUTO_INCREMENT for table `medical_records`
 --
 ALTER TABLE `medical_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT cho bảng `orders`
+-- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `order_details`
+-- AUTO_INCREMENT for table `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT cho bảng `payments`
+-- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `prescriptions`
+-- AUTO_INCREMENT for table `prescriptions`
 --
 ALTER TABLE `prescriptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `prescription_items`
+-- AUTO_INCREMENT for table `prescription_items`
 --
 ALTER TABLE `prescription_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `products`
+-- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
--- AUTO_INCREMENT cho bảng `ratings`
+-- AUTO_INCREMENT for table `ratings`
 --
 ALTER TABLE `ratings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT cho bảng `role`
+-- AUTO_INCREMENT for table `role`
 --
 ALTER TABLE `role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT cho bảng `specializations`
+-- AUTO_INCREMENT for table `specializations`
 --
 ALTER TABLE `specializations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
--- Các ràng buộc cho các bảng đã đổ
+-- Constraints for dumped tables
 --
 
 --
--- Các ràng buộc cho bảng `admins`
+-- Constraints for table `admins`
 --
 ALTER TABLE `admins`
   ADD CONSTRAINT `admins_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`);
 
 --
--- Các ràng buộc cho bảng `appointments`
+-- Constraints for table `appointments`
 --
 ALTER TABLE `appointments`
   ADD CONSTRAINT `appointments_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
-  ADD CONSTRAINT `appointments_ibfk_time_slot` FOREIGN KEY (`time_slot_id`) REFERENCES `doctor_time_slot` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `appointments_ibfk_time_slot` FOREIGN KEY (`time_slot_id`) REFERENCES `doctor_time_slot` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_appointments_customers` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
--- Các ràng buộc cho bảng `comments`
+-- Constraints for table `comments`
 --
 ALTER TABLE `comments`
   ADD CONSTRAINT `comments_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
   ADD CONSTRAINT `comments_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `comment_likes`
+-- Constraints for table `comment_likes`
 --
 ALTER TABLE `comment_likes`
   ADD CONSTRAINT `comment_likes_ibfk_1` FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`),
   ADD CONSTRAINT `comment_likes_ibfk_2` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 
 --
--- Các ràng buộc cho bảng `customers`
+-- Constraints for table `customers`
 --
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`);
 
 --
--- Các ràng buộc cho bảng `doctors`
+-- Constraints for table `doctors`
 --
 ALTER TABLE `doctors`
   ADD CONSTRAINT `doctors_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`id`),
   ADD CONSTRAINT `fk_doctors_specialization` FOREIGN KEY (`specialization_id`) REFERENCES `specializations` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
--- Các ràng buộc cho bảng `doctor_time_slot`
+-- Constraints for table `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
   ADD CONSTRAINT `doctor_time_slot_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`) ON DELETE CASCADE;
 
 --
--- Các ràng buộc cho bảng `medical_records`
+-- Constraints for table `medical_records`
 --
 ALTER TABLE `medical_records`
   ADD CONSTRAINT `medical_records_ibfk_1` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`),
@@ -892,26 +906,26 @@ ALTER TABLE `medical_records`
   ADD CONSTRAINT `medical_records_ibfk_3` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 
 --
--- Các ràng buộc cho bảng `orders`
+-- Constraints for table `orders`
 --
 ALTER TABLE `orders`
   ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 
 --
--- Các ràng buộc cho bảng `order_details`
+-- Constraints for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD CONSTRAINT `order_details_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
   ADD CONSTRAINT `order_details_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `payments`
+-- Constraints for table `payments`
 --
 ALTER TABLE `payments`
   ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
 
 --
--- Các ràng buộc cho bảng `prescriptions`
+-- Constraints for table `prescriptions`
 --
 ALTER TABLE `prescriptions`
   ADD CONSTRAINT `prescriptions_ibfk_1` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`),
@@ -919,20 +933,20 @@ ALTER TABLE `prescriptions`
   ADD CONSTRAINT `prescriptions_ibfk_3` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 
 --
--- Các ràng buộc cho bảng `prescription_items`
+-- Constraints for table `prescription_items`
 --
 ALTER TABLE `prescription_items`
   ADD CONSTRAINT `prescription_items_ibfk_1` FOREIGN KEY (`prescription_id`) REFERENCES `prescriptions` (`id`),
   ADD CONSTRAINT `prescription_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `products`
+-- Constraints for table `products`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_ibfk_brand` FOREIGN KEY (`brand_id`) REFERENCES `brands` (`id`);
 
 --
--- Các ràng buộc cho bảng `ratings`
+-- Constraints for table `ratings`
 --
 ALTER TABLE `ratings`
   ADD CONSTRAINT `ratings_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
