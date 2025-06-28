@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th6 25, 2025 lúc 02:09 PM
+-- Thời gian đã tạo: Th6 28, 2025 lúc 06:15 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -52,20 +52,30 @@ INSERT INTO `admins` (`id`, `name`, `email`, `password`, `phone`, `created_at`, 
 
 CREATE TABLE `appointments` (
   `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `gender` enum('Nam','Nữ','Khác') DEFAULT 'Khác',
+  `email` varchar(100) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
   `doctor_id` int(11) DEFAULT NULL,
   `reason` text DEFAULT NULL,
-  `status` varchar(100) DEFAULT NULL,
-  `time_slot_id` int(11) DEFAULT NULL
+  `payment_status` enum('Chưa thanh toán','Đã thanh toán') DEFAULT 'Chưa thanh toán',
+  `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') DEFAULT 'Chưa xác nhận',
+  `time_slot_id` int(11) DEFAULT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'Chưa xác nhận',
+  `address` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `customer_id`, `doctor_id`, `reason`, `status`, `time_slot_id`) VALUES
-(1, 1, 1, 'Khám tổng quát', 'Đã xác nhận', NULL),
-(2, 2, 2, 'Nổi mẩn da', 'Chờ xác nhận', NULL);
+INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `doctor_id`, `reason`, `payment_status`, `doctor_confirmation`, `time_slot_id`, `status`, `address`) VALUES
+(1, 'Nguyễn Văn A', 32, 'Nam', 'a@gmail.com', '0123456789', 1, 'Khám tổng quát', 'Đã thanh toán', 'Đã xác nhận', NULL, 'Chưa xác nhận', NULL),
+(2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', 2, 'Nổi mẩn da', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
+(3, 'Nguyễn Minh Tuấn', 40, 'Nữ', 'ntmtuan205@gmail.com', '0889130129', 1, '', 'Chưa thanh toán', 'Chưa xác nhận', NULL, 'Chưa xác nhận', NULL),
+(4, 'Nguyễn Minh Tuấn', 14, 'Nam', 'ntmtuan205@gmail.com', '0889130129', 1, 'â', 'Chưa thanh toán', 'Chưa xác nhận', 209, 'Chưa xác nhận', '37 Beech'),
+(5, 'Nguyễn Văn Chính', 20, 'Nam', 'vanchinh20055@gmail.com', '0335942740', 8, 'demo code', 'Chưa thanh toán', 'Chưa xác nhận', 241, 'Chưa xác nhận', 'Thượng Sơn');
 
 -- --------------------------------------------------------
 
@@ -168,7 +178,8 @@ INSERT INTO `customers` (`id`, `name`, `email`, `password`, `phone`, `gender`, `
 (4, '1', '1@gmail.com', '$2b$10$ismZdaLNyA799ui91w8THuSzyBoubxrb8mNC6mWzT6SJW/awONtGe', '1', NULL, NULL, '1', NULL, 0, NULL, 2),
 (5, 'Nguyễn Văn Chinh', 'vanchinh@gmail.com', '$2b$10$6xSocNzDeYLYwuViP33SD.G9TWBP/mV9mWtAmQEhML.RSu3LY4Cvy', '0344757955', 'Nam', '0000-00-00', 'Hà Tĩnh', '/uploads/1750822486115-Blue Pink Modern Flat Illustrative Heart Care Logo.png', 0, NULL, 2),
 (8, 'Nguyễn Văn A', 'chubedu2005@gmail.com', '$2b$10$SR76wvO5gccaCmikmOWCS.wVTdMLOalSw6PlAPee1a1wbz81eWXFK', '0909123456', NULL, NULL, NULL, NULL, 0, NULL, 2),
-(9, 'Nguyễn Văn A', 'vchinh2705@gmail.com', '$2b$10$rJ/ioYSMDxpbBPgDiqQwleMnMmswjM92R.cAVF3X.7cpGJ2RIEIEy', '0909123456', NULL, NULL, NULL, NULL, 1, NULL, 2);
+(9, 'Nguyễn Văn A', 'vchinh2705@gmail.com', '$2b$10$rJ/ioYSMDxpbBPgDiqQwleMnMmswjM92R.cAVF3X.7cpGJ2RIEIEy', '0909123456', NULL, NULL, NULL, NULL, 1, NULL, 2),
+(13, 'Nguyễn Minh Tuấn', 'ntmtuan205@gmail.com', '$2b$10$wXrLj515PQKLdOcNfojS..nrdtCW6FjOOe5kiJQTC.cFse5ID66K.', '0889130129', NULL, NULL, NULL, NULL, 0, NULL, 2);
 
 -- --------------------------------------------------------
 
@@ -181,31 +192,34 @@ CREATE TABLE `doctors` (
   `name` varchar(255) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
   `specialization_id` int(11) DEFAULT NULL,
   `img` varchar(255) DEFAULT NULL,
   `introduction` text DEFAULT NULL COMMENT 'Mô tả, giới thiệu về bác sĩ',
-  `password` varchar(255) DEFAULT NULL,
   `certificate_image` varchar(255) DEFAULT NULL,
   `degree_image` varchar(255) DEFAULT NULL COMMENT 'URL hình ảnh bằng cấp',
-  `account_status` varchar(50) DEFAULT 'active'
+  `experience` text DEFAULT NULL,
+  `account_status` varchar(50) DEFAULT '''active''',
+  `role_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `doctors`
 --
 
-INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `role_id`, `specialization_id`, `img`, `introduction`, `password`, `certificate_image`, `degree_image`, `account_status`) VALUES
-(1, 'BS. Nguyễn Bác Sĩ', '0909345678', 'bs1@example.com', 3, 1, 'nguyenbacsi.jpg', 'Giáo sư, Tiến sĩ hàng đầu trong lĩnh vực Nội khoa, với hơn 30 năm kinh nghiệm khám và điều trị.', '$2b$10$abc123Bs1', 'cert_bs1.jpg', 'https://i.imgur.com/T0azHTQ.jpeg', 'active'),
-(2, 'BS. Trần Da Liễu', '0909456789', 'bs2@example.com', 3, 2, 'trandalieu.jpg', 'Chuyên gia Da liễu với nhiều năm kinh nghiệm điều trị các bệnh về da, đặc biệt là da thẩm mỹ và laser.', '$2b$10$def456Bs2', 'cert_bs2.jpg', 'https://i.imgur.com/T0azHTQ.jpeg', 'active'),
-(3, 'BS. Nguyễn Văn Nam', '0909123456', 'bs3@example.com', 3, 3, 'nguyenvannam.jpg', NULL, '$2b$10$ghi789Bs3', 'cert_bs3.jpg', NULL, 'active'),
-(4, 'BS. Phan Văn Hào', '0909234567', 'bs4@example.com', 3, 4, 'phanvanhao.jpg', NULL, '$2b$10$jkl012Bs4', 'cert_bs4.jpg', NULL, 'active'),
-(5, 'BS. Hà Hồng Nhi', '0909345678', 'bs5@example.com', 3, 5, 'hahongnhi.jpg', NULL, '$2b$10$mno345Bs5', 'cert_bs5.jpg', NULL, 'active'),
-(6, 'BS. Lê Văn Anh', '0909456789', 'bs6@example.com', 3, 6, 'levananh.jpg', NULL, '$2b$10$pqr678Bs6', 'cert_bs6.jpg', NULL, 'active'),
-(7, 'BS. Hà Huy Nam', '0909456789', 'bs7@example.com', 3, 7, 'hahuynam.jpg', NULL, '$2b$10$stu901Bs7', 'cert_bs7.jpg', NULL, 'active'),
-(8, 'BS. Trần Văn Trường', '0909930102', 'bs8@example.com', 3, 8, 'tranvantruong.jpg', NULL, '$2b$10$vwx234Bs8', 'cert_bs8.jpg', NULL, 'active'),
-(9, 'BS. Trần Đình Long', '0909457892', 'bs9@example.com', 3, 9, 'trandinhlong.jpg', NULL, '$2b$10$yzA567Bs9', 'cert_bs9.jpg', NULL, 'active'),
-(10, 'BS. Hà Huy Nam', '0909143678', 'bs10@example.com', 3, 10, 'hahuynam.jpg', NULL, '$2b$10$BCD890Bs10', 'cert_bs10.jpg', NULL, 'active');
+INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `password`, `specialization_id`, `img`, `introduction`, `certificate_image`, `degree_image`, `experience`, `account_status`, `role_id`) VALUES
+(1, 'BS. Nguyễn Bác Sĩ', '0909345678', 'bs1@example.com', '$2b$10$abc123Bs1', 1, 'nguyenbacsi.jpg', 'Giáo sư, Tiến sĩ hàng đầu trong lĩnh vực Nội khoa, với hơn 30 năm kinh nghiệm khám và điều trị.', '1751077687528-3.png', '1751077687531-1.png', '', 'active', 3),
+(2, 'BS. Trần Da Liễu', '0909456789', 'bs2@example.com', '$2b$10$def456Bs2', 2, 'trandalieu.jpg', 'Chuyên gia Da liễu với nhiều năm kinh nghiệm điều trị các bệnh về da, đặc biệt là da thẩm mỹ và laser.', 'cert_bs2.jpg', 'https://i.imgur.com/T0azHTQ.jpeg', NULL, 'active', 3),
+(3, 'BS. Nguyễn Văn Nam', '0909123456', 'bs3@example.com', '$2b$10$ghi789Bs3', 3, 'nguyenvannam.jpg', NULL, 'cert_bs3.jpg', NULL, NULL, 'active', 3),
+(4, 'BS. Phan Văn Hào', '0909234567', 'bs4@example.com', '$2b$10$jkl012Bs4', 4, 'phanvanhao.jpg', NULL, 'cert_bs4.jpg', NULL, NULL, 'active', 3),
+(5, 'BS. Hà Hồng Nhi', '0909345678', 'bs5@example.com', '$2b$10$mno345Bs5', 5, 'hahongnhi.jpg', NULL, 'cert_bs5.jpg', NULL, NULL, 'active', 3),
+(6, 'BS. Lê Văn Anh', '0909456789', 'bs6@example.com', '$2b$10$pqr678Bs6', 6, 'levananh.jpg', NULL, 'cert_bs6.jpg', NULL, NULL, 'active', 3),
+(7, 'BS. Hà Huy Nam', '0909456789', 'bs7@example.com', '$2b$10$stu901Bs7', 7, 'hahuynam.jpg', NULL, 'cert_bs7.jpg', NULL, NULL, 'active', 3),
+(8, 'BS. Trần Văn Trường', '0909930102', 'bs8@example.com', '$2b$10$vwx234Bs8', 8, 'tranvantruong.jpg', NULL, 'cert_bs8.jpg', NULL, NULL, 'active', 3),
+(9, 'BS. Trần Đình Long', '0909457892', 'bs9@example.com', '$2b$10$yzA567Bs9', 9, 'trandinhlong.jpg', NULL, 'cert_bs9.jpg', NULL, NULL, 'active', 3),
+(10, 'BS. Hà Huy Nam', '0909143678', 'bs10@example.com', '$2b$10$BCD890Bs10', 10, 'hahuynam.jpg', NULL, 'cert_bs10.jpg', NULL, NULL, 'active', 3),
+(12, 'VĂN CHINH', '0335942740', 'zvonimihenry7962@gmail.com', '$2b$10$F2xcC7KttOQXNaCUVTXY.uO/me9j/Ac7mBT1GDDjDyna/DvMvr12e', 1, '1751083761966-Thiáº¿t káº¿ chÆ°a cÃ³ tÃªn.png', 'tôi là chú bé đần', '1751083761968-sublikere.png', '1751083761967-2.png', '3 năm trong abcxyz', 'active', 3),
+(13, 'abcd', NULL, 'nguyenvanchinh200506@gmail.com', '$2b$10$XWAeDWIQLkgPpebHuOBm0.zUT9GJLpETPkm5zIeImNZY9ks/cesea', 8, NULL, NULL, NULL, NULL, NULL, 'inactive', 3);
 
 -- --------------------------------------------------------
 
@@ -583,7 +597,6 @@ ALTER TABLE `admins`
 --
 ALTER TABLE `appointments`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `customer_id` (`customer_id`),
   ADD KEY `doctor_id` (`doctor_id`),
   ADD KEY `appointments_ibfk_time_slot` (`time_slot_id`);
 
@@ -722,7 +735,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT cho bảng `brands`
@@ -746,13 +759,13 @@ ALTER TABLE `comment_likes`
 -- AUTO_INCREMENT cho bảng `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT cho bảng `doctors`
 --
 ALTER TABLE `doctors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT cho bảng `doctor_time_slot`
@@ -834,7 +847,6 @@ ALTER TABLE `admins`
 -- Các ràng buộc cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
   ADD CONSTRAINT `appointments_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
   ADD CONSTRAINT `appointments_ibfk_time_slot` FOREIGN KEY (`time_slot_id`) REFERENCES `doctor_time_slot` (`id`) ON DELETE SET NULL;
 
