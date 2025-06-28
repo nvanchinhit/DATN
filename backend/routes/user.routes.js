@@ -18,19 +18,11 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage: storage });
-
-// Tất cả các route trong tệp này đều được bảo vệ
 router.use(authMiddleware.verifyToken);
 
-// --- Định tuyến cho hồ sơ người dùng ---
 
-// GET /api/users/profile
 router.get('/profile', userController.getProfile);
-
-// PUT /api/users/profile - Dùng upload.single('avatar') để xử lý file có tên 'avatar'
 router.put('/profile', upload.single('avatar'), userController.updateProfile);
-
-// [MỚI] POST /api/users/change-password - Route để đổi mật khẩu
 router.post('/change-password', userController.changePassword);
 
 module.exports = router;

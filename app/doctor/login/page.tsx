@@ -27,9 +27,19 @@ export default function DoctorLoginPage() {
         setMsg(data.msg || 'Đăng nhập thất bại!');
       } else {
         localStorage.setItem('doctorToken', data.token);
-        setMsg('Đăng nhập thành công!');
+        localStorage.setItem('user', JSON.stringify(data.doctor)); 
+
+        setMsg('Đăng nhập thành công! Đang chuyển hướng...');
+
         setTimeout(() => {
-          router.push('/doctor/dashboard');
+          const doctorStatus = data.doctor.account_status;
+
+          if (doctorStatus === 'active') {
+            router.push('/doctor/dashboard');
+          } else {
+            // Bao gồm cả 'inactive' và 'pending'
+            router.push('/doctor/complete-profile');
+          }
         }, 1000);
       }
     } catch (err) {
@@ -61,13 +71,13 @@ export default function DoctorLoginPage() {
         />
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition-colors"
           disabled={loading}
         >
           {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
-      {msg && <p className="mt-4 text-center text-sm text-red-600">{msg}</p>}
+      {msg && <p className={`mt-4 text-center text-sm ${msg.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>{msg}</p>}
     </div>
   );
 }

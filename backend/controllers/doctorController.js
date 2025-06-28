@@ -5,81 +5,97 @@ const sendMail = require("../utils/mailer");
 
 const secret = process.env.JWT_SECRET || "your_default_secret";
 
-// Hàm tạo mật khẩu ngẫu nhiên
+// Tạo mật khẩu ngẫu nhiên
 function generatePassword(length = 10) {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return password;
+  const chars =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  return Array.from({ length }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length))
+  ).join("");
 }
 
-// =========== ADMIN THÊM BÁC SĨ ===========
+// Admin tạo tài khoản bác sĩ
 exports.createDoctorAccount = async (req, res) => {
   const { name, email, specialization_id } = req.body;
+  if (!name || !email || !specialization_id)
+    return res
+      .status(400)
+      .json({ msg: "Vui lòng điền đầy đủ tên, email và chuyên khoa!" });
 
-  if (!name || !email || !specialization_id) {
-    return res.status(400).json({ msg: "Vui lòng điền đầy đủ tên, email và chuyên khoa!" });
-  }
+  db.query(
+    "SELECT * FROM doctors WHERE email = ?",
+    [email],
+    async (err, rows) => {
+      if (err)
+        return res.status(500).json({ msg: "Lỗi khi kiểm tra email!" });
+      if (rows.length > 0)
+        return res.status(400).json({ msg: "Email này đã tồn tại!" });
 
-  db.query("SELECT * FROM doctors WHERE email = ?", [email], async (err, result) => {
-    if (err) return res.status(500).json({ msg: "Lỗi khi kiểm tra email!" });
-    if (result.length > 0) return res.status(400).json({ msg: "Email này đã tồn tại!" });
+      const password = generatePassword();
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-    const password = generatePassword();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = `
+      // <<< THAY ĐỔI QUAN TRỌNG #1 >>>
+      // Trạng thái ban đầu khi mới tạo tài khoản là 'inactive' (chưa hoạt động),
+      // không phải 'pending' (chờ duyệt).
+      const insertSQL = `
       INSERT INTO doctors (name, email, password, specialization_id, account_status, role_id)
-      VALUES (?, ?, ?, ?, 'pending', 3)
+      VALUES (?, ?, ?, ?, 'inactive', 3)
     `;
-    db.query(sql, [name, email, hashedPassword, specialization_id], async (err, result) => {
-      if (err) return res.status(500).json({ msg: "Lỗi khi thêm tài khoản bác sĩ!" });
 
-      try {
-        await sendMail({
-          to: email,
-          subject: "Tài khoản bác sĩ được tạo",
-          html: `
-            <p>Xin chào ${name},</p>
-            <p>Tài khoản bác sĩ của bạn đã được tạo thành công.</p>
+      db.query(
+        insertSQL,
+        [name, email, hashedPassword, specialization_id],
+        async (err2) => {
+          if (err2) return res.status(500).json({ msg: "Lỗi khi thêm bác sĩ!" });
+
+          try {
+            await sendMail({
+              to: email,
+              subject: "Tài khoản bác sĩ được tạo",
+              html: `
+            <p>Xin chào <strong>${name}</strong>,</p>
+            <p>Tài khoản bác sĩ của bạn đã được tạo.</p>
             <p><strong>Email:</strong> ${email}</p>
             <p><strong>Mật khẩu:</strong> ${password}</p>
-            <p>Trạng thái: <b>Chờ phê duyệt</b>. Bạn sẽ được thông báo khi tài khoản được kích hoạt.</p>
+            <p>Vui lòng đăng nhập và hoàn thiện hồ sơ để được duyệt sử dụng hệ thống.</p>
           `,
-        });
-
-        res.status(201).json({ msg: "Tài khoản bác sĩ được tạo và mật khẩu đã gửi qua email (trạng thái pending)!" });
-      } catch (err) {
-        console.error("❌ Lỗi gửi mail:", err);
-        res.status(500).json({ msg: "Tạo tài khoản thành công nhưng lỗi khi gửi email!" });
-      }
-    });
-  });
+            });
+            res.status(201).json({
+              msg: "Tạo tài khoản thành công, mật khẩu đã gửi qua email!",
+            });
+          } catch (e) {
+            console.error("❌ Lỗi gửi email:", e);
+            res
+              .status(500)
+              .json({ msg: "Tạo thành công nhưng lỗi khi gửi email!" });
+          }
+        }
+      );
+    }
+  );
 };
 
-// =========== ĐĂNG NHẬP BÁC SĨ ===========
+// Đăng nhập bác sĩ (Giữ nguyên, không cần sửa)
 exports.doctorLogin = (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  if (!email || !password)
     return res.status(400).json({ msg: "Thiếu email hoặc mật khẩu!" });
-  }
 
-  db.query("SELECT * FROM doctors WHERE email = ?", [email], async (err, result) => {
+  db.query("SELECT * FROM doctors WHERE email = ?", [email], async (err, rows) => {
     if (err) return res.status(500).json({ msg: "Lỗi server!" });
-    if (result.length === 0) return res.status(400).json({ msg: "Tài khoản không tồn tại!" });
+    if (rows.length === 0)
+      return res.status(400).json({ msg: "Tài khoản không tồn tại!" });
 
-    const doctor = result[0];
-
-    if (doctor.role_id !== 3) {
-      return res.status(403).json({ msg: "Bạn không có quyền đăng nhập với vai trò bác sĩ!" });
-    }
+    const doctor = rows[0];
+    if (doctor.role_id !== 3)
+      return res.status(403).json({ msg: "Không đúng quyền bác sĩ!" });
 
     const match = await bcrypt.compare(password, doctor.password);
     if (!match) return res.status(400).json({ msg: "Mật khẩu không đúng!" });
 
-    const token = jwt.sign({ id: doctor.id, email }, secret, { expiresIn: "7d" });
+    const token = jwt.sign({ id: doctor.id, email }, secret, {
+      expiresIn: "7d",
+    });
 
     res.json({
       msg: "Đăng nhập thành công!",
@@ -96,140 +112,128 @@ exports.doctorLogin = (req, res) => {
   });
 };
 
-// =========== LẤY THÔNG TIN BÁC SĨ ===========
-exports.getDoctorById = (req, res) => {
+// Duyệt bác sĩ (Giữ nguyên, không cần sửa)
+exports.approveDoctor = (req, res) => {
   const doctorId = req.params.id;
+  const sql = "UPDATE doctors SET account_status = 'active' WHERE id = ?";
 
-  const sql = `
-    SELECT id, name, email, phone, img, introduction, specialization_id, account_status 
-    FROM doctors 
-    WHERE id = ?
-  `;
   db.query(sql, [doctorId], (err, result) => {
-    if (err) return res.status(500).json({ msg: "Lỗi truy vấn!" });
-    if (result.length === 0) return res.status(404).json({ msg: "Không tìm thấy bác sĩ!" });
-
-    res.json(result[0]);
+    if (err) {
+      console.error("Lỗi khi cập nhật trạng thái bác sĩ:", err);
+      return res.status(500).json({ msg: "Lỗi máy chủ khi duyệt bác sĩ." });
+    }
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ msg: `Không tìm thấy bác sĩ với ID ${doctorId}.` });
+    }
+    res
+      .status(200)
+      .json({ msg: `Bác sĩ ID ${doctorId} đã được duyệt thành công.` });
   });
 };
 
-// =========== CẬP NHẬT THÔNG TIN BÁC SĨ (KÈM ẢNH, CHỨNG CHỈ, BẰNG CẤP) ===========
+// Lấy thông tin bác sĩ theo ID (Giữ nguyên, không cần sửa)
+exports.getDoctorById = (req, res) => {
+  const doctorId = req.params.id;
+  const sql = `
+    SELECT d.*, s.name AS specialization_name
+    FROM doctors d
+    LEFT JOIN specializations s ON d.specialization_id = s.id
+    WHERE d.id = ?
+  `;
+  db.query(sql, [doctorId], (err, rows) => {
+    if (err) return res.status(500).json({ msg: "Lỗi truy vấn!" });
+    if (rows.length === 0)
+      return res.status(404).json({ msg: "Không tìm thấy bác sĩ!" });
+
+    res.json(rows[0]);
+  });
+};
+
+// Cập nhật hồ sơ bác sĩ
 exports.updateDoctor = (req, res) => {
   const doctorId = req.params.id;
-  const {
-    name,
-    email,
-    phone,
-    introduction,
-    specialization_id,
-    education,
-    experience,
-  } = req.body;
+  const { phone, introduction, experience } = req.body;
 
-  // Lấy các file nếu có
   const img = req.files?.img?.[0]?.filename || null;
-  const certificate = req.files?.certificate?.[0]?.filename || null;
-  const degree = req.files?.degree?.[0]?.filename || null;
+  const certificate = req.files?.certificate_image?.[0]?.filename || null;
+  const degree = req.files?.degree_image?.[0]?.filename || null;
 
   const fields = [];
   const values = [];
 
-  // Cập nhật các trường thông tin nếu có
-  if (name) { fields.push("name = ?"); values.push(name); }
-  if (email) { fields.push("email = ?"); values.push(email); }
   if (phone) { fields.push("phone = ?"); values.push(phone); }
   if (introduction !== undefined) { fields.push("introduction = ?"); values.push(introduction); }
-  if (specialization_id) { fields.push("specialization_id = ?"); values.push(specialization_id); }
-  if (education !== undefined) { fields.push("education = ?"); values.push(education); }
   if (experience !== undefined) { fields.push("experience = ?"); values.push(experience); }
-
   if (img) { fields.push("img = ?"); values.push(img); }
   if (certificate) { fields.push("certificate_image = ?"); values.push(certificate); }
   if (degree) { fields.push("degree_image = ?"); values.push(degree); }
 
-  // 🔍 Chỉ khi cập nhật bằng cấp hoặc chứng chỉ thì mới chuyển về trạng thái pending
-if (certificate || degree) {
-  fields.push("account_status = ?");
-  values.push("pending");
-}
-
+  // <<< THAY ĐỔI QUAN TRỌNG #2 >>>
+  // Khi bác sĩ nộp hồ sơ (tức là có cập nhật ít nhất một trường),
+  // trạng thái sẽ chuyển thành 'pending' để admin duyệt.
+  if (fields.length > 0) {
+    fields.push("account_status = ?");
+    values.push("pending");
+  } else {
+    // Nếu không có gì để cập nhật thì báo lỗi
+    return res.status(400).json({ msg: "Không có thông tin nào để cập nhật!" });
+  }
 
   values.push(doctorId);
+  const sql = `UPDATE doctors SET ${fields.join(", ")} WHERE id = ?`;
 
-  const sql = `UPDATE doctors SET ${fields.join(', ')} WHERE id = ?`;
-
-  db.query(sql, values, (err, result) => {
+  db.query(sql, values, (err) => {
     if (err) {
-      console.error("❌ Lỗi khi cập nhật hồ sơ bác sĩ:", err);
+      console.error("❌ Lỗi khi cập nhật:", err);
       return res.status(500).json({ msg: "Lỗi khi cập nhật bác sĩ!" });
     }
 
-    // Trả về bản ghi đã cập nhật
-    db.query("SELECT * FROM doctors WHERE id = ?", [doctorId], (err2, data) => {
-      if (err2 || data.length === 0) {
-        return res.status(500).json({ msg: "Cập nhật xong nhưng không lấy được dữ liệu!" });
-      }
-      res.json(data[0]);
-    });
-  });
-};
-exports.updateDoctorProfile = (req, res) => {
-  const doctorId = req.params.id;
-  const {
-    name,
-    email,
-    phone,
-    specialization_id,
-    introduction,
-    education,
-    experience,
-  } = req.body;
-
-  // Lấy ảnh nếu có
-  const img = req.files?.img?.[0]?.filename || null;
-  const certificate_image = req.files?.certificate_image?.[0]?.filename || null;
-  const degree_image = req.files?.degree_image?.[0]?.filename || null;
-
-  // Xây dựng câu lệnh SQL động
-  let sql = `
-    UPDATE doctors SET 
-      name = ?, email = ?, phone = ?, 
-      specialization_id = ?, introduction = ?, 
-      education = ?, experience = ?, 
-      account_status = 'pending'
-      ${img ? ', img = ?' : ''}
-      ${certificate_image ? ', certificate_image = ?' : ''}
-      ${degree_image ? ', degree_image = ?' : ''}
-    WHERE id = ?
-  `;
-
-  const values = [
-    name,
-    email,
-    phone,
-    specialization_id,
-    introduction,
-    education,
-    experience,
-    ...(img ? [img] : []),
-    ...(certificate_image ? [certificate_image] : []),
-    ...(degree_image ? [degree_image] : []),
-    doctorId,
-  ];
-
-  // Thực thi
-  db.query(sql, values, (err, result) => {
-    if (err) {
-      console.error("❌ Lỗi cập nhật:", err);
-      return res.status(500).json({ msg: "Lỗi cập nhật hồ sơ bác sĩ!" });
-    }
-
-    // Trả về dữ liệu sau khi cập nhật
+    // Trả về thông tin mới nhất của bác sĩ sau khi cập nhật
     db.query("SELECT * FROM doctors WHERE id = ?", [doctorId], (err2, rows) => {
       if (err2 || rows.length === 0) {
-        return res.status(500).json({ msg: "Không lấy được thông tin sau khi cập nhật!" });
+        return res
+          .status(500)
+          .json({ msg: "Không thể lấy dữ liệu sau khi cập nhật!" });
       }
       res.json(rows[0]);
     });
+  });
+};
+
+// Lấy tất cả bác sĩ (Giữ nguyên, không cần sửa)
+exports.getAllDoctors = (req, res) => {
+  const sql = `
+    SELECT 
+      d.id, d.name, d.phone, d.email, d.img, d.introduction, 
+      d.certificate_image, d.degree_image, d.account_status,
+      s.name AS specialty_name
+    FROM doctors d
+    LEFT JOIN specializations s ON d.specialization_id = s.id
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn database:", err);
+      return res.status(500).json({ msg: "Lỗi truy vấn dữ liệu bác sĩ!" });
+    }
+
+    const mappedDoctors = results.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      phone: doc.phone,
+      email: doc.email,
+      introduction: doc.introduction,
+      account_status: doc.account_status,
+      specialty_name: doc.specialty_name || "Chưa cập nhật",
+      img: doc.img ? `/uploads/${doc.img}` : null,
+      certificate_image: doc.certificate_image
+        ? `/uploads/${doc.certificate_image}`
+        : null,
+      degree_image: doc.degree_image ? `/uploads/${doc.degree_image}` : null,
+    }));
+
+    res.json(mappedDoctors);
   });
 };
