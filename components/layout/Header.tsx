@@ -1,11 +1,15 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { Phone, Mail, ChevronDown, Search, User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadUser = () => {
@@ -18,10 +22,20 @@ export default function Header() {
     };
 
     loadUser();
-
     window.addEventListener("userChanged", loadUser);
+    
+    // Đóng dropdown khi click ra ngoài
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       window.removeEventListener("userChanged", loadUser);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -29,95 +43,110 @@ export default function Header() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    setDropdownOpen(false);
     router.push("/login");
   };
 
-  return (
-    <header className="w-full bg-white shadow text-sm">
-      {/* Top Bar */}
-      <div className="bg-blue-600 text-white text-xs py-2 px-4 flex justify-between">
-        <div className="space-x-4">
-         <Link href="#" className="no-underline text-white hover:text-gray-200">Về chúng tôi</Link>
-<Link href="#" className="no-underline text-white hover:text-gray-200">Liên hệ</Link>
-<Link href="#" className="no-underline text-white hover:text-gray-200">Giúp đỡ</Link>
-<Link href="#" className="no-underline text-white hover:text-gray-200">FAQs</Link>
+  const navLinks = [
+    { href: "/", label: "Trang chủ" },
+    { href: "/shop", label: "Sản phẩm" },
+    { href: "/specialty", label: "Chuyên khoa" },
+    { href: "/about-us", label: "Về chúng tôi" },
+    { href: "/contact-us", label: "Liên hệ" },
+  ];
 
-        </div>
-        <div className="space-x-3">
-          <select className="bg-blue-600 text-white border-none">
-            <option>Tài khoản</option>
-            <option>Thông tin</option>
-          </select>
-          <select className="bg-blue-600 text-white border-none">
-            <option>VN</option>
-            <option>EN</option>
-          </select>
+  return (
+    <header className="w-full bg-white shadow-md sticky top-0 z-50">
+      {/* Top Bar */}
+      <div className="bg-gray-100 text-gray-600 text-xs py-2 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <a href="tel:19008888" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+              <Phone size={14} />
+              <span>1900-8888</span>
+            </a>
+            <a href="mailto:support@tdcare.vn" className="hidden sm:flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+              <Mail size={14} />
+              <span>support@tdcare.vn</span>
+            </a>
+          </div>
+          <div className="flex items-center gap-4">
+             <Link href="/faq" className="hover:text-blue-600 transition-colors">FAQs</Link>
+             <div className="h-4 w-px bg-gray-300"></div>
+             <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+                <span>VN</span>
+                <ChevronDown size={14} />
+             </button>
+          </div>
         </div>
       </div>
 
       {/* Main Header */}
-      <div className="flex items-center justify-between px-4 py-4 gap-4 flex-wrap md:flex-nowrap">
-        {/* Logo */}
-        <div className="flex-shrink-0">
-          <img
-            src="https://i.imgur.com/EYZSLd6.png"
-            alt="Logo"
-            className="h-10"
-          />
-        </div>
+      <div className="main-header px-4 sm:px-6 lg:px-8">
+         <div className="max-w-7xl mx-auto flex items-center justify-between py-4">
+            {/* Logo */}
+            <div className="flex-shrink-0">
+              <Link href="/">
+                <img
+                  src="https://i.imgur.com/EYZSLd6.png"
+                  alt="TDCARE Logo"
+                  className="h-10 w-auto"
+                />
+              </Link>
+            </div>
 
-        {/* Search bar */}
-        <div className="flex-1 max-w-lg mx-4">
-          <div className="flex items-center bg-gray-100 border border-gray-300 rounded-full px-4 py-2 shadow-sm">
-            <span className="text-gray-500 text-lg">🔍</span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm ..."
-              className="w-full bg-transparent focus:outline-none ml-2 text-sm"
-            />
-          </div>
-        </div>
+            {/* Navigation */}
+            <nav className="hidden lg:flex items-center gap-8">
+              {navLinks.map(link => (
+                <Link key={link.href} href={link.href} className={`font-medium text-gray-600 hover:text-blue-600 transition-colors relative ${pathname === link.href ? 'text-blue-600' : ''}`}>
+                  {link.label}
+                  {pathname === link.href && (
+                     <span className="absolute -bottom-2 left-0 w-full h-0.5 bg-blue-600 rounded-full"></span>
+                  )}
+                </Link>
+              ))}
+            </nav>
 
-        {/* Navigation & Login */}
-        <div className="flex items-center gap-4 flex-wrap justify-end">
-          <nav className="hidden md:flex items-center gap-4">
-            <Link href="/" className="hover:text-blue-600 no-underline">Trang chủ</Link>
-            <Link href="/shop" className="hover:text-blue-600 no-underline">Sản phẩm</Link>
-            <Link href="/specialty" className="hover:text-blue-600 no-underline">Đặt lịch khám</Link>
-            <Link href="/about-us" className="hover:text-blue-600 no-underline">Về chúng tôi</Link>
-            <Link href="/contact-us" className="hover:text-blue-600 no-underline">Liên hệ</Link>
-          </nav>
+            {/* Actions & User */}
+            <div className="flex items-center gap-4">
+                <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                    <Search className="h-5 w-5 text-gray-600" />
+                </button>
+                <Link href="/booking" className="hidden sm:block bg-blue-600 text-white hover:bg-blue-700 transition-colors px-5 py-2.5 rounded-full font-semibold text-sm">
+                  Đặt Lịch Khám
+                </Link>
 
-          {user ? (
-  <div className="flex items-center space-x-2">
-    <span className="text-sm text-gray-700">
-      👋 Xin chào, <strong>{user.name}</strong>
-    </span>
-
-    <Link
-      href="/profile"
-      className="text-sm text-green-600 hover:underline"
-    >
-      Xem hồ sơ
-    </Link>
-
-    <button
-      onClick={handleLogout}
-      className="text-sm text-red-600 hover:underline"
-    >
-      Đăng xuất
-    </button>
-  </div>
-) : (
-  <Link
-    href="/login"
-    className="text-sm text-blue-600 no-underline hover:text-blue-800"
-  >
-    Đăng nhập / Đăng ký
-  </Link>
-)}
-
-        </div>
+                {user ? (
+                  <div className="relative" ref={dropdownRef}>
+                    <button onClick={() => setDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2">
+                      <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                        {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20}/>}
+                      </div>
+                      <div className="hidden md:block text-left">
+                         <p className="text-xs text-gray-500">Xin chào,</p>
+                         <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+                      </div>
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10">
+                        <Link href="/profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                          <LayoutDashboard size={16} />
+                          Hồ sơ của tôi
+                        </Link>
+                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                           <LogOut size={16} />
+                           Đăng xuất
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                    Đăng nhập
+                  </Link>
+                )}
+            </div>
+         </div>
       </div>
     </header>
   );

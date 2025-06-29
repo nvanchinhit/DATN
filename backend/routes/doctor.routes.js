@@ -10,7 +10,8 @@ const {
   getDoctorById,
   updateDoctor,
   getAllDoctors,
-  approveDoctor, // <-- Đã thêm hàm mới
+  approveDoctor,
+  getTopDoctors,
 } = require("../controllers/doctorController");
 
 // ================== CẤU HÌNH MULTER ==================
@@ -31,23 +32,15 @@ const upload = multer({ storage });
 
 // ================== ROUTES ==================
 
-// ✅ API: Lấy tất cả bác sĩ (KHÔNG lọc trạng thái)
 router.get("/", getAllDoctors);
 
-// ✅ API: Tạo tài khoản bác sĩ (Admin)
 router.post("/register", createDoctorAccount);
 
-// ✅ API: Đăng nhập
 router.post("/login", doctorLogin);
 
-// ✅ THÊM MỚI: API để duyệt bác sĩ
-// Đặt route này trước "/:id" để Express không nhầm "approve" là một ID
 router.patch("/:id/approve", approveDoctor);
-
-// ✅ API: Lấy thông tin bác sĩ theo ID
+router.get("/top", getTopDoctors)
 router.get("/:id", getDoctorById);
-
-// ✅ API: Cập nhật hồ sơ bác sĩ (ảnh, thông tin)
 router.put(
   "/:id",
   upload.fields([

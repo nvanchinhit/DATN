@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Star, Calendar } from 'lucide-react';
+import { Star, Calendar, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -27,45 +27,56 @@ const TopDoctors = () => {
   }, []);
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-blue-50/50">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Bác sĩ nổi bật</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Đội ngũ bác sĩ giỏi, giàu kinh nghiệm thuộc các chuyên khoa khác nhau
+        <div className="text-center mb-12">
+          <p className="text-blue-600 font-semibold">Đội ngũ Y Bác sĩ</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">Bác sĩ hàng đầu của chúng tôi</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto mt-4">
+            Gặp gỡ các chuyên gia y tế giỏi, giàu kinh nghiệm, luôn tận tâm vì sức khỏe của bạn.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {doctors.map((doctor) => (
             <div
               key={doctor.id}
-              className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow group"
+              className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group flex flex-col"
             >
-              <div className="h-56 overflow-hidden">
+              <div className="relative h-64 overflow-hidden">
                 <img
                   src={`${API_BASE}${doctor.img}`}
                   alt={doctor.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                 />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center mb-1">
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                  <span className="text-sm font-medium ml-1 text-gray-700">4.9</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-4">
+                    <a
+                      href={`/dat-lich/${doctor.id}`}
+                      className="text-white font-semibold flex items-center opacity-0 transform translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 delay-100"
+                    >
+                      Đặt lịch ngay <ArrowRight className="ml-2 w-4 h-4" />
+                    </a>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">{doctor.name}</h3>
-                <p className="text-sm text-teal-600 font-medium mb-2">Chuyên khoa: {doctor.specialty}</p>
-                <p className="text-sm text-gray-600 mb-4">{doctor.introduction}</p>
-                <p className="text-sm text-gray-500 flex items-center mb-4">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Thứ 2 - 6: 8:00 - 17:00
+              </div>
+              <div className="p-6 flex-grow flex flex-col">
+                <p className="text-sm font-semibold text-blue-600 mb-1">{doctor.specialty}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{doctor.name}</h3>
+                <p className="text-gray-500 text-sm flex-grow">
+                    {doctor.introduction || 'Bác sĩ có nhiều năm kinh nghiệm trong lĩnh vực.'}
                 </p>
+                 <div className="flex items-center text-sm text-yellow-500 mt-4 mb-4">
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                  <Star className="w-4 h-4 fill-current" />
+                  <span className="text-gray-600 ml-2">(5.0)</span>
+                </div>
                 <a
                   href={`/dat-lich/${doctor.id}`}
-                  className="block w-full text-center py-2.5 px-4 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium"
+                  className="block w-full text-center py-2.5 px-4 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-semibold mt-auto"
                 >
-                  Đặt lịch khám
+                  Xem hồ sơ
                 </a>
               </div>
             </div>

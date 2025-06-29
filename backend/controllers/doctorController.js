@@ -237,3 +237,55 @@ exports.getAllDoctors = (req, res) => {
     res.json(mappedDoctors);
   });
 };
+exports.getTopDoctors = (req, res) => {
+  // Cho phép client tùy chỉnh số lượng bác sĩ top, mặc định là 5
+  const limit = parseInt(req.query.limit, 10) || 5;
+
+  const sql = `
+    SELECT
+      d.id,
+      d.name,
+      d.img,
+      d.introduction,
+      s.name AS specialty_name,
+      AVG(r.rating) AS average_rating,
+      COUNT(r.id) AS review_count
+    FROM
+      doctors d
+    LEFT JOIN
+      specializations s ON d.specialization_id = s.id
+    LEFT JOIN
+      ratings r ON d.id = r.product_id -- THAY ĐỔI: Join với bảng 'ratings' qua cột 'product_id'
+    WHERE
+      d.account_status = 'active' -- Chỉ lấy các bác sĩ đang hoạt động
+    GROUP BY
+      d.id, d.name, d.img, d.introduction, s.name
+    HAVING
+      COUNT(r.id) > 0 -- Chỉ lấy những bác sĩ có ít nhất 1 đánh giá
+    ORDER BY
+      average_rating DESC, -- Ưu tiên xếp hạng trung bình cao nhất
+      review_count DESC    -- Nếu bằng điểm, ai nhiều đánh giá hơn thì xếp trên
+    LIMIT ?;
+  `;
+
+  db.query(sql, [limit], (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn bác sĩ hàng đầu:", err);
+      return res.status(500).json({ msg: "Lỗi máy chủ khi lấy dữ liệu." });
+    }
+
+    // Ánh xạ kết quả để có đường dẫn ảnh đầy đủ và định dạng dữ liệu
+    const topDoctors = results.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      introduction: doc.introduction,
+      specialty_name: doc.specialty_name || "Chưa cập nhật",
+      img: doc.img ? `/uploads/${doc.img}` : null,
+      // Làm tròn điểm trung bình đến 1 chữ số thập phân
+      average_rating: parseFloat(doc.average_rating).toFixed(1),
+      review_count: doc.review_count,
+    }));
+
+    res.json(topDoctors);
+  });
+};

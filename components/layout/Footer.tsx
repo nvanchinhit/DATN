@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
 import {
   Mail,
   MapPin,
@@ -8,91 +7,133 @@ import {
   Twitter,
   Instagram,
   Youtube,
+  ArrowRight
 } from "lucide-react";
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+  const quickLinks = [
+    { href: "/about-us", label: "Về chúng tôi" },
+    { href: "/specialty", label: "Chuyên khoa" },
+    { href: "/doctors", label: "Đội ngũ Bác sĩ" },
+    { href: "/shop", label: "Nhà thuốc online" },
+    { href: "/faq", label: "Câu hỏi thường gặp" },
+  ];
+
+  const patientSupportLinks = [
+    { href: "/booking", label: "Đặt lịch khám" },
+    { href: "/profile", label: "Quản lý hồ sơ" },
+    { href: "/contact-us", label: "Hỗ trợ khách hàng" },
+    { href: "/privacy-policy", label: "Chính sách bảo mật" },
+  ];
+
   return (
-   <footer className="bg-blue-50 border-t border-blue-200 text-sm text-gray-600">
-  <div className="container mx-auto px-4 py-6">
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {/* Giới thiệu */}
-      <div className="space-y-3">
-        <h2 className="text-xl font-bold text-blue-700">TDCare</h2>
-        <p>
-          Hệ thống bán thuốc & đặt lịch khám trực tuyến với hơn 12 năm hoạt động, đồng hành cùng hàng triệu người Việt.
-        </p>
-        <ul className="space-y-1 text-sm">
-          <li className="flex items-center gap-2">
-            <MapPin size={16} className="text-blue-600" />
-            123 Đường ABC, TP.HCM
-          </li>
-          <li className="flex items-center gap-2">
-            <Mail size={16} className="text-blue-600" />
-            cskh@tdcare.vn
-          </li>
-          <li className="flex items-center gap-2">
-            <Phone size={16} className="text-blue-600" />
-            1900 1806
-          </li>
-        </ul>
-      </div>
+    <footer className="bg-slate-800 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          
+          {/* Column 1: About & Contact */}
+          <div className="md:col-span-2 lg:col-span-1">
+            <Link href="/" className="inline-block mb-6">
+              <img
+                src="https://i.imgur.com/EYZSLd6.png" // Replace with your white/transparent logo
+                alt="TDCARE Logo"
+                className="h-10 w-auto filter brightness-0 invert" // Makes a black logo white
+              />
+            </Link>
+            <p className="text-gray-400 mb-6 text-sm">
+              Nền tảng chăm sóc sức khỏe toàn diện, kết nối bạn với các dịch vụ y tế hàng đầu một cách nhanh chóng và tiện lợi.
+            </p>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <MapPin size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-300">123 Đường ABC, Phường B, Quận C, TP. Hồ Chí Minh</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Mail size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <a href="mailto:cskh@tdcare.vn" className="text-gray-300 hover:text-white transition-colors">cskh@tdcare.vn</a>
+              </li>
+              <li className="flex items-start gap-3">
+                <Phone size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <a href="tel:19001806" className="text-gray-300 hover:text-white transition-colors">1900 1806</a>
+              </li>
+            </ul>
+          </div>
 
-      {/* Liên kết nhanh */}
-      <div>
-        <h3 className="text-base font-semibold text-blue-700 mb-2">Liên kết nhanh</h3>
-        <ul className="space-y-2 text-sm">
-          <li><Link href="#" className="hover:text-blue-600">Trang chủ</Link></li>
-          <li><Link href="#" className="hover:text-blue-600">Tất cả sản phẩm</Link></li>
-          <li><Link href="#" className="hover:text-blue-600">Khuyến mãi</Link></li>
-        </ul>
-      </div>
+          {/* Column 2: Quick Links */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-6">Liên kết nhanh</h3>
+            <ul className="space-y-3">
+              {quickLinks.map(link => (
+                <li key={link.href}>
+                  <Link href={link.href} className="flex items-center gap-2 text-gray-400 hover:text-white hover:pl-1 transition-all">
+                     <ArrowRight size={14} />
+                     <span>{link.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-      {/* Giờ làm việc */}
-      <div>
-        <h3 className="text-base font-semibold text-blue-700 mb-2">Giờ làm việc</h3>
-        <p className="leading-snug text-sm">
-          T2 - CN: 7h30 - 20h<br />
-          Cấp cứu: 24/24<br />
-          Đặt lịch khám: 1900 1806<br />
-          Hotline: 0911 615 115
-        </p>
-      </div>
+          {/* Column 3: Patient Support */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-6">Hỗ trợ bệnh nhân</h3>
+            <ul className="space-y-3">
+               {patientSupportLinks.map(link => (
+                <li key={link.href}>
+                  <Link href={link.href} className="flex items-center gap-2 text-gray-400 hover:text-white hover:pl-1 transition-all">
+                     <ArrowRight size={14} />
+                     <span>{link.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          {/* Column 4: Newsletter */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-6">Đăng ký nhận tin</h3>
+            <p className="text-gray-400 text-sm mb-4">Nhận các cập nhật mới nhất và ưu đãi đặc biệt từ chúng tôi.</p>
+            <form className="flex items-center">
+              <input
+                type="email"
+                placeholder="Email của bạn"
+                className="w-full px-4 py-2.5 text-sm bg-slate-700 text-white border border-slate-600 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button type="submit" aria-label="Đăng ký" className="p-3 bg-blue-600 hover:bg-blue-700 transition-colors rounded-r-md">
+                <ArrowRight size={18} />
+              </button>
+            </form>
+            <div className="flex gap-4 mt-6">
+              <a href="#" aria-label="Facebook" className="w-9 h-9 flex items-center justify-center bg-slate-700 hover:bg-blue-600 rounded-full transition-colors">
+                <Facebook size={18} />
+              </a>
+              <a href="#" aria-label="Twitter" className="w-9 h-9 flex items-center justify-center bg-slate-700 hover:bg-sky-500 rounded-full transition-colors">
+                <Twitter size={18} />
+              </a>
+              <a href="#" aria-label="Instagram" className="w-9 h-9 flex items-center justify-center bg-slate-700 hover:bg-pink-600 rounded-full transition-colors">
+                <Instagram size={18} />
+              </a>
+               <a href="#" aria-label="Youtube" className="w-9 h-9 flex items-center justify-center bg-slate-700 hover:bg-red-600 rounded-full transition-colors">
+                <Youtube size={18} />
+              </a>
+            </div>
+          </div>
 
-      {/* Đăng ký nhận tin */}
-      <div>
-        <h3 className="text-base font-semibold text-blue-700 mb-2">Đăng ký nhận tin</h3>
-        <p className="text-sm mb-2">Nhận thông tin mới nhất về khuyến mãi, ưu đãi và tin tức sức khỏe!</p>
-        <input
-          type="email"
-          placeholder="Nhập email của bạn"
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button className="w-full mt-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-          Đăng ký
-        </button>
-
-        <div className="flex gap-3 mt-3 text-gray-600">
-          <Facebook className="hover:text-blue-600 cursor-pointer" />
-          <Twitter className="hover:text-blue-400 cursor-pointer" />
-          <Instagram className="hover:text-pink-500 cursor-pointer" />
-          <Youtube className="hover:text-red-500 cursor-pointer" />
         </div>
       </div>
-    </div>
-
-    <Separator className="my-6" />
-
-    <div className="flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-2">
-      <p>© {currentYear} TDCare. All rights reserved.</p>
-      <div className="flex space-x-4">
-        <Link href="#" className="hover:text-blue-600">Chính sách bảo mật</Link>
-        <Link href="#" className="hover:text-blue-600">Điều khoản</Link>
-        <Link href="#" className="hover:text-blue-600">Cookie</Link>
+      
+      {/* Copyright Bar */}
+      <div className="bg-slate-900 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+            <p>© {currentYear} TDCare. Bảo lưu mọi quyền.</p>
+            <div className="flex space-x-4">
+                <Link href="/terms" className="hover:text-white transition-colors">Điều khoản dịch vụ</Link>
+                <Link href="/privacy-policy" className="hover:text-white transition-colors">Chính sách bảo mật</Link>
+            </div>
+        </div>
       </div>
-    </div>
-  </div>
-</footer>
-
+    </footer>
   );
 }
