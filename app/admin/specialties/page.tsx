@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
-import { PlusCircle, Edit, Trash2, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, FormEvent, ChangeEvent } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PlusCircle, Edit, Trash2, X, Image as ImageIcon, Loader2, AlertTriangle, Search } from 'lucide-react';
+
+// --- ĐÃ SỬA: Sử dụng đúng biến môi trường ---
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 interface Specialization {
   id: number;
@@ -9,182 +13,8 @@ interface Specialization {
   image: string;
 }
 
-const API_BASE_URL = 'http://localhost:5000';
-
-export default function SpecialtiesAdminPage() {
-  const [specialties, setSpecialties] = useState<Specialization[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formIsLoading, setFormIsLoading] = useState(false);
-  const [currentSpecialization, setCurrentSpecialization] = useState<Partial<Specialization> | null>(null);
-
-  const fetchSpecialties = async (term: string) => {
-    setLoading(true);
-    try {
-      const url = term
-        ? `${API_BASE_URL}/api/specializations?search=${encodeURIComponent(term)}`
-        : `${API_BASE_URL}/api/specializations`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setSpecialties(data);
-    } catch (err) {
-      console.error('Lỗi fetch:', err);
-      setSpecialties([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSpecialties('');
-  }, []);
-
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchSpecialties(searchTerm);
-    }, 300);
-    return () => clearTimeout(delay);
-  }, [searchTerm]);
-
-  const handleOpenModal = (sp: Partial<Specialization> | null = null) => {
-    setCurrentSpecialization(sp || {});
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setCurrentSpecialization(null);
-  };
-
-  const handleSubmitForm = async (formData: FormData) => {
-    setFormIsLoading(true);
-    const isEdit = !!currentSpecialization?.id;
-    const url = isEdit
-      ? `${API_BASE_URL}/api/specializations/${currentSpecialization.id}`
-      : `${API_BASE_URL}/api/specializations`;
-    const method = isEdit ? 'PUT' : 'POST';
-
-    try {
-      const res = await fetch(url, {
-        method,
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Thao tác thất bại.');
-      }
-      alert('✅ Thao tác thành công!');
-      handleCloseModal();
-      fetchSpecialties(searchTerm);
-    } catch (err: any) {
-      alert(`❌ Lỗi: ${err.message}`);
-    } finally {
-      setFormIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Bạn có chắc muốn xóa chuyên khoa này không?')) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/specializations/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Xóa thất bại.');
-      }
-      alert('🗑️ Xóa thành công!');
-      fetchSpecialties(searchTerm);
-    } catch (err: any) {
-      alert(`❌ Lỗi: ${err.message}`);
-    }
-  };
-
-  return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-800">🩺 Quản lý chuyên khoa</h1>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
-        >
-          <PlusCircle size={18} />
-          Thêm mới
-        </button>
-      </div>
-
-      <div className="relative w-full max-w-sm mb-6">
-        <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">🔍</span>
-        <input
-          type="text"
-          placeholder="Tìm kiếm chuyên khoa..."
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-sm focus:ring-2 focus:ring-blue-500 transition"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {loading ? (
-        <p className="text-blue-500">Đang tải dữ liệu...</p>
-      ) : specialties.length === 0 ? (
-        <p className="text-gray-500">Không tìm thấy chuyên khoa nào.</p>
-      ) : (
-        <table className="min-w-full bg-white shadow rounded">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left">ID</th>
-              <th className="px-4 py-2 text-left">Tên</th>
-              <th className="px-4 py-2 text-left">Ảnh</th>
-              <th className="px-4 py-2 text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {specialties.map((sp) => (
-              <tr key={sp.id} className="border-t hover:bg-gray-50 transition">
-                <td className="px-4 py-2">{sp.id}</td>
-                <td className="px-4 py-2 font-semibold text-gray-800">{sp.name}</td>
-                <td className="px-4 py-2">
-                  <img
-                    src={`${API_BASE_URL}${sp.image}`}
-                    alt={sp.name}
-                    className="w-20 h-12 object-cover rounded border"
-                  />
-                </td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={() => handleOpenModal(sp)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(sp.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {isModalOpen && (
-        <SpecializationForm
-          initialData={currentSpecialization!}
-          onSubmit={handleSubmitForm}
-          onCancel={handleCloseModal}
-          isLoading={formIsLoading}
-        />
-      )}
-    </div>
-  );
-}
-
-// =========================== FORM =============================
-function SpecializationForm({
+// === Component Modal Thêm/Sửa Chuyên Khoa ===
+const SpecialtyModal = ({
   initialData,
   onSubmit,
   onCancel,
@@ -194,12 +24,11 @@ function SpecializationForm({
   onSubmit: (formData: FormData) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
-}) {
+}) => {
   const [name, setName] = useState(initialData.name || '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(
-    initialData.image ? `${API_BASE_URL}${initialData.image}` : null
-  );
+  const [preview, setPreview] = useState<string | null>(initialData.image ? `${API_URL}${initialData.image}` : null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!selectedFile) return;
@@ -210,9 +39,14 @@ function SpecializationForm({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name || (!selectedFile && !initialData.id)) {
-      alert('Vui lòng nhập tên và chọn ảnh.');
+    setError('');
+    if (!name.trim()) {
+      setError('Vui lòng nhập tên chuyên khoa.');
       return;
+    }
+    if (!preview) {
+        setError('Vui lòng chọn hình ảnh cho chuyên khoa.');
+        return;
     }
 
     const formData = new FormData();
@@ -220,62 +54,234 @@ function SpecializationForm({
     if (selectedFile) {
       formData.append('image', selectedFile);
     }
-
     onSubmit(formData);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md relative">
-        <div className="flex justify-between items-center mb-4 border-b pb-2">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6 border-b pb-4">
           <h2 className="text-xl font-bold text-gray-800">
-            {initialData.id ? 'Sửa chuyên khoa' : 'Thêm chuyên khoa'}
+            {initialData.id ? 'Chỉnh sửa Chuyên khoa' : 'Thêm Chuyên khoa mới'}
           </h2>
-          <button onClick={onCancel} className="text-gray-500 hover:text-gray-800">
-            <X size={24} />
-          </button>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm text-gray-700 mb-1">Tên chuyên khoa</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chuyên khoa</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              required
             />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm text-gray-700 mb-1">Hình ảnh</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  setSelectedFile(e.target.files[0]);
-                }
-              }}
-              className="w-full"
-            />
-            {preview && (
-              <img src={preview} alt="Xem trước" className="mt-2 w-full h-32 object-cover rounded border" />
-            )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Hình ảnh</label>
+            <div className="mt-2 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+              <div className="space-y-1 text-center">
+                {preview ? (
+                   <img src={preview} alt="Xem trước" className="mx-auto h-24 w-auto rounded-md object-cover" />
+                ) : (
+                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                )}
+                <div className="flex text-sm text-gray-600">
+                  <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                    <span>Tải lên một tệp</span>
+                    <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" onChange={(e: ChangeEvent<HTMLInputElement>) => { if (e.target.files) setSelectedFile(e.target.files[0]); }}/>
+                  </label>
+                  <p className="pl-1">hoặc kéo và thả</p>
+                </div>
+                <p className="text-xs text-gray-500">PNG, JPG, GIF tối đa 2MB</p>
+              </div>
+            </div>
           </div>
+          
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex justify-end gap-2 mt-4">
-            <button type="button" onClick={onCancel} disabled={isLoading} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">
-              Hủy
-            </button>
-            <button type="submit" disabled={isLoading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onCancel} disabled={isLoading} className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-200 transition">Hủy</button>
+            <button type="submit" disabled={isLoading} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition">
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
               Lưu
             </button>
           </div>
         </form>
+      </motion.div>
+    </div>
+  );
+};
+
+
+// === Component Modal Xác nhận Xóa ===
+const DeleteConfirmationModal = ({ onConfirm, onCancel, isLoading }: { onConfirm: () => void; onCancel: () => void; isLoading: boolean; }) => (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+        >
+            <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mt-3">Xác nhận xóa</h3>
+                <div className="mt-2">
+                    <p className="text-sm text-gray-500">Bạn có chắc chắn muốn xóa chuyên khoa này? Hành động này không thể được hoàn tác.</p>
+                </div>
+            </div>
+            <div className="mt-5 sm:mt-6 grid grid-cols-2 gap-3">
+                <button type="button" onClick={onCancel} disabled={isLoading} className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+                <button type="button" onClick={onConfirm} disabled={isLoading} className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700">
+                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin"/> : 'Xóa'}
+                </button>
+            </div>
+        </motion.div>
+    </div>
+);
+
+// === Component Trang Chính ===
+export default function SpecialtiesAdminPage() {
+  const [specialties, setSpecialties] = useState<Specialization[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [formIsLoading, setFormIsLoading] = useState(false);
+  const [currentSpecialization, setCurrentSpecialization] = useState<Partial<Specialization> | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchSpecialties = useCallback(async (term: string) => {
+    setLoading(true);
+    try {
+      const url = term ? `${API_URL}/api/specializations?search=${encodeURIComponent(term)}` : `${API_URL}/api/specializations`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error("Lỗi mạng hoặc server.");
+      const data = await res.json();
+      setSpecialties(data);
+    } catch (err) {
+      console.error('Lỗi fetch:', err);
+      setSpecialties([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSpecialties(''); }, [fetchSpecialties]);
+  useEffect(() => { const delay = setTimeout(() => { fetchSpecialties(searchTerm); }, 300); return () => clearTimeout(delay); }, [searchTerm, fetchSpecialties]);
+
+  const handleOpenModal = (sp: Partial<Specialization> | null = null) => {
+    setCurrentSpecialization(sp || { name: '', image: '' });
+    setIsModalOpen(true);
+  };
+  const handleCloseModal = () => { setIsModalOpen(false); setCurrentSpecialization(null); };
+
+  const handleOpenDeleteModal = (id: number) => { setDeletingId(id); setIsDeleteModalOpen(true); };
+  const handleCloseDeleteModal = () => { setDeletingId(null); setIsDeleteModalOpen(false); };
+
+  const handleSubmitForm = async (formData: FormData) => {
+    setFormIsLoading(true);
+    const isEdit = !!currentSpecialization?.id;
+    const url = isEdit ? `${API_URL}/api/specializations/${currentSpecialization.id}` : `${API_URL}/api/specializations`;
+    const method = isEdit ? 'PUT' : 'POST';
+    try {
+      const res = await fetch(url, { method, body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Thao tác thất bại.');
+      }
+      handleCloseModal();
+      await fetchSpecialties(searchTerm);
+    } catch (err: any) {
+      alert(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setFormIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setFormIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/specializations/${deletingId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Xóa thất bại.');
+      }
+      handleCloseDeleteModal();
+      await fetchSpecialties(searchTerm);
+    } catch (err: any) {
+      alert(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setFormIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Quản lý Chuyên khoa</h1>
+          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+            <PlusCircle size={18} /> Thêm mới
+          </button>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-200">
+            <div className="relative w-full max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input type="text" placeholder="Tìm kiếm chuyên khoa..." className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+
+            <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full bg-white">
+                <thead className="bg-gray-50">
+                    <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chuyên khoa</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                    {loading ? (
+                       <tr><td colSpan={4} className="text-center py-10"><Loader2 className="mx-auto h-8 w-8 text-blue-600 animate-spin" /></td></tr>
+                    ) : specialties.length === 0 ? (
+                       <tr><td colSpan={4} className="text-center py-10 text-gray-500">Không tìm thấy chuyên khoa nào.</td></tr>
+                    ) : (
+                    specialties.map((sp) => (
+                        <tr key={sp.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sp.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{sp.name}</td>
+                        <td className="px-6 py-4">
+                            <img src={`${API_URL}${sp.image}`} alt={sp.name} className="w-24 h-14 object-cover rounded-md border" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onClick={() => handleOpenModal(sp)} className="text-indigo-600 hover:text-indigo-800 p-2" title="Chỉnh sửa"><Edit size={18} /></button>
+                            <button onClick={() => handleOpenDeleteModal(sp.id)} className="text-red-600 hover:text-red-800 p-2" title="Xóa"><Trash2 size={18} /></button>
+                        </td>
+                        </tr>
+                    )))}
+                </tbody>
+                </table>
+            </div>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {isModalOpen && <SpecialtyModal initialData={currentSpecialization!} onSubmit={handleSubmitForm} onCancel={handleCloseModal} isLoading={formIsLoading} />}
+        {isDeleteModalOpen && <DeleteConfirmationModal onConfirm={handleDelete} onCancel={handleCloseDeleteModal} isLoading={formIsLoading} />}
+      </AnimatePresence>
     </div>
   );
 }

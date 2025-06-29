@@ -20,6 +20,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 router.use(authMiddleware.verifyToken);
 
+router.get('/', userController.getAllUsers);
 
 router.get('/profile', userController.getProfile);
 router.put('/profile', upload.single('avatar'), userController.updateProfile);
