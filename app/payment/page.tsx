@@ -1,179 +1,173 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ScanLine, Clock, User, Mail, ShieldCheck } from 'lucide-react';
+
+const BANK_INFO = {
+  BANK_ID: '970416',
+  ACCOUNT_NO: '16087671',
+  ACCOUNT_NAME: 'NGUYEN VAN CHINH', 
+  TEMPLATE: 'compact2'
+};
 
 const CheckoutPage = () => {
   const [isClient, setIsClient] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    paymentMethod: 'cod',
+  const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 phút
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [isQrLoading, setIsQrLoading] = useState(true);
+  
+  const service = {
+    name: 'Phí khám Chuyên khoa Tim mạch',
+    doctor: 'BS. Trần Văn Minh',
+    doctorAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    date: '10:00 - 10:30, 29/10/2023',
+    price: 500000,
+  };
+  const user = {
+    name: 'Nguyễn Văn A',
+    email: 'nguyenvana@email.com',
+  };
+  const [transaction, setTransaction] = useState({
+    id: '',
+    discount: 0,
+    total: service.price,
   });
 
   useEffect(() => {
     setIsClient(true);
+    const transactionId = `TDCARE${Date.now()}`;
+    setTransaction(prev => ({ ...prev, id: transactionId }));
+
+    const qrApiUrl = `https://img.vietqr.io/image/${BANK_INFO.BANK_ID}-${BANK_INFO.ACCOUNT_NO}-${BANK_INFO.TEMPLATE}.png?amount=${service.price}&addInfo=${encodeURIComponent(transactionId)}&accountName=${encodeURIComponent(BANK_INFO.ACCOUNT_NAME)}`;
+    setQrCodeUrl(qrApiUrl);
+
+    const intervalId = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
-  const products = [
-    {
-      id: 1,
-      name: 'Paracetamol 500mg',
-      price: 150000,
-      quantity: 1,
-      image:
-        'https://cdn.nhathuoclongchau.com.vn/unsafe/https://cms-prod.s3-sgn09.fptcloud.com/00032865_paracetamol_stada_500mg_10x10_4111_61af_large_6bbfac12ff.jpg',
-    },
-    {
-      id: 2,
-      name: 'Vitamin C 1000mg',
-      price: 200000,
-      quantity: 1,
-      image:
-        'https://nhathuocthanthien.com.vn/wp-content/uploads/2023/02/dgm_nttt_Vitamin-c-1000-mg-zinc-rosehip.jpg',
-    },
-  ];
-
-  const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-  const shipping = 0;
-  const discount = 0;
-  const total = subtotal + shipping - discount;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
   const formatVND = (number: number) => {
-    return isClient ? number.toLocaleString('vi-VN') + ' VND' : number + ' VND';
+    return isClient ? number.toLocaleString('vi-VN') + ' đ' : number + ' đ';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 sm:px-10 py-10">
-      <h1 className="text-2xl font-bold mb-6 text-blue-700">
-        Trang chủ / sản phẩm / thanh toán
-      </h1>
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Form Thanh Toán */}
-        <div className="bg-white p-6 rounded-xl shadow border border-blue-100">
-          <h2 className="text-xl font-semibold mb-4 text-blue-700">
-            Địa chỉ thanh toán
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input
-              type="text"
-              name="name"
-              placeholder="Tên người nhận"
-              value={form.name}
-              onChange={handleChange}
-              className="border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email người nhận"
-              value={form.email}
-              onChange={handleChange}
-              className="border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Số điện thoại"
-              value={form.phone}
-              onChange={handleChange}
-              className="border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <input
-              type="text"
-              name="address"
-              placeholder="Địa chỉ người nhận"
-              value={form.address}
-              onChange={handleChange}
-              className="border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-10">
+      <div className="max-w-6xl mx-auto">
+        <p className="text-sm text-gray-500 mb-6">
+          Trang chủ / Đặt lịch / <span className="font-medium text-gray-700">Xác nhận & Thanh toán</span>
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <ScanLine className="text-blue-600" />
+              Thanh toán bằng mã QR
+            </h2>
+            <p className="text-gray-500 mb-6">Quét mã dưới đây bằng ứng dụng Ngân hàng hoặc Ví điện tử để hoàn tất thanh toán.</p>
+            
+            <div className="flex flex-col sm:flex-row gap-6 items-center">
+                
+                {/* --- THAY ĐỔI Ở ĐÂY --- */}
+                <div className="w-full max-w-xs mx-auto sm:mx-0 aspect-square p-3 bg-white border-4 border-blue-500 rounded-lg flex items-center justify-center">
+                    {qrCodeUrl ? (
+                      <>
+                        {isQrLoading && <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>}
+                        <img 
+                            src={qrCodeUrl} 
+                            alt="Mã QR thanh toán" 
+                            className={`w-full h-full object-contain transition-opacity duration-300 ${isQrLoading ? 'opacity-0' : 'opacity-100'}`}
+                            onLoad={() => setIsQrLoading(false)}
+                            onError={() => { setIsQrLoading(false); console.error("Lỗi tải ảnh QR. Vui lòng kiểm tra lại thông tin BANK_INFO."); }}
+                            style={{ display: isQrLoading ? 'none' : 'block' }}
+                        />
+                      </>
+                    ) : (
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    )}
+                </div>
+
+                <div className="flex-1">
+                    <h3 className="font-semibold text-gray-700 mb-3">Hướng dẫn:</h3>
+                    <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+                        <li>Mở ứng dụng Ngân hàng / Ví điện tử.</li>
+                        <li>Chọn tính năng quét mã QR (QR Pay).</li>
+                        <li>Quét mã và xác nhận giao dịch.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div className="mt-8 text-center bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center justify-center gap-2 text-yellow-600">
+                    <Clock size={20} />
+                    <p className="font-medium">Giao dịch sẽ hết hạn sau:</p>
+                </div>
+                <p className="text-3xl font-bold text-blue-600 mt-1">{formatTime(timeLeft)}</p>
+            </div>
           </div>
 
-          <h3 className="text-lg font-medium mb-2 text-blue-700">
-            Phương thức thanh toán
-          </h3>
-          <div className="space-y-2 mb-6">
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="cod"
-                checked={form.paymentMethod === 'cod'}
-                onChange={handleChange}
-                className="accent-blue-600"
-              />
-              <span>Thanh toán khi nhận hàng</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="online"
-                checked={form.paymentMethod === 'online'}
-                onChange={handleChange}
-                className="accent-blue-600"
-              />
-              <span>Thanh toán điện tử</span>
-            </label>
-          </div>
-
-          <button
-            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition"
-            onClick={() => alert('Đặt hàng thành công!')}
-          >
-            Đặt Hàng
-          </button>
-        </div>
-
-        {/* Chi Tiết Đơn Hàng */}
-        <div className="bg-white p-6 rounded-xl shadow border border-blue-100">
-          <h2 className="text-xl font-semibold mb-4 text-blue-700">
-            Chi tiết đơn hàng
-          </h2>
-          <ul className="space-y-4">
-            {products.map((product) => (
-              <li key={product.id} className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-14 h-14 object-cover rounded-md border"
-                  />
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {formatVND(product.price)} × {product.quantity}
-                    </p>
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100">
+            {/* ... Phần thông tin thanh toán không thay đổi ... */}
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Thông tin thanh toán</h2>
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-gray-700 mb-3">Chi tiết khách hàng</h3>
+                  <div className="text-sm space-y-2">
+                      <p className="flex items-center gap-2 text-gray-600"><User size={14}/> {user.name}</p>
+                      <p className="flex items-center gap-2 text-gray-600"><Mail size={14}/> {user.email}</p>
                   </div>
-                </div>
-                <div className="font-semibold">
-                  {formatVND(product.price * product.quantity)}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-6 border-t pt-4 space-y-2 text-sm text-gray-700">
-            <div className="flex justify-between">
-              <span>Tạm tính:</span>
-              <span>{formatVND(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Vận chuyển:</span>
-              <span>{formatVND(shipping)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Giảm giá:</span>
-              <span>{formatVND(discount)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-base text-black pt-2 border-t">
-              <span>Tổng:</span>
-              <span>{formatVND(total)}</span>
+              </div>
+
+              <div className="border-t border-b py-4">
+                  <h3 className="font-semibold text-gray-700 mb-3">Chi tiết dịch vụ</h3>
+                  <div className="flex justify-between items-center gap-4">
+                      <div className="flex items-center gap-4">
+                          <img 
+                              src={service.doctorAvatar} 
+                              alt={service.doctor} 
+                              className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md" 
+                          />
+                          <div>
+                              <p className="font-bold text-gray-800">{service.name}</p>
+                              <p className="text-sm text-gray-500">{service.doctor}</p>
+                              <p className="text-sm text-gray-500">{service.date}</p>
+                          </div>
+                      </div>
+                      <p className="font-semibold text-lg text-gray-800 flex-shrink-0">{formatVND(service.price)}</p>
+                  </div>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                      <span>Tạm tính:</span>
+                      <span>{formatVND(service.price)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                      <span>Giảm giá:</span>
+                      <span>- {formatVND(transaction.discount)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg text-gray-900 pt-2 border-t mt-2">
+                      <span>Tổng cộng:</span>
+                      <span className="text-blue-600">{formatVND(transaction.total)}</span>
+                  </div>
+              </div>
+
+              <div className="text-center p-3 bg-green-50 text-green-700 rounded-lg flex items-center justify-center gap-2">
+                 <ShieldCheck size={16} />
+                 <p className="text-sm font-medium">Trạng thái: <span className="font-bold">Đang chờ thanh toán</span></p>
+              </div>
+              
+              {transaction.id && (
+                <p className="text-xs text-center text-gray-400 mt-4">Mã giao dịch: {transaction.id}</p>
+              )}
             </div>
           </div>
         </div>
