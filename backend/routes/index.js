@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+
 // ================== CẤU HÌNH UPLOAD ẢNH ==================
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
@@ -27,7 +28,7 @@ const doctorRoutes = require('./doctor.routes');
 const appointmentRoutes = require('./appointment.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const medicalRecordRoutes = require('./medicalRecord.routes');
-
+const ratingRoutes = require('./rating.routes'); // <-- Import
 
 
 router.use('/auth', authRoutes);
@@ -36,7 +37,7 @@ router.use('/doctors', doctorRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:
 router.use('/medical-records', medicalRecordRoutes);
-
+router.use('/ratings', ratingRoutes);
 
 // Các route khác (sản phẩm, chuyên khoa, slot, v.v... giữ nguyên như cũ)
 

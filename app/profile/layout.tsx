@@ -79,7 +79,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
             )}
           </div>
           <nav className="space-y-2">
-            <Link href="#" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>📅</span> Đặt Lịch Khám</Link>
+            <Link href="/profile/appointment" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>📅</span> Đặt Lịch Khám</Link>
             <div>
               <div className="flex items-center gap-3 p-2 rounded text-gray-700"><span>👤</span> Tài Khoản Của Tôi</div>
               <div className="pl-8 mt-2 space-y-2 text-gray-600">

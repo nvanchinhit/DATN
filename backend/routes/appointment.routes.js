@@ -1,57 +1,142 @@
-// File: routes/appointments.js
+// backend/routes/appointment.routes.js
+
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db.config');
+const authMiddleware = require('../middleware/auth.middleware');
+const { isDoctor } = require('../middleware/auth.middleware');
 
-router.post('/', (req, res) => {
-  const {
-    doctor_id,
-    name,
-    age,
-    gender,
-    email,
-    phone,
-    reason,
-    address,
-    time_slot_id,
-    customer_id // Nhận ID
-  } = req.body;
+/**
+ * ==========================================================
+ * ROUTE 1: ĐẶT LỊCH KHÁM MỚI (Dành cho người dùng đã đăng nhập)
+ * METHOD: POST /api/appointments/
+ * ==========================================================
+ */
+router.post('/', authMiddleware, (req, res) => {
+  const customer_id = req.user.id;
+  const { doctor_id, time_slot_id, name, age, gender, email, phone, reason, address } = req.body;
 
-  // ==========================================================
-  // CHẶN Ở ĐÂY: Thêm bước kiểm tra customer_id
-  // ==========================================================
-  if (!customer_id) {
-    return res.status(401).json({ error: 'Yêu cầu không hợp lệ. Vui lòng đăng nhập để đặt lịch.' });
+  if (!doctor_id || !time_slot_id || !name || !age || !phone || !email) {
+    return res.status(400).json({ message: 'Vui lòng điền đầy đủ các thông tin bắt buộc.' });
   }
 
-  if (!doctor_id || !Number.isInteger(time_slot_id) || !name || !age || !phone || !email) {
-    return res.status(400).json({ error: 'Thiếu hoặc sai kiểu dữ liệu bắt buộc.' });
-  }
-
-  // 3. Kiểm tra trùng lịch (giữ nguyên)
-  const checkSql = `SELECT id FROM appointments WHERE time_slot_id = ?`;
-  db.query(checkSql, [time_slot_id], (err, booked) => {
+  const checkSql = `SELECT id FROM appointments WHERE time_slot_id = ? AND status != 'Đã hủy'`;
+  db.query(checkSql, [time_slot_id], (err, existing) => {
     if (err) {
-      return res.status(500).json({ error: 'Lỗi máy chủ.' });
+      console.error("Lỗi khi kiểm tra lịch hẹn:", err);
+      return res.status(500).json({ message: 'Lỗi máy chủ khi kiểm tra lịch hẹn.' });
     }
-    if (booked.length > 0) {
-      return res.status(409).json({ error: 'Khung giờ này đã có người đặt.' });
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'Rất tiếc, khung giờ này đã có người khác đặt.' });
     }
 
-    // 4. Thêm lịch hẹn mới (giữ nguyên)
     const insertSql = `
-      INSERT INTO appointments (doctor_id, time_slot_id, customer_id, name, age, gender, email, phone, reason, address, status, doctor_confirmation)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Chưa xác nhận', 'Chưa xác nhận')
-    `;
-    db.query(insertSql, [doctor_id, time_slot_id, customer_id, name, age, gender, email, phone, reason, address], (err, result) => {
+      INSERT INTO appointments (customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address, status, doctor_confirmation)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Chưa xác nhận', 'Chưa xác nhận')`;
+    const values = [customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address];
+
+    db.query(insertSql, values, (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Không thể tạo lịch hẹn.' });
+        console.error("Lỗi khi tạo lịch hẹn:", err);
+        return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
       }
-      res.status(201).json({
-        message: '✅ Đặt lịch thành công!',
-        appointmentId: result.insertId,
-      });
+      res.status(201).json({ message: 'Đặt lịch thành công!', appointmentId: result.insertId });
     });
+  });
+});
+
+/**
+ * ==========================================================
+ * ROUTE 2: LẤY TẤT CẢ LỊCH HẸN CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
+ * METHOD: GET /api/appointments/my-appointments
+ * ==========================================================
+ */
+router.get('/my-appointments', authMiddleware, (req, res) => {
+  const customerId = req.user.id;
+  const sql = `
+    SELECT 
+      a.id,
+      a.status,
+      a.reason,
+      a.doctor_id,
+      d.name AS doctor_name,
+      d.img AS doctor_img,
+      spec.name AS specialization_name,
+      ts.slot_date,
+      ts.start_time
+    FROM appointments a
+    JOIN doctors d ON a.doctor_id = d.id
+    JOIN specializations spec ON d.specialization_id = spec.id
+    JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+    WHERE a.customer_id = ?
+    ORDER BY ts.slot_date DESC, ts.start_time DESC`;
+
+  db.query(sql, [customerId], (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn lịch hẹn:", err);
+      return res.status(500).json({ message: 'Lỗi máy chủ khi truy vấn dữ liệu.' });
+    }
+    res.json(results);
+  });
+});
+
+/**
+ * ==========================================================
+ * ROUTE 3: NGƯỜI DÙNG HỦY LỊCH HẸN
+ * METHOD: PUT /api/appointments/:id/cancel
+ * ==========================================================
+ */
+router.put('/:id/cancel', authMiddleware, (req, res) => {
+  const { id: appointmentId } = req.params;
+  const customerId = req.user.id;
+
+  const findSql = "SELECT status FROM appointments WHERE id = ? AND customer_id = ?";
+  db.query(findSql, [appointmentId, customerId], (err, appointments) => {
+    if (err) {
+      console.error("Lỗi DB khi tìm lịch hẹn:", err);
+      return res.status(500).json({ message: "Lỗi máy chủ." });
+    }
+    if (appointments.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy lịch hẹn hoặc bạn không có quyền thực hiện hành động này." });
+    }
+
+    const { status } = appointments[0];
+    if (status !== 'Chưa xác nhận') {
+      return res.status(400).json({ message: `Không thể hủy lịch hẹn ở trạng thái "${status}".` });
+    }
+
+    const updateSql = "UPDATE appointments SET status = 'Đã hủy' WHERE id = ?";
+    db.query(updateSql, [appointmentId], (err) => {
+      if (err) {
+        console.error("Lỗi DB khi hủy lịch hẹn:", err);
+        return res.status(500).json({ message: "Lỗi khi cập nhật lịch hẹn." });
+      }
+      res.json({ message: "Đã hủy lịch hẹn thành công." });
+    });
+  });
+});
+
+/**
+ * ==========================================================
+ * ROUTE 4: CẬP NHẬT TRẠNG THÁI LỊCH HẸN (Dành cho bác sĩ)
+ * METHOD: PUT /api/appointments/:id/status
+ * ==========================================================
+ */
+router.put('/:id/status', [authMiddleware, isDoctor], (req, res) => {
+  const { id: appointmentId } = req.params;
+  const { status } = req.body;
+  const doctorId = req.user.id;
+
+  const validStatuses = ['Đã xác nhận', 'Đang khám', 'Đã khám xong'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Trạng thái cập nhật không hợp lệ." });
+  }
+
+  const updateSql = `UPDATE appointments SET status = ? WHERE id = ? AND doctor_id = ?`;
+  db.query(updateSql, [status, appointmentId, doctorId], (err, result) => {
+    if (err) return res.status(500).json({ message: 'Lỗi cập nhật lịch hẹn.' });
+    if (result.affectedRows === 0) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn hoặc bạn không có quyền cập nhật.' });
+    res.json({ message: `Đã cập nhật trạng thái lịch hẹn thành "${status}"` });
   });
 });
 
