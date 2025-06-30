@@ -37,7 +37,7 @@ export default function CheckoutPage() {
   const [bookingInfo, setBookingInfo] = useState<BookingInfo | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [mode, setMode] = useState<'self' | 'other'>('self'); // Thêm lại state cho chế độ đặt lịch
+  const [mode, setMode] = useState<'self' | 'other'>('self');
   const [form, setForm] = useState({
     name: '',
     age: '',
@@ -48,9 +48,12 @@ export default function CheckoutPage() {
     reason: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
 
-  // --- BƯỚC 1: LẤY THÔNG TIN USER KHI TẢI TRANG ---
+  // Các state mới để cải thiện UX
+  const [isSubmitting, setIsSubmitting] = useState(false); // Trạng thái đang gửi form
+  const [submitted, setSubmitted] = useState(false); // Trạng thái đã gửi thành công
+
+  // Lấy thông tin user khi tải trang
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -66,14 +69,12 @@ export default function CheckoutPage() {
     setIsLoading(false);
   }, []);
 
-  // --- BƯỚC 2: XỬ LÝ VIỆC ĐIỀN FORM DỰA TRÊN CHẾ ĐỘ (self/other) ---
+  // Tự động điền form dựa trên chế độ đặt lịch
   useEffect(() => {
-    // Nếu chọn "Đặt cho bản thân" và đã có thông tin user
     if (mode === 'self' && currentUser) {
-      // Điền thông tin vào form làm GỢI Ý, người dùng vẫn có thể sửa
       setForm({
         name: currentUser.name || '',
-        age: '', // Tuổi luôn để trống cho người dùng tự nhập
+        age: '',
         gender: 'Khác',
         phone: currentUser.phone || '',
         email: currentUser.email || '',
@@ -81,21 +82,12 @@ export default function CheckoutPage() {
         reason: '',
       });
     } 
-    // Nếu chọn "Đặt cho người thân", form sẽ trống hoàn toàn
     else if (mode === 'other') {
-      setForm({
-        name: '',
-        age: '',
-        gender: 'Khác',
-        phone: '',
-        email: '',
-        address: '',
-        reason: '',
-      });
+      setForm({ name: '', age: '', gender: 'Khác', phone: '', email: '', address: '', reason: '' });
     }
-  }, [mode, currentUser]); // Chạy lại khi mode hoặc currentUser thay đổi
+  }, [mode, currentUser]);
 
-
+  // Lấy thông tin đặt lịch từ URL
   useEffect(() => {
     if (data) {
       try {
@@ -124,9 +116,10 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = localStorage.getItem('token'); 
 
-    if (!currentUser) {
-      alert("Vui lòng đăng nhập để đặt lịch.");
+    if (!currentUser || !token) {
+      alert("Bạn cần đăng nhập để thực hiện chức năng này.");
       router.push('/login');
       return;
     }
@@ -138,31 +131,38 @@ export default function CheckoutPage() {
     }
     if (!bookingInfo) return;
 
-    // --- BƯỚC 3: KHI SUBMIT, LUÔN LẤY ID CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP ---
+    setIsSubmitting(true); // Bắt đầu gửi, vô hiệu hóa nút
+
     const payload = {
-      ...form, // Lấy toàn bộ thông tin người dùng đã ĐIỀN TRÊN FORM
+      ...form,
       age: parseInt(form.age),
       doctor_id: bookingInfo.doctorId,
       time_slot_id: bookingInfo.time_slot_id,
-      payment_status: 'Chưa thanh toán',
-      status: 'Chưa xác nhận',
-      customer_id: currentUser.id // ID này là của người đang đăng nhập
     };
 
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify(payload)
       });
       const resultData = await response.json();
+
       if (response.ok) {
-        setSubmitted(true);
+        setSubmitted(true); // Đặt lịch thành công
       } else {
-        alert('Lỗi từ máy chủ: ' + (resultData.error || "Có lỗi không xác định xảy ra."));
+        alert('Lỗi từ máy chủ: ' + (resultData.message || "Có lỗi không xác định xảy ra."));
       }
     } catch (error) {
-      alert("Không thể kết nối đến máy chủ.");
+      console.error("Lỗi khi kết nối để đặt lịch:", error);
+      alert("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+    } finally {
+      setIsSubmitting(false); // Gửi xong, kích hoạt lại nút (nếu có lỗi)
     }
   };
 
@@ -188,9 +188,26 @@ export default function CheckoutPage() {
                 Đăng nhập ngay
               </Link>
             </div>
-          ) : (
+          ) : submitted ? ( // Nếu đã đặt lịch thành công
+            <div className="text-center bg-green-50 border border-green-300 p-8 rounded-xl text-green-800">
+              <h3 className="text-2xl font-bold mb-4 text-green-900">✅ Đặt lịch thành công!</h3>
+              <p className="mb-6">Thông tin lịch hẹn của bạn đã được ghi nhận. Vui lòng kiểm tra email hoặc mục "Lịch hẹn của tôi" để xem chi tiết.</p>
+              <div className="space-y-1 text-left max-w-md mx-auto bg-white p-4 rounded-lg shadow-sm mb-8">
+                <li><strong>Họ tên bệnh nhân:</strong> {form.name}</li>
+                <li><strong>Bác sĩ:</strong> {bookingInfo.doctorName}</li>
+                <li><strong>Ngày khám:</strong> {new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {bookingInfo.time.start} - {bookingInfo.time.end}</li>
+              </div>
+              <div className="flex justify-center gap-4">
+                  <Link href="/profile/appointment" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-all">
+                    Xem Lịch hẹn của tôi
+                  </Link>
+                  <Link href="/" className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all">
+                    Về Trang chủ
+                  </Link>
+              </div>
+            </div>
+          ) : ( // Nếu chưa đặt lịch, hiển thị form
             <>
-              {/* --- BƯỚC 4: THÊM LẠI NÚT CHỌN CHẾ ĐỘ --- */}
               <div className="flex mb-6">
                 <button type="button" className={`flex-1 py-2 text-center rounded-l-md font-medium transition-colors ${mode === 'self' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`} onClick={() => setMode('self')}>Đặt cho bản thân</button>
                 <button type="button" className={`flex-1 py-2 text-center rounded-r-md font-medium transition-colors ${mode === 'other' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`} onClick={() => setMode('other')}>Đặt cho người thân</button>
@@ -198,7 +215,6 @@ export default function CheckoutPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* --- BƯỚC 5: GỠ BỎ `readOnly` KHỎI CÁC TRƯỜNG INPUT --- */}
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1">Họ và tên bệnh nhân <span className="text-red-500">*</span></label>
                     <input name="name" placeholder="Nhập họ tên người khám" value={form.name} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
@@ -238,24 +254,12 @@ export default function CheckoutPage() {
                   <textarea name="reason" placeholder="Mô tả ngắn gọn triệu chứng..." value={form.reason} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" rows={3} />
                 </div>
                 <div className="text-center pt-6">
-                  <button type="submit" className="bg-blue-600 text-white px-10 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition-all text-base">
-                    Xác nhận Đặt lịch
+                  <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-10 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition-all text-base disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    {isSubmitting ? 'Đang xử lý...' : 'Xác nhận Đặt lịch'}
                   </button>
                 </div>
               </form>
             </>
-          )}
-
-          {submitted && (
-            <div className="mt-10 bg-green-50 border border-green-300 p-6 rounded-xl text-green-800">
-              <h3 className="text-lg font-semibold mb-4 text-green-900">✅ Đặt lịch thành công!</h3>
-              <p className="mb-4">Thông tin của bạn đã được ghi nhận. Vui lòng kiểm tra email để xác nhận. Cảm ơn bạn đã sử dụng dịch vụ.</p>
-              <ul className="space-y-1 text-sm">
-                <li><strong>Họ tên bệnh nhân:</strong> {form.name}</li>
-                <li><strong>Bác sĩ:</strong> {bookingInfo.doctorName}</li>
-                <li><strong>Ngày khám:</strong> {new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {bookingInfo.time.start} - {bookingInfo.time.end}</li>
-              </ul>
-            </div>
           )}
         </div>
       </div>
