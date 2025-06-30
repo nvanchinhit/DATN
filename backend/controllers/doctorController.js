@@ -3,6 +3,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/mailer");
 
+const path = require('path');
+const fs = require('fs');
+
 const secret = process.env.JWT_SECRET || "your_default_secret";
 
 // Tạo mật khẩu ngẫu nhiên
@@ -13,7 +16,6 @@ function generatePassword(length = 10) {
     chars.charAt(Math.floor(Math.random() * chars.length))
   ).join("");
 }
-
 // Admin tạo tài khoản bác sĩ
 exports.createDoctorAccount = async (req, res) => {
   const { name, email, specialization_id } = req.body;
@@ -288,4 +290,68 @@ exports.getTopDoctors = (req, res) => {
 
     res.json(topDoctors);
   });
+};
+exports.updateDoctorProfile = async (req, res) => {
+    const doctorId = req.params.id;
+    const { introduction, experience } = req.body;
+
+    // Lấy file ảnh mới nếu có
+    const newDegreeFile = req.files?.degree_images?.[0];
+    const newCertificateFile = req.files?.certificate_images?.[0];
+
+    // --- Logic chính: Kiểm tra xem có cần duyệt lại không ---
+    const requiresApproval = !!newDegreeFile || !!newCertificateFile;
+
+    try {
+        const fieldsToUpdate = {};
+
+        // 1. Thêm các trường văn bản vào đối tượng cập nhật
+        if (introduction !== undefined) {
+            fieldsToUpdate.introduction = introduction;
+        }
+        if (experience !== undefined) {
+            fieldsToUpdate.experience = experience;
+        }
+
+        // 2. Thêm các đường dẫn file mới vào đối tượng cập nhật
+        if (newDegreeFile) {
+            // Lưu tên file vào cột degree_image
+            fieldsToUpdate.degree_image = newDegreeFile.filename;
+        }
+        if (newCertificateFile) {
+            // Lưu tên file vào cột certificate_image
+            fieldsToUpdate.certificate_image = newCertificateFile.filename;
+        }
+        
+        // 3. Nếu có thay đổi ảnh, đặt trạng thái là 'pending'
+        if (requiresApproval) {
+            fieldsToUpdate.account_status = 'pending';
+        }
+
+        // 4. Kiểm tra xem có gì để cập nhật không
+        if (Object.keys(fieldsToUpdate).length === 0) {
+            return res.status(400).json({ msg: "Không có thông tin nào được gửi để cập nhật." });
+        }
+
+        // 5. Thực hiện một câu lệnh UPDATE duy nhất vào bảng `doctors`
+        const [result] = await db.promise().query(
+            'UPDATE doctors SET ? WHERE id = ?', 
+            [fieldsToUpdate, doctorId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ msg: "Không tìm thấy bác sĩ để cập nhật." });
+        }
+        
+        // 6. Gửi phản hồi thành công
+        const successMessage = requiresApproval 
+            ? "Hồ sơ đã được cập nhật và gửi đi để duyệt lại."
+            : "Hồ sơ đã được cập nhật thành công.";
+        
+        res.status(200).json({ msg: successMessage });
+
+    } catch (err) {
+        console.error("Lỗi khi cập nhật hồ sơ bác sĩ:", err);
+        res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
+    }
 };

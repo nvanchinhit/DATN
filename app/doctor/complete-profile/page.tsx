@@ -1,3 +1,5 @@
+// complete-profile/page.tsx
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -5,12 +7,13 @@ import { useRouter } from 'next/navigation';
 import { Clock, LogOut } from 'lucide-react';
 
 const PendingApprovalScreen = () => {
+  // ... (Component này giữ nguyên, không cần thay đổi)
   const router = useRouter();
   
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('doctorToken');
-    router.push('/login');
+    router.push('/doctor/login'); // Sửa lại đường dẫn cho đúng
   };
 
   return (
@@ -40,8 +43,8 @@ export default function CompleteProfilePage() {
   const [files, setFiles] = useState<{ img?: File; certificate_image?: File; degree_image?: File }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
   const router = useRouter();
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -59,31 +62,64 @@ export default function CompleteProfilePage() {
         .catch(err => {
             console.error(err);
             alert("Có lỗi xảy ra khi tải dữ liệu. Đang chuyển hướng về trang đăng nhập.");
-            router.push('/login');
+            router.push('/doctor/login');
         })
         .finally(() => {
             setIsLoading(false);
         });
     } else {
         setIsLoading(false);
-        router.push('/login');
+        router.push('/doctor/login');
     }
   }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev: any) => (prev ? { ...prev, [name]: value } : { [name]: value }));
+    if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files: selectedFiles } = e.target;
     if (selectedFiles?.[0]) {
       setFiles((prev) => ({ ...prev, [name]: selectedFiles[0] }));
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '' }));
+      }
     }
   };
+  
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!form?.phone?.trim()) {
+        newErrors.phone = 'Vui lòng nhập số điện thoại.';
+    } else if (!/^\d{10,11}$/.test(form.phone)) {
+        newErrors.phone = 'Số điện thoại không hợp lệ.';
+    }
+
+    if (!form?.introduction?.trim()) newErrors.introduction = 'Vui lòng nhập giới thiệu bản thân.';
+    if (!form?.experience?.trim()) newErrors.experience = 'Vui lòng nhập kinh nghiệm làm việc.';
+
+    // Kiểm tra file chỉ khi chưa có ảnh cũ
+    if (!form.img && !files.img) newErrors.img = 'Vui lòng tải lên ảnh đại diện.';
+    if (!form.degree_image && !files.degree_image) newErrors.degree_image = 'Vui lòng tải lên ảnh bằng cấp.';
+    if (!form.certificate_image && !files.certificate_image) newErrors.certificate_image = 'Vui lòng tải lên ảnh chứng chỉ.';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
 
   const handleSubmit = async () => {
     if (!form?.id || isSubmitting) return;
+
+    if (!validateForm()) {
+        alert('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+        return;
+    }
     
     setIsSubmitting(true);
     const formData = new FormData();
@@ -117,18 +153,10 @@ export default function CompleteProfilePage() {
     }
   };
 
-  if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen">Đang tải dữ liệu...</div>;
-  }
-  
-  if (!form) {
-    return <div className="flex justify-center items-center min-h-screen">Không thể tải hồ sơ. Vui lòng đăng nhập lại.</div>;
-  }
+  if (isLoading) return <div className="flex justify-center items-center min-h-screen">Đang tải dữ liệu...</div>;
+  if (!form) return <div className="flex justify-center items-center min-h-screen">Không thể tải hồ sơ. Vui lòng đăng nhập lại.</div>;
 
-  if (form.account_status === 'pending') {
-    return <PendingApprovalScreen />;
-  }
-  
+  if (form.account_status === 'pending') return <PendingApprovalScreen />;
   if (form.account_status === 'active') {
     router.push('/doctor/dashboard');
     return null;
@@ -143,6 +171,7 @@ export default function CompleteProfilePage() {
         </p>
 
         <div className="space-y-4">
+            {/* <<< ĐÃ THÊM LẠI CÁC Ô BỊ THIẾU Ở ĐÂY >>> */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
@@ -157,30 +186,38 @@ export default function CompleteProfilePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Chuyên khoa</label>
               <input value={form.specialization_name || 'Đang tải...'} disabled className="w-full border px-3 py-2 rounded bg-gray-100 cursor-not-allowed" />
             </div>
+            {/* <<< KẾT THÚC PHẦN THÊM LẠI >>> */}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-              <input name="phone" type="text" value={form.phone || ''} onChange={handleChange} className="w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500" />
+              <input name="phone" type="text" value={form.phone || ''} onChange={handleChange} className={`w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500 ${errors.phone ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Giới thiệu bản thân</label>
-              <textarea name="introduction" rows={4} value={form.introduction || ''} onChange={handleChange} className="w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500" />
+              <textarea name="introduction" rows={4} value={form.introduction || ''} onChange={handleChange} className={`w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500 ${errors.introduction ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.introduction && <p className="text-red-500 text-sm mt-1">{errors.introduction}</p>}
             </div>
              <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kinh nghiệm làm việc</label>
-              <textarea name="experience" rows={4} value={form.experience || ''} onChange={handleChange} className="w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500" />
+              <textarea name="experience" rows={4} value={form.experience || ''} onChange={handleChange} className={`w-full border px-3 py-2 rounded focus:ring-blue-500 focus:border-blue-500 ${errors.experience ? 'border-red-500' : 'border-gray-300'}`} />
+              {errors.experience && <p className="text-red-500 text-sm mt-1">{errors.experience}</p>}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh đại diện</label>
                 <input type="file" name="img" accept="image/*" onChange={handleFileChange} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                {errors.img && <p className="text-red-500 text-sm mt-1">{errors.img}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh Bằng cấp</label>
                 <input type="file" name="degree_image" accept="image/*" onChange={handleFileChange} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                {errors.degree_image && <p className="text-red-500 text-sm mt-1">{errors.degree_image}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh Chứng chỉ</label>
                 <input type="file" name="certificate_image" accept="image/*" onChange={handleFileChange} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                {errors.certificate_image && <p className="text-red-500 text-sm mt-1">{errors.certificate_image}</p>}
               </div>
             </div>
         </div>
