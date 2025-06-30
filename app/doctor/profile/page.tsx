@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-// Giả sử Sidebar được import từ đúng đường dẫn
 import Sidebar from '@/components/layout/Sidebardoctor'; 
 import { Mail, Phone, Stethoscope, GraduationCap, FileText, UserCheck, Edit, Loader2, AlertTriangle, ImageOff } from 'lucide-react';
 
@@ -60,7 +59,7 @@ export default function DoctorProfilePage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  // ... (phần code render không thay đổi)
+  
   const renderContent = () => {
     if (loading) return <div className="flex flex-col items-center justify-center h-full text-gray-500"><Loader2 className="animate-spin h-12 w-12 text-blue-600" /><p className="mt-4">Đang tải hồ sơ...</p></div>;
     if (error) return <div className="flex flex-col items-center justify-center h-full text-red-600 bg-red-50 p-8 rounded-lg"><AlertTriangle className="h-12 w-12" /><p className="mt-4 font-semibold">{error}</p></div>;
