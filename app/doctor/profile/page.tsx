@@ -3,11 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Sidebar from '@/components/layout/Sidebardoctor';
+// Giả sử Sidebar được import từ đúng đường dẫn
+import Sidebar from '@/components/layout/Sidebardoctor'; 
 import { Mail, Phone, Stethoscope, GraduationCap, FileText, UserCheck, Edit, Loader2, AlertTriangle, ImageOff } from 'lucide-react';
 
-// --- QUAN TRỌNG: Hàm helper đã được sửa lại để khớp với logic của bạn ---
-// Nó sẽ luôn nối chuỗi theo đúng định dạng bạn đã chỉ ra.
 const getFullImageUrl = (filename: string | null | undefined): string | null => {
     if (!filename) return null;
     return `http://localhost:5000/uploads/${filename}`;
@@ -41,6 +40,17 @@ export default function DoctorProfilePage() {
           router.replace('/doctor/complete-profile');
         } else {
           setDoctor(data);
+
+          // <<< SỬA #2: CẬP NHẬT LOCALSTORAGE VỚI DỮ LIỆU MỚI NHẤT >>>
+          // Khi lấy được dữ liệu mới từ API, ta cập nhật lại 'user' trong localStorage
+          // để Sidebar và các component khác có thể sử dụng thông tin mới này.
+          const updatedUserForStorage = {
+            id: data.id,
+            name: data.name,
+            img: data.img, // Lấy ảnh mới nhất từ API
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUserForStorage));
+          // <<< KẾT THÚC SỬA #2 >>>
         }
       })
       .catch(err => {
@@ -50,12 +60,12 @@ export default function DoctorProfilePage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  // ... (phần code render không thay đổi)
   const renderContent = () => {
     if (loading) return <div className="flex flex-col items-center justify-center h-full text-gray-500"><Loader2 className="animate-spin h-12 w-12 text-blue-600" /><p className="mt-4">Đang tải hồ sơ...</p></div>;
     if (error) return <div className="flex flex-col items-center justify-center h-full text-red-600 bg-red-50 p-8 rounded-lg"><AlertTriangle className="h-12 w-12" /><p className="mt-4 font-semibold">{error}</p></div>;
     if (!doctor) return null;
 
-    // Sử dụng hàm helper đã được sửa đúng
     const specializationName = doctor.specialization_name || 'Chưa cập nhật';
     const degreeImage = getFullImageUrl(doctor.degree_image);
     const certificateImage = getFullImageUrl(doctor.certificate_image);
