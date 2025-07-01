@@ -124,7 +124,7 @@ export default function ProfilePage() {
   if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
   if (!profileData) return <p className="text-center py-10">Không thể hiển thị thông tin người dùng.</p>;
 
-  const displayAvatar = avatarPreview || (profileData.avatar ? `${API_URL}${profileData.avatar}` : '/placeholder-avatar.png');
+  const displayAvatar = avatarPreview || (profileData.avatar ? `${API_URL}${profileData.avatar}` : 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg');
 
   return (
     <div className="bg-gray-50/50 p-4 sm:p-6 lg:p-8">
@@ -143,7 +143,7 @@ export default function ProfilePage() {
                     src={displayAvatar} 
                     alt="Avatar" 
                     className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg"
-                    onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }}
+                    onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }}
                 />
                 <button 
                     type="button" 

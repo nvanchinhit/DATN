@@ -49,7 +49,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
     fetchUserInfo();
   }, [authLoading, user, token, router, logout]);
 
-  const displayAvatar = userInfo?.avatar ? `${API_URL}${userInfo.avatar}` : '/placeholder-avatar.png';
+  const displayAvatar = userInfo?.avatar ? `${API_URL}${userInfo.avatar}` : 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg';
   const isActive = (path: string) => pathname === path;
 
   if (authLoading || loading) {
@@ -66,7 +66,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
               src={displayAvatar} 
               alt="Avatar" 
               className="w-12 h-12 rounded-full object-cover" 
-              onError={(e) => { e.currentTarget.src = '/placeholder-avatar.png'; }} 
+              onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }} 
             />
             {userInfo && (
               <div>
