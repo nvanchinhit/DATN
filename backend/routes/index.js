@@ -29,10 +29,12 @@ const appointmentRoutes = require('./appointment.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const medicalRecordRoutes = require('./medicalRecord.routes');
 const ratingRoutes = require('./rating.routes'); // <-- Import
+const adminRoutes = require('./admin.routes');
 
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/admin', adminRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/appointments', appointmentRoutes);
 router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:

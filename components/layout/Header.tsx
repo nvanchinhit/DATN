@@ -88,9 +88,9 @@ export default function Header() {
             <div className="flex-shrink-0">
               <Link href="/">
                 <img
-                  src="https://i.imgur.com/EYZSLd6.png"
+                  src="https://i.imgur.com/bUBPKF9.jpeg"
                   alt="TDCARE Logo"
-                  className="h-10 w-auto"
+                  className="h-20"
                 />
               </Link>
             </div>

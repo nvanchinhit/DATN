@@ -37,9 +37,9 @@ export default function Footer() {
           <div className="md:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-block mb-6">
               <img
-                src="https://i.imgur.com/EYZSLd6.png" // Replace with your white/transparent logo
+                src="https://i.imgur.com/bUBPKF9.jpeg" // Replace with your white/transparent logo
                 alt="TDCARE Logo"
-                className="h-10 w-auto filter brightness-0 invert" // Makes a black logo white
+                className="h-20" // Makes a black logo white
               />
             </Link>
             <p className="text-gray-400 mb-6 text-sm">

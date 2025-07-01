@@ -23,24 +23,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-
-// Ví dụ: router.get('/', [authMiddleware, isAdmin], userController.getAllUsers);
-router.get('/', userController.getAllUsers);
-
-
-// --- Lấy thông tin profile của người dùng đang đăng nhập ---
-// Middleware sẽ được áp dụng cho route này để xác thực người dùng
-router.get('/profile', authMiddleware, userController.getProfile);
-
-// --- Cập nhật thông tin profile (bao gồm cả avatar) ---
-// Middleware xác thực, sau đó middleware `upload` xử lý file ảnh
-router.put('/profile', [authMiddleware, upload.single('avatar')], userController.updateProfile);
-
-// --- Thay đổi mật khẩu ---
-// Middleware xác thực để biết đang thay đổi mật khẩu cho ai
-router.post('/change-password', authMiddleware, userController.changePassword);
-
-
-
+router.get('/profile', userController.getProfile);
+router.put('/profile', upload.single('avatar'), userController.updateProfile);
+router.post('/change-password', userController.changePassword);
 
 module.exports = router;

@@ -48,7 +48,7 @@ export default function AccountsAdminPage() {
         return;
     }
     try {
-      const response = await fetch(`${API_URL}/api/users`, { headers: { 'Authorization': `Bearer ${token}` } }); 
+      const response = await fetch(`${API_URL}/api/admin`, { headers: { 'Authorization': `Bearer ${token}` } }); 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) throw new Error('Phiên đăng nhập không hợp lệ hoặc bạn không có quyền truy cập.');
         throw new Error('Không thể tải danh sách tài khoản.');

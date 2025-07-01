@@ -1,15 +1,14 @@
-// my-next-app/contexts/AuthContext.tsx
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Interface User đã có role_id
 interface User {
   id: number;
   email: string;
   name: string;
-  // Thêm các trường khác nếu bạn cần truy cập nhanh
+  role_id: number;
 }
 
 interface AuthContextType {
@@ -29,7 +28,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Khi ứng dụng tải lần đầu, kiểm tra xem có token trong localStorage không
     try {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
@@ -39,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Lỗi khi đọc dữ liệu xác thực từ localStorage", error);
-      localStorage.clear(); // Xóa dữ liệu hỏng
+      localStorage.clear();
     } finally {
       setLoading(false);
     }
@@ -57,16 +55,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    // Chuyển hướng về trang đăng nhập
     router.push('/login');
   };
 
   const value = { user, token, loading, login, logout };
 
+  // <<< SỬA LỖI Ở ĐÂY: Luôn render `children` để đảm bảo quy tắc của Hooks >>>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Dòng này rất quan trọng, nó xuất ra hook để các file khác có thể import
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

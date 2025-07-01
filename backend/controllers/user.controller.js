@@ -126,27 +126,3 @@ exports.changePassword = (req, res) => {
     });
   });
 };
-
-/**
- * [ĐÃ SỬA] Lấy tất cả người dùng (Không JOIN bảng roles)
- */
-exports.getAllUsers = (req, res) => {
-  // Câu lệnh SQL chỉ lấy dữ liệu từ bảng customers
-  const sql = `
-    SELECT 
-      id, name, email, phone, gender, birthday, address, 
-      avatar, is_verified, created_at, role_id
-    FROM customers
-    ORDER BY created_at DESC
-  `;
-
-  db.query(sql, (err, results) => {
-    if (err) {
-      console.error("❌ Lỗi khi lấy danh sách người dùng:", err);
-      return res.status(500).json({ success: false, message: 'Lỗi server khi truy vấn dữ liệu.' });
-    }
-    
-    // Trả về dữ liệu gốc, frontend sẽ xử lý việc hiển thị tên vai trò
-    res.status(200).json(results); 
-  });
-};
