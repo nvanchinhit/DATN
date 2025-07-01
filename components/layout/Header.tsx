@@ -51,6 +51,7 @@ export default function Header() {
     { href: "/", label: "Trang chủ" },
     { href: "/shop", label: "Sản phẩm" },
     { href: "/specialty", label: "Chuyên khoa" },
+    { href: "/staff", label: "Bác Sĩ"},
     { href: "/about-us", label: "Về chúng tôi" },
     { href: "/contact-us", label: "Liên hệ" },
   ];
@@ -112,9 +113,7 @@ export default function Header() {
                 <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                     <Search className="h-5 w-5 text-gray-600" />
                 </button>
-                <Link href="/booking" className="hidden sm:block bg-blue-600 text-white hover:bg-blue-700 transition-colors px-5 py-2.5 rounded-full font-semibold text-sm">
-                  Đặt Lịch Khám
-                </Link>
+
 
                 {user ? (
                   <div className="relative" ref={dropdownRef}>

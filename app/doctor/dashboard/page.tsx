@@ -7,33 +7,27 @@ import {
 } from 'recharts';
 
 export default function DoctorDashboardPage() {
-  const doctorId = 1;
-  const [status, setStatus] = useState<'loading' | 'pending' | 'active'>('loading');
+  const [status, setStatus] = useState<'pending' | 'active'>('active');
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/doctors/${doctorId}`)
-      .then(res => res.json())
-      .then(info => {
-        if (info.account_status === 'active') {
-          setStatus('active');
-        } else {
-          setStatus('pending');
-        }
-      })
-      .catch(() => setStatus('pending'));
+    // Gán dữ liệu mock (giả lập)
+    setData({
+      today: {
+        total_today: 6,
+        pending: 2,
+      },
+      chart: [
+        { date: '2025-06-25', total: 1 },
+        { date: '2025-06-26', total: 2 },
+        { date: '2025-06-27', total: 3 },
+        { date: '2025-06-28', total: 2 },
+        { date: '2025-06-29', total: 1 },
+        { date: '2025-06-30', total: 4 },
+        { date: '2025-07-01', total: 2 },
+      ],
+    });
   }, []);
-
-  useEffect(() => {
-    if (status !== 'active') return;
-
-    fetch(`http://localhost:5000/api/doctors/${doctorId}/dashboard`)
-      .then(res => res.json())
-      .then(setData)
-      .catch(err => console.error('❌ Lỗi tải dashboard:', err));
-  }, [status]);
-
-  if (status === 'loading') return <p className="p-6">Đang tải dữ liệu...</p>;
 
   if (status === 'pending') {
     return (

@@ -2,39 +2,42 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Stethoscope, GraduationCap, FileText, BadgeInfo, ImageOff } from 'lucide-react';
+import { X, Stethoscope, GraduationCap, FileText, BadgeInfo, ImageOff } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
 interface Doctor {
   id: number;
   name: string;
-  img: string;
+  img: string | null;
   introduction: string;
-  specialization_id: number;
+  specialty_name: string;
   consultation_fee: number;
-  certificate: string;
-  degree: string;
+  // Sử dụng đúng tên thuộc tính từ API
+  certificate_image: string | null;
+  degree_image: string | null;
 }
 
 interface DoctorDetailsModalProps {
   doctor: Doctor;
-  specialtyName: string;
+  // specialtyName đã được truyền từ page.tsx
+  specialtyName: string; 
   onClose: () => void;
 }
 
-const getImageUrl = (fileName: string | null | undefined): string | null => {
-    if (!fileName) return null;
-    if (fileName.startsWith('http')) return fileName;
-    return `${API_URL}/uploads/${fileName}`;
+const getImageUrl = (path: string | null | undefined): string | null => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `${API_URL}${path}`;
 }
 
 export default function DoctorDetailsModal({ doctor, specialtyName, onClose }: DoctorDetailsModalProps) {
   const [activeTab, setActiveTab] = useState('info');
 
   const avatarUrl = getImageUrl(doctor.img) || '/default-avatar.png';
-  const degreeUrl = getImageUrl(doctor.degree);
-  const certificateUrl = getImageUrl(doctor.certificate);
+  // <<< SỬA LẠI CÁCH LẤY URL CHO ĐÚNG >>>
+  const degreeUrl = getImageUrl(doctor.degree_image);
+  const certificateUrl = getImageUrl(doctor.certificate_image);
 
   return (
     <div
