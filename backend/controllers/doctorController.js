@@ -355,3 +355,23 @@ exports.updateDoctorProfile = async (req, res) => {
         res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
     }
 };
+exports.getAllDoctorsForAdmin = (req, res) => {
+
+    const sql = `
+        SELECT 
+          d.id, 
+          d.name, 
+          d.account_status,
+          s.name AS specialty_name 
+        FROM doctors d
+        LEFT JOIN specializations s ON d.specialization_id = s.id
+        ORDER BY d.name
+    `;
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error("Lỗi khi lấy danh sách bác sĩ cho admin:", err);
+            return res.status(500).json({ error: 'Lỗi server.' });
+        }
+        res.json(results);
+    });
+};
