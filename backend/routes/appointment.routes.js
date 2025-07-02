@@ -44,6 +44,19 @@ router.post('/', authMiddleware, (req, res) => {
     });
   });
 });
+router.put('/appointments/:id/confirm', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // 'Đã xác nhận' hoặc 'Từ chối'
+
+  const sql = `UPDATE appointments SET doctor_confirmation = ? WHERE id = ?`;
+
+  db.query(sql, [status, id], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi cập nhật xác nhận lịch.' });
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
+    res.json({ message: 'Cập nhật thành công!' });
+  });
+});
+
 
 /**
  * ==========================================================

@@ -81,6 +81,26 @@ router.get('/doctors/top', (req, res) => {
     res.json(results);
   });
 });
+/// Phải nằm BÊN TRONG router.get!
+// LẤY APPOINTMENT THEO time_slot_id
+router.get('/appointments/slot/:slotId', (req, res) => {
+  const { slotId } = req.params;
+
+  const sql = `
+    SELECT 
+      id, name AS patient_name, email, phone, note, status, payment_status
+    FROM appointments
+    WHERE time_slot_id = ?
+    LIMIT 1
+  `;
+
+  db.query(sql, [slotId], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi truy vấn lịch hẹn' });
+    if (result.length === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn' });
+    res.json(result[0]);
+  });
+});
+
 
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
@@ -126,6 +146,34 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
     res.json(groupedSlots);
   });
 });
+// routes/appointment.routes.js
+router.put('/appointments/:id/confirm', (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    UPDATE appointments
+    SET status = 'Đã xác nhận'
+    WHERE id = ?`;
+  db.query(sql, [id], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi xác nhận lịch hẹn.' });
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
+    res.json({ message: 'Xác nhận thành công!' });
+  });
+});
+
+
+router.put('/appointments/:id/reject', (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    UPDATE appointments
+    SET status = 'Từ chối'
+    WHERE id = ?`;
+  db.query(sql, [id], (err, result) => {
+    if (err) return res.status(500).json({ error: 'Lỗi khi từ chối lịch hẹn.' });
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
+    res.json({ message: 'Đã từ chối lịch hẹn.' });
+  });
+});
+
 
 router.get('/specializations', (req, res) => {
   const search = req.query.search;
@@ -154,6 +202,71 @@ router.get('/specializations/:id', (req, res) => {
   db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
     if (err) return res.status(500).json({ error: 'Lỗi server.' });
     if (results.length === 0) return res.status(404).json({ error: 'Không tìm thấy.' });
+    res.json(results[0]);
+  });
+});
+router.get('/doctors/:doctorId/schedule', (req, res) => {
+  const doctorId = req.params.doctorId;
+
+  const sql = `
+    SELECT 
+      ts.id AS slot_id,
+      DATE_FORMAT(ts.slot_date, '%Y-%m-%d') AS slot_date,
+      TIME_FORMAT(ts.start_time, '%H:%i') AS start_time,
+      TIME_FORMAT(ts.end_time, '%H:%i') AS end_time,
+      a.id AS appointment_id,
+      a.name AS patient_name,
+      a.status
+    FROM doctor_time_slot ts
+    LEFT JOIN appointments a ON a.time_slot_id = ts.id AND a.doctor_id = ?
+    WHERE ts.doctor_id = ?
+    ORDER BY 
+      CASE 
+        WHEN a.status = 'Chưa xác nhận' THEN 0
+        ELSE 1
+      END,
+      ts.slot_date, ts.start_time
+  `;
+
+  db.query(sql, [doctorId, doctorId], (err, results) => {
+    if (err) {
+      console.error("Lỗi truy vấn lịch khám:", err);
+      return res.status(500).json({ error: 'Lỗi server' });
+    }
+
+    const grouped = {};
+    results.forEach(slot => {
+      const date = slot.slot_date;
+      if (!grouped[date]) grouped[date] = [];
+
+      grouped[date].push({
+        slotId: slot.slot_id,
+        time: `${slot.start_time} - ${slot.end_time}`,
+        booked: !!slot.appointment_id,
+        confirmation: slot.status,
+        patient: slot.patient_name || null,
+        status: slot.status
+      });
+    });
+
+    res.json(grouped);
+  });
+});
+
+router.get('/doctors/:doctorId/dashboard', (req, res) => {
+  const doctorId = req.params.doctorId;
+  const sql = `
+    SELECT 
+      COUNT(*) AS total_appointments,
+      SUM(CASE WHEN status = 'Chưa xác nhận' THEN 1 ELSE 0 END) AS pending_confirmations
+    FROM appointments
+    WHERE doctor_id = ?`;
+
+  db.query(sql, [doctorId], (err, results) => {
+    if (err) {
+      console.error('Lỗi lấy dashboard:', err);
+      return res.status(500).json({ error: 'Lỗi server' });
+    }
     res.json(results[0]);
   });
 });

@@ -53,20 +53,20 @@ export default function DoctorDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-2">Lịch khám hôm nay</h2>
-              <p className="text-3xl text-blue-600 font-bold">{data?.today.total_today || 0}</p>
+              <p className="text-3xl text-blue-600 font-bold">{data?.today?.total_today ?? 0}</p>
               <p className="text-gray-500 text-sm">Tổng số lịch hẹn</p>
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-2">Bệnh nhân đang đợi</h2>
-              <p className="text-3xl text-yellow-500 font-bold">{data?.today.pending || 0}</p>
+              <p className="text-3xl text-yellow-500 font-bold">{data?.today?.pending ?? 0}</p>
               <p className="text-gray-500 text-sm">Chưa được khám</p>
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow">
               <h2 className="text-lg font-semibold mb-2">Tổng số ca khám</h2>
               <p className="text-3xl text-green-600 font-bold">
-                {data?.chart.reduce((acc: number, cur: any) => acc + cur.total, 0) || 0}
+                {data?.chart?.reduce((acc: number, cur: any) => acc + cur.total, 0) ?? 0}
               </p>
               <p className="text-gray-500 text-sm">Trong 7 ngày gần nhất</p>
             </div>
