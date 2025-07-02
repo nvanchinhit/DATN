@@ -246,3 +246,73 @@ exports.resendVerification = (req, res) => {
       });
   });
 };
+// ===================== GỬI ĐƠN THUỐC QUA EMAIL (KHÔNG LƯU DB) =====================
+exports.sendPrescription = async (req, res) => {
+  // Nhận ID hồ sơ và nội dung đơn thuốc từ frontend
+  const { medical_record_id, prescription_text } = req.body;
+
+  if (!medical_record_id || !prescription_text) {
+    return res.status(400).json({ msg: "Thiếu ID hồ sơ hoặc nội dung đơn thuốc!" });
+  }
+
+  // Lấy thông tin cần thiết để gửi email (tên bệnh nhân, email, tên bác sĩ)
+  const query = `
+    SELECT 
+      c.name AS patient_name,
+      c.email AS patient_email,
+      d.name AS doctor_name,
+      mr.diagnosis  -- Lấy cả chẩn đoán để đưa vào email
+    FROM medical_records mr
+    JOIN customers c ON mr.customer_id = c.id
+    JOIN doctors d ON mr.doctor_id = d.id
+    WHERE mr.id = ?
+  `;
+
+  db.query(query, [medical_record_id], async (err, result) => {
+    if (err) {
+      console.error("❌ Lỗi truy vấn khi lấy thông tin để gửi mail:", err);
+      return res.status(500).json({ msg: "Lỗi server khi truy vấn dữ liệu." });
+    }
+
+    if (result.length === 0) {
+      return res.status(404).json({ msg: "Không tìm thấy hồ sơ bệnh án tương ứng." });
+    }
+
+    const record = result[0];
+    const { patient_name, patient_email, doctor_name, diagnosis } = record;
+
+    // Tạo nội dung email từ thông tin lấy được và `prescription_text` từ frontend
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px;">
+        <h2 style="color: #0056b3; text-align: center;">Thông Tin Đơn Thuốc</h2>
+        <p>Xin chào <strong>${patient_name}</strong>,</p>
+        <p>Bác sĩ <strong>${doctor_name}</strong> đã gửi cho bạn thông tin đơn thuốc. Vui lòng xem nội dung dưới đây:</p>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 20px;">
+          <h3 style="color: #0056b3; border-bottom: 2px solid #eee; padding-bottom: 10px;">Chi tiết</h3>
+          <p><strong>Chẩn đoán:</strong></p>
+          <p style="white-space: pre-wrap;">${diagnosis}</p>
+          
+          <p><strong>Đơn thuốc:</strong></p>
+          <p style="white-space: pre-wrap; font-weight: bold;">${prescription_text}</p>
+        </div>
+
+        <p style="margin-top: 25px; font-size: 14px; color: #555;">
+          <strong>Lưu ý:</strong> Đây là thông tin tham khảo. Vui lòng tuân thủ chính xác theo chỉ dẫn của bác sĩ.
+        </p>
+      </div>
+    `;
+
+    try {
+      await sendMail({
+        to: patient_email,
+        subject: `[Thông báo] Đơn thuốc từ Bác sĩ ${doctor_name}`,
+        html: emailHtml
+      });
+      res.status(200).json({ msg: `Đã gửi đơn thuốc thành công đến email ${patient_email}` });
+    } catch (mailErr) {
+      console.error("❌ Lỗi khi gửi email đơn thuốc:", mailErr);
+      res.status(500).json({ msg: "Gặp lỗi trong quá trình gửi email." });
+    }
+  });
+};
