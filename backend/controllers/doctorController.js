@@ -153,22 +153,26 @@ exports.getDoctorById = (req, res) => {
 
     // ✅ Chuyển TEXT => MẢNG cho ảnh chứng chỉ & bằng cấp
     const Certificates = doctor.certificate_image
-      ? doctor.certificate_image.split('|').map((filename, index) => ({
-          id: index + 1,
-          filename,
-        }))
-      : [];
+  ? doctor.certificate_image.split('|').map((filename, index) => ({
+      id: index + 1,
+      filename,
+      source:
+        doctor.certificate_source?.split('|')[index] || '', // lấy đúng nơi cấp tương ứng
+    }))
+  : [];
+
 
     const Degrees = doctor.degree_image
-      ? doctor.degree_image.split('|').map((filename, index) => ({
-          id: index + 1,
-          filename,
-          gpa: doctor.gpa || '',
-          university: doctor.university || '',
-          graduation_date: doctor.graduation_date || '',
-          degree_type: doctor.degree_type || '',
-        }))
-      : [];
+  ? doctor.degree_image.split('|').map((filename, index) => ({
+      id: index + 1,
+      filename,
+      gpa: doctor.gpa ?? '',
+      university: doctor.university ?? '',
+      graduation_date: doctor.graduation_date ?? '',
+      degree_type: doctor.degree_type ?? '',
+    }))
+  : [];
+
 
     // ✅ Gửi phản hồi về client
     res.json({
@@ -318,94 +322,139 @@ exports.getTopDoctors = (req, res) => {
     res.json(topDoctors);
   });
 };
+
+
+
 exports.updateDoctorProfile = async (req, res) => {
-    const doctorId = req.params.id;
+  const doctorId = req.params.id;
+  console.log("📦 req.body:", req.body);
+  console.log("📁 req.files:", req.files);
 
-    // // ✅ Kiểm tra dữ liệu từ client gửi lên:
-    // console.log("📦 req.body:", req.body);        
-    // console.log("🖼 req.files:", req.files);      
+  const { introduction, experience } = req.body;
+  const degreesToDelete = JSON.parse(req.body.degreesToDelete || '[]');
+  const certificatesToDelete = JSON.parse(req.body.certificatesToDelete || '[]');
 
+  const newDegreeFiles = req.files?.degree_images || [];
+  const newCertificateFiles = req.files?.certificate_images || [];
 
-    const { introduction, experience } = req.body;
+  // Đọc thông tin degrees[i][...] từ req.body
+  let degrees = [];
 
-    // Lấy file ảnh mới nếu có
-    const newDegreeFile = req.files?.degree_images?.[0];
-    const newCertificateFile = req.files?.certificate_images?.[0];
-
-    // Kiểm tra xem có cần duyệt lại không
-    const requiresApproval = !!newDegreeFile || !!newCertificateFile;
-
-    try {
-        const fieldsToUpdate = {};
-
-        // 1. Lấy các trường văn bản
-        if (introduction !== undefined) {
-            fieldsToUpdate.introduction = introduction;
-        }
-        if (experience !== undefined) {
-            fieldsToUpdate.experience = experience;
-        }
-
-        const degrees = req.body.degrees; // Là mảng
-const degree = Array.isArray(degrees) ? degrees[0] : null;
-
-if (degree) {
-    if (degree.gpa && degree.gpa.trim() !== '') fieldsToUpdate.gpa = degree.gpa;
-    if (degree.university && degree.university.trim() !== '') fieldsToUpdate.university = degree.university;
-    if (degree.graduation_date && degree.graduation_date.trim() !== '') fieldsToUpdate.graduation_date = degree.graduation_date;
-    if (degree.degree_type && degree.degree_type.trim() !== '') fieldsToUpdate.degree_type = degree.degree_type;
+if (typeof req.body.degrees === 'string') {
+  degrees = JSON.parse(req.body.degrees);
+} else if (Array.isArray(req.body.degrees)) {
+  degrees = req.body.degrees;
 }
 
 
-        // 3. Cập nhật ảnh nếu có
-        if (newDegreeFile) {
-            fieldsToUpdate.degree_image = newDegreeFile.filename;
-        }
-        if (newCertificateFile) {
-    // Lấy dữ liệu hiện tại trong DB
-    const [currentRows] = await db.promise().query('SELECT certificate_image FROM doctors WHERE id = ?', [doctorId]);
-    const currentCert = currentRows[0]?.certificate_image || '';
 
-    const updatedCert = currentCert
-        ? currentCert + '|' + newCertificateFile.filename
-        : newCertificateFile.filename;
+  // Lấy các nơi cấp chứng chỉ (được gửi theo từng ảnh)
+  const certificateSources = Array.isArray(req.body.certificate_source)
+    ? req.body.certificate_source
+    : req.body.certificate_source
+    ? [req.body.certificate_source]
+    : [];
 
-    fieldsToUpdate.certificate_image = updatedCert;
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT certificate_image, certificate_source, degree_image, gpa, university, graduation_date, degree_type 
+       FROM doctors WHERE id = ?`,
+      [doctorId]
+    );
+    const doctor = rows[0];
+
+    // --- XỬ LÝ BẰNG CẤP ---
+    let degreeArr = doctor.degree_image ? doctor.degree_image.split('|') : [];
+    let degreeInfo = {
+      gpa: doctor.gpa || '',
+      university: doctor.university || '',
+      graduation_date: doctor.graduation_date || '',
+      degree_type: doctor.degree_type || '',
+    };
+
+    degreesToDelete.forEach((index) => {
+      if (degreeArr[index - 1]) degreeArr[index - 1] = null;
+    });
+    degreeArr = degreeArr.filter(Boolean);
+
+    // Nếu có file thì push filename và info kèm theo
+newDegreeFiles.forEach((file, idx) => {
+  degreeArr.push(file.filename);
+});
+
+// Nếu form có gửi thông tin degrees[0], thì cập nhật vào DB
+if (degrees[0]) {
+  degreeInfo = {
+    gpa: degrees[0].gpa || '',
+    university: degrees[0].university || '',
+    graduation_date: degrees[0].graduation_date || '',
+    degree_type: degrees[0].degree_type || '',
+  };
+}
+
+// Nếu không còn bằng cấp nào thì xóa hết thông tin học vấn
+if (degreeArr.length === 0) {
+  degreeInfo = {
+    gpa: null,
+    university: null,
+    graduation_date: null,
+    degree_type: null,
+  };
 }
 
 
-        // 4. Nếu có ảnh mới thì set lại trạng thái là 'pending'
-        if (requiresApproval) {
-            fieldsToUpdate.account_status = 'pending';
-        }
+    // --- XỬ LÝ CHỨNG CHỈ ---
+    let certArr = doctor.certificate_image ? doctor.certificate_image.split('|') : [];
+    let sourceArr = doctor.certificate_source ? doctor.certificate_source.split('|') : [];
 
-        // 5. Nếu không có gì để cập nhật thì báo lỗi
-        if (Object.keys(fieldsToUpdate).length === 0) {
-            return res.status(400).json({ msg: "Không có thông tin nào được gửi để cập nhật." });
-        }
+    certificatesToDelete.forEach((index) => {
+      if (certArr[index - 1]) certArr[index - 1] = null;
+      if (sourceArr[index - 1]) sourceArr[index - 1] = null;
+    });
+    certArr = certArr.filter(Boolean);
+    sourceArr = sourceArr.filter(Boolean);
 
-        // 6. Thực hiện cập nhật
-        const [result] = await db.promise().query(
-            'UPDATE doctors SET ? WHERE id = ?',
-            [fieldsToUpdate, doctorId]
-        );
+    newCertificateFiles.forEach((file, idx) => {
+      certArr.push(file.filename);
+      sourceArr.push(certificateSources[idx] || '');
+    });
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ msg: "Không tìm thấy bác sĩ để cập nhật." });
-        }
+    // --- CẬP NHẬT DATABASE ---
+    const updateFields = {
+      introduction,
+      experience,
+      degree_image: degreeArr.join('|'),
+      certificate_image: certArr.join('|'),
+      certificate_source: sourceArr.join('|'),
+      ...degreeInfo,
+      account_status:
+        newDegreeFiles.length > 0 ||
+        newCertificateFiles.length > 0 ||
+        degreesToDelete.length > 0 ||
+        certificatesToDelete.length > 0
+          ? 'pending'
+          : undefined,
+    };
 
-        // 7. Phản hồi thành công
-        const successMessage = requiresApproval
-            ? "Hồ sơ đã được cập nhật và gửi đi để duyệt lại."
-            : "Hồ sơ đã được cập nhật thành công.";
+    // Xóa field không cần update
+    Object.keys(updateFields).forEach((key) => {
+      if (updateFields[key] === undefined) delete updateFields[key];
+    });
 
-        res.status(200).json({ msg: successMessage });
+    console.log("🛠 UPDATE FIELDS:", updateFields);
 
-    } catch (err) {
-        console.error("Lỗi khi cập nhật hồ sơ bác sĩ:", err);
-        res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
-    }
+    await db
+      .promise()
+      .query(`UPDATE doctors SET ? WHERE id = ?`, [updateFields, doctorId]);
+
+    res.json({ msg: "Cập nhật hồ sơ thành công!" });
+  } catch (err) {
+    console.error("❌ Lỗi cập nhật hồ sơ:", err);
+    res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
+  }
 };
+
+
 
 exports.getAllDoctorsForAdmin = (req, res) => {
 

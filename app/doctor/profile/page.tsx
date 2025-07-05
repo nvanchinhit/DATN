@@ -50,12 +50,20 @@ export default function DoctorProfilePage() {
         const data = await res.json();
 
         // ✅ Xử lý nhiều ảnh chứng chỉ từ chuỗi certificate_image
-        const certificates = data.certificate_image
-          ? data.certificate_image.split('|').map((filename: string, index: number) => ({
-              id: index,
-              filename,
-            }))
+        const certificateFilenames = data.certificate_image
+          ? data.certificate_image.split('|')
           : [];
+
+        const certificateSources = data.certificate_source
+          ? data.certificate_source.split('|')
+          : [];
+
+        const certificates = certificateFilenames.map((filename: string, index: number) => ({
+          id: index + 1,
+          filename,
+          source: certificateSources[index] || 'Không rõ nơi cấp',
+    }));
+
 
         // ✅ Gom thông tin bằng cấp vào mảng Degrees
         const degrees = data.degree_image
@@ -244,29 +252,33 @@ export default function DoctorProfilePage() {
 
               {/* Certificates */}
               <div className="p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <FileText size={20} /> Chứng chỉ hành nghề
-                </h4>
-                {certificates.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  {certificates.map((cert) => (
-                  <div key={cert.id} className="p-3 bg-white rounded-md border shadow-sm">
-                  <img
-                    src={getFullImageUrl(cert.filename)}
-                    alt="Chứng chỉ"
-                    className="w-full max-h-[500px] object-contain rounded-md"
-                  />
-                  </div>
-                 ))}
-                </div>
-                ) : (
+              <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <FileText size={20} /> Chứng chỉ hành nghề
+              </h4>
 
-                  <div className="h-40 flex flex-col items-center justify-center text-gray-400 bg-gray-100 rounded-md">
-                    <ImageOff size={32} />
-                    <p className="mt-2 text-sm">Chưa cung cấp</p>
-                  </div>
-                )}
+              {certificates.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {certificates.map((cert) => (
+              <div key={cert.id} className="p-3 bg-white rounded-md border shadow-sm">
+              <img
+                   src={getFullImageUrl(cert.filename)}
+                   alt="Chứng chỉ"
+                  className="w-full max-h-[500px] object-contain rounded-md mb-2"
+              />
+              <p className="text-sm text-gray-600">
+                <strong>Nơi cấp:</strong> {cert.source || 'Không rõ'}
+              </p>
               </div>
+               ))}
+              </div>
+               ) : (
+              <div className="h-40 flex flex-col items-center justify-center text-gray-400 bg-gray-100 rounded-md">
+              <ImageOff size={32} />
+              <p className="mt-2 text-sm">Chưa cung cấp</p>
+              </div>
+              )}
+            </div>
+
             </div>
           )}
         </div>

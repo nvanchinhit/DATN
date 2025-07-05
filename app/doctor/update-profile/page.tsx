@@ -76,7 +76,8 @@ export default function UpdateProfilePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [degreesData, setDegreesData] = useState([{ gpa: '', university: '', graduation_date: '', degree_type: '' }]);
-
+    const [certificateSource, setCertificateSource] = useState('');
+  
     useEffect(() => {
         const user = localStorage.getItem('user');
         if (!user) { router.replace('/login'); return; }
@@ -141,12 +142,19 @@ export default function UpdateProfilePage() {
         newCertificates.forEach(file => apiFormData.append('certificate_images', file));
         apiFormData.append('degreesToDelete', JSON.stringify(degreesToDelete));
         apiFormData.append('certificatesToDelete', JSON.stringify(certificatesToDelete));
-        degreesData.forEach((degree, i) => {
-            apiFormData.append(`degrees[${i}][gpa]`, degree.gpa);
-            apiFormData.append(`degrees[${i}][university]`, degree.university);
-            apiFormData.append(`degrees[${i}][graduation_date]`, degree.graduation_date);
-            apiFormData.append(`degrees[${i}][degree_type]`, degree.degree_type);
-        });
+        // Vì bạn chỉ dùng 1 bằng cấp nên dùng degreesData[0]
+    degreesData.forEach((degree, index) => {
+    apiFormData.append(`degrees[${index}][gpa]`, degree.gpa || '');
+    apiFormData.append(`degrees[${index}][university]`, degree.university || '');
+    const isoDate = degree.graduation_date ? new Date(degree.graduation_date).toISOString() : '';
+    apiFormData.append(`degrees[${index}][graduation_date]`, isoDate);
+    apiFormData.append(`degrees[${index}][degree_type]`, degree.degree_type || '');
+});
+
+// Vẫn giữ nguyên gửi nơi cấp chứng chỉ hành nghề (1 lần duy nhất)
+apiFormData.append('certificate_source', certificateSource);
+
+
 
         try {
             const res = await fetch(`${API_URL}/api/doctors/${doctor.id}/profile`, { method: 'PUT', body: apiFormData });
@@ -246,6 +254,19 @@ export default function UpdateProfilePage() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <ImageUploadArea title="🎓 Bằng cấp chuyên môn" existingImages={existingDegrees} newPreviews={newDegreePreviews} onDeleteExisting={handleDeleteExisting} onDeleteNew={(index) => handleDeleteNew(index, 'degree')} onFileChange={handleFileChange} type="degree" />
                                 <ImageUploadArea title="📄 Chứng chỉ hành nghề" existingImages={existingCertificates} newPreviews={newCertificatePreviews} onDeleteExisting={handleDeleteExisting} onDeleteNew={(index) => handleDeleteNew(index, 'certificate')} onFileChange={handleFileChange} type="certificate" />
+                                    {newCertificates.length > 0 && (
+                                    <div className="mt-4 lg:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Nơi cấp chứng chỉ hành nghề</label>
+                                    <input
+                                        type="text"
+                                        value={certificateSource}
+                                        onChange={(e) => setCertificateSource(e.target.value)}
+                                        placeholder="Nhập nơi cấp (VD: Bộ Y tế, Đại học Y...)"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                                    />
+                                </div>
+                            )}
+
                             </div>
                         </div>
                     </div>
