@@ -35,7 +35,7 @@ const upload = multer({ storage });
 
 const updateProfileUploadMiddleware = upload.fields([
   { name: 'degree_images', maxCount: 1 },
-  { name: 'certificate_images', maxCount: 1 }
+  { name: 'certificate_images', maxCount: 10 } // <-- Cập nhật ở đây
 ]);
 
 // ================== ROUTES ==================

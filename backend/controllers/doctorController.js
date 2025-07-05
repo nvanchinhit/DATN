@@ -135,7 +135,7 @@ exports.approveDoctor = (req, res) => {
   });
 };
 
-// Lấy thông tin bác sĩ theo ID (Giữ nguyên, không cần sửa)
+// ✅ Lấy thông tin bác sĩ theo ID (CÓ HỖ TRỢ NHIỀU ẢNH chứng chỉ & bằng cấp)
 exports.getDoctorById = (req, res) => {
   const doctorId = req.params.id;
   const sql = `
@@ -149,9 +149,36 @@ exports.getDoctorById = (req, res) => {
     if (rows.length === 0)
       return res.status(404).json({ msg: "Không tìm thấy bác sĩ!" });
 
-    res.json(rows[0]);
+    const doctor = rows[0];
+
+    // ✅ Chuyển TEXT => MẢNG cho ảnh chứng chỉ & bằng cấp
+    const Certificates = doctor.certificate_image
+      ? doctor.certificate_image.split('|').map((filename, index) => ({
+          id: index + 1,
+          filename,
+        }))
+      : [];
+
+    const Degrees = doctor.degree_image
+      ? doctor.degree_image.split('|').map((filename, index) => ({
+          id: index + 1,
+          filename,
+          gpa: doctor.gpa || '',
+          university: doctor.university || '',
+          graduation_date: doctor.graduation_date || '',
+          degree_type: doctor.degree_type || '',
+        }))
+      : [];
+
+    // ✅ Gửi phản hồi về client
+    res.json({
+      ...doctor,
+      Certificates,
+      Degrees,
+    });
   });
 };
+
 
 // Cập nhật hồ sơ bác sĩ
 exports.updateDoctor = (req, res) => {
@@ -293,19 +320,25 @@ exports.getTopDoctors = (req, res) => {
 };
 exports.updateDoctorProfile = async (req, res) => {
     const doctorId = req.params.id;
+
+    // // ✅ Kiểm tra dữ liệu từ client gửi lên:
+    // console.log("📦 req.body:", req.body);        
+    // console.log("🖼 req.files:", req.files);      
+
+
     const { introduction, experience } = req.body;
 
     // Lấy file ảnh mới nếu có
     const newDegreeFile = req.files?.degree_images?.[0];
     const newCertificateFile = req.files?.certificate_images?.[0];
 
-    // --- Logic chính: Kiểm tra xem có cần duyệt lại không ---
+    // Kiểm tra xem có cần duyệt lại không
     const requiresApproval = !!newDegreeFile || !!newCertificateFile;
 
     try {
         const fieldsToUpdate = {};
 
-        // 1. Thêm các trường văn bản vào đối tượng cập nhật
+        // 1. Lấy các trường văn bản
         if (introduction !== undefined) {
             fieldsToUpdate.introduction = introduction;
         }
@@ -313,41 +346,59 @@ exports.updateDoctorProfile = async (req, res) => {
             fieldsToUpdate.experience = experience;
         }
 
-        // 2. Thêm các đường dẫn file mới vào đối tượng cập nhật
+        const degrees = req.body.degrees; // Là mảng
+const degree = Array.isArray(degrees) ? degrees[0] : null;
+
+if (degree) {
+    if (degree.gpa && degree.gpa.trim() !== '') fieldsToUpdate.gpa = degree.gpa;
+    if (degree.university && degree.university.trim() !== '') fieldsToUpdate.university = degree.university;
+    if (degree.graduation_date && degree.graduation_date.trim() !== '') fieldsToUpdate.graduation_date = degree.graduation_date;
+    if (degree.degree_type && degree.degree_type.trim() !== '') fieldsToUpdate.degree_type = degree.degree_type;
+}
+
+
+        // 3. Cập nhật ảnh nếu có
         if (newDegreeFile) {
-            // Lưu tên file vào cột degree_image
             fieldsToUpdate.degree_image = newDegreeFile.filename;
         }
         if (newCertificateFile) {
-            // Lưu tên file vào cột certificate_image
-            fieldsToUpdate.certificate_image = newCertificateFile.filename;
-        }
-        
-        // 3. Nếu có thay đổi ảnh, đặt trạng thái là 'pending'
+    // Lấy dữ liệu hiện tại trong DB
+    const [currentRows] = await db.promise().query('SELECT certificate_image FROM doctors WHERE id = ?', [doctorId]);
+    const currentCert = currentRows[0]?.certificate_image || '';
+
+    const updatedCert = currentCert
+        ? currentCert + '|' + newCertificateFile.filename
+        : newCertificateFile.filename;
+
+    fieldsToUpdate.certificate_image = updatedCert;
+}
+
+
+        // 4. Nếu có ảnh mới thì set lại trạng thái là 'pending'
         if (requiresApproval) {
             fieldsToUpdate.account_status = 'pending';
         }
 
-        // 4. Kiểm tra xem có gì để cập nhật không
+        // 5. Nếu không có gì để cập nhật thì báo lỗi
         if (Object.keys(fieldsToUpdate).length === 0) {
             return res.status(400).json({ msg: "Không có thông tin nào được gửi để cập nhật." });
         }
 
-        // 5. Thực hiện một câu lệnh UPDATE duy nhất vào bảng `doctors`
+        // 6. Thực hiện cập nhật
         const [result] = await db.promise().query(
-            'UPDATE doctors SET ? WHERE id = ?', 
+            'UPDATE doctors SET ? WHERE id = ?',
             [fieldsToUpdate, doctorId]
         );
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ msg: "Không tìm thấy bác sĩ để cập nhật." });
         }
-        
-        // 6. Gửi phản hồi thành công
-        const successMessage = requiresApproval 
+
+        // 7. Phản hồi thành công
+        const successMessage = requiresApproval
             ? "Hồ sơ đã được cập nhật và gửi đi để duyệt lại."
             : "Hồ sơ đã được cập nhật thành công.";
-        
+
         res.status(200).json({ msg: successMessage });
 
     } catch (err) {
@@ -355,6 +406,7 @@ exports.updateDoctorProfile = async (req, res) => {
         res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
     }
 };
+
 exports.getAllDoctorsForAdmin = (req, res) => {
 
     const sql = `

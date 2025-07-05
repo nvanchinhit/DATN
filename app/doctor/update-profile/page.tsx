@@ -7,10 +7,8 @@ import { UploadCloud, Trash2, Save, Loader2, AlertCircle, User, Mail, Stethoscop
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
-// Interfaces
 interface ImageFile { id: number; filename: string; }
 
-// Component Upload Ảnh không thay đổi
 const ImageUploadArea = ({ 
     title, existingImages, newPreviews, onDeleteExisting, onDeleteNew, onFileChange, type 
 }: {
@@ -20,6 +18,7 @@ const ImageUploadArea = ({
     onFileChange: (files: FileList, type: 'degree' | 'certificate') => void;
     type: 'degree' | 'certificate';
 }) => {
+    const isDegree = type === 'degree';
     const [isDragging, setIsDragging] = useState(false);
     const handleDragEnter = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
     const handleDragLeave = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
@@ -37,10 +36,10 @@ const ImageUploadArea = ({
             <div onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop} className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-md transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
                 <UploadCloud className="w-10 h-10 text-gray-400" />
                 <label htmlFor={`${type}-file-upload`} className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
-                    Chọn tệp <span className="text-gray-500 font-normal">hoặc kéo và thả</span>
+                    {isDegree ? 'Chọn một tệp' : 'Chọn tệp'} <span className="text-gray-500 font-normal">hoặc kéo và thả</span>
                 </label>
-                <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF lên đến 2MB</p>
-                <input id={`${type}-file-upload`} type="file" multiple onChange={(e: ChangeEvent<HTMLInputElement>) => e.target.files && onFileChange(e.target.files, type)} className="hidden" accept="image/*" />
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF {isDegree ? '' : 'nhiều ảnh'} lên đến 2MB</p>
+                <input id={`${type}-file-upload`} type="file" multiple={!isDegree} onChange={(e: ChangeEvent<HTMLInputElement>) => e.target.files && onFileChange(e.target.files, type)} className="hidden" accept="image/*" />
             </div>
             {(existingImages.length > 0 || newPreviews.length > 0) && (
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -62,13 +61,11 @@ const ImageUploadArea = ({
     );
 };
 
-
 export default function UpdateProfilePage() {
     const router = useRouter();
     const [initialLoading, setInitialLoading] = useState(true);
     const [doctor, setDoctor] = useState<any>(null);
-    
-    // <<< SỬA: Bỏ specialization_id khỏi state của form >>>
+
     const [formData, setFormData] = useState({ introduction: '', experience: '' });
     const [existingDegrees, setExistingDegrees] = useState<ImageFile[]>([]);
     const [newDegrees, setNewDegrees] = useState<File[]>([]);
@@ -77,7 +74,9 @@ export default function UpdateProfilePage() {
     const [newCertificates, setNewCertificates] = useState<File[]>([]);
     const [certificatesToDelete, setCertificatesToDelete] = useState<number[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
+    const [degreesData, setDegreesData] = useState([{ gpa: '', university: '', graduation_date: '', degree_type: '' }]);
+
     useEffect(() => {
         const user = localStorage.getItem('user');
         if (!user) { router.replace('/login'); return; }
@@ -90,31 +89,47 @@ export default function UpdateProfilePage() {
             setExistingDegrees(doctorData.Degrees || []);
             setExistingCertificates(doctorData.Certificates || []);
             setInitialLoading(false);
-        }).catch(err => {
-            console.error("Lỗi tải dữ liệu:", err);
+        }).catch(() => {
             alert("Không thể tải dữ liệu hồ sơ.");
             router.back();
         });
     }, [router]);
-  
+
     const newDegreePreviews = useMemo(() => newDegrees.map(file => URL.createObjectURL(file)), [newDegrees]);
     const newCertificatePreviews = useMemo(() => newCertificates.map(file => URL.createObjectURL(file)), [newCertificates]);
     useEffect(() => { return () => { newDegreePreviews.forEach(URL.revokeObjectURL); newCertificatePreviews.forEach(URL.revokeObjectURL); }}, [newDegreePreviews, newCertificatePreviews]);
-    
+
     const handleTextChange = (e: ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
     const handleFileChange = (files: FileList, type: 'degree' | 'certificate') => {
         if (!files) return;
         const fileArray = Array.from(files);
-        if (type === 'degree') setNewDegrees(prev => [...prev, ...fileArray]);
+        if (type === 'degree') setNewDegrees(fileArray.slice(0, 1));
         if (type === 'certificate') setNewCertificates(prev => [...prev, ...fileArray]);
     };
+
     const handleDeleteExisting = (id: number, type: 'degree' | 'certificate') => {
-        if (type === 'degree') { setDegreesToDelete(prev => [...prev, id]); setExistingDegrees(prev => prev.filter(img => img.id !== id)); } 
-        else { setCertificatesToDelete(prev => [...prev, id]); setExistingCertificates(prev => prev.filter(img => img.id !== id)); }
+        if (type === 'degree') {
+            setDegreesToDelete(prev => [...prev, id]);
+            setExistingDegrees(prev => prev.filter(img => img.id !== id));
+        } else {
+            setCertificatesToDelete(prev => [...prev, id]);
+            setExistingCertificates(prev => prev.filter(img => img.id !== id));
+        }
     };
+
     const handleDeleteNew = (index: number, type: 'degree' | 'certificate') => {
-        if (type === 'degree') setNewDegrees(prev => prev.filter((_, i) => i !== index));
+        if (type === 'degree') setNewDegrees([]);
         if (type === 'certificate') setNewCertificates(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleDegreeChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setDegreesData(prev => {
+            const updated = [...prev];
+            updated[index][name as keyof typeof updated[0]] = value;
+            return updated;
+        });
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -126,6 +141,12 @@ export default function UpdateProfilePage() {
         newCertificates.forEach(file => apiFormData.append('certificate_images', file));
         apiFormData.append('degreesToDelete', JSON.stringify(degreesToDelete));
         apiFormData.append('certificatesToDelete', JSON.stringify(certificatesToDelete));
+        degreesData.forEach((degree, i) => {
+            apiFormData.append(`degrees[${i}][gpa]`, degree.gpa);
+            apiFormData.append(`degrees[${i}][university]`, degree.university);
+            apiFormData.append(`degrees[${i}][graduation_date]`, degree.graduation_date);
+            apiFormData.append(`degrees[${i}][degree_type]`, degree.degree_type);
+        });
 
         try {
             const res = await fetch(`${API_URL}/api/doctors/${doctor.id}/profile`, { method: 'PUT', body: apiFormData });
@@ -157,8 +178,7 @@ export default function UpdateProfilePage() {
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Chỉnh sửa Hồ sơ Chuyên môn</h1>
                         <p className="mt-1 text-gray-500">Cập nhật thông tin và tài liệu của bạn để hiển thị trên hệ thống.</p>
                     </div>
-                    
-                    {/* --- THÊM MỚI: Khu vực thông tin cố định --- */}
+
                     <div className="p-4 rounded-lg bg-gray-50 border mb-8">
                         <h3 className="font-semibold text-gray-800 mb-3">Thông tin tài khoản</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -181,7 +201,6 @@ export default function UpdateProfilePage() {
                     </div>
 
                     <div className="space-y-8">
-                        {/* Section 1: Thông tin có thể chỉnh sửa */}
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="introduction" className="block text-sm font-medium text-gray-700">Giới thiệu bản thân</label>
@@ -193,7 +212,30 @@ export default function UpdateProfilePage() {
                             </div>
                         </div>
 
-                        {/* Section 2: Tài liệu */}
+                        <div className="pt-8 border-t border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Thông tin bằng cấp</h3>
+                            {degreesData.map((degree, index) => (
+                                <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">GPA</label>
+                                        <input type="text" name="gpa" value={degree.gpa} onChange={(e) => handleDegreeChange(index, e)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Trường tốt nghiệp</label>
+                                        <input type="text" name="university" value={degree.university} onChange={(e) => handleDegreeChange(index, e)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Ngày tốt nghiệp</label>
+                                        <input type="date" name="graduation_date" value={degree.graduation_date} onChange={(e) => handleDegreeChange(index, e)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Loại bằng</label>
+                                        <input type="text" name="degree_type" value={degree.degree_type} onChange={(e) => handleDegreeChange(index, e)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"/>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         <div className="pt-8 border-t border-gray-200">
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 rounded-r-lg mb-6">
                                 <div className="flex">
