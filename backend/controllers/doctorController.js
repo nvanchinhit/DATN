@@ -16,66 +16,54 @@ function generatePassword(length = 10) {
     chars.charAt(Math.floor(Math.random() * chars.length))
   ).join("");
 }
-// Admin tạo tài khoản bác sĩ
+
+
 exports.createDoctorAccount = async (req, res) => {
   const { name, email, specialization_id } = req.body;
   if (!name || !email || !specialization_id)
-    return res
-      .status(400)
-      .json({ msg: "Vui lòng điền đầy đủ tên, email và chuyên khoa!" });
+    return res.status(400).json({ msg: "Vui lòng điền đầy đủ thông tin!" });
 
-  db.query(
-    "SELECT * FROM doctors WHERE email = ?",
-    [email],
-    async (err, rows) => {
-      if (err)
-        return res.status(500).json({ msg: "Lỗi khi kiểm tra email!" });
-      if (rows.length > 0)
-        return res.status(400).json({ msg: "Email này đã tồn tại!" });
+  try {
+    const [existing] = await db.promise().query(
+      "SELECT * FROM doctors WHERE email = ?",
+      [email]
+    );
 
-      const password = generatePassword();
-      const hashedPassword = await bcrypt.hash(password, 10);
+    if (existing.length > 0)
+      return res.status(400).json({ msg: "Email này đã tồn tại!" });
 
-      // <<< THAY ĐỔI QUAN TRỌNG #1 >>>
-      // Trạng thái ban đầu khi mới tạo tài khoản là 'inactive' (chưa hoạt động),
-      // không phải 'pending' (chờ duyệt).
-      const insertSQL = `
+    const password = generatePassword(); // hoặc: const password = "Test123@";
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const insertSQL = `
       INSERT INTO doctors (name, email, password, specialization_id, account_status, role_id)
       VALUES (?, ?, ?, ?, 'inactive', 3)
     `;
 
-      db.query(
-        insertSQL,
-        [name, email, hashedPassword, specialization_id],
-        async (err2) => {
-          if (err2) return res.status(500).json({ msg: "Lỗi khi thêm bác sĩ!" });
+    await db
+      .promise()
+      .query(insertSQL, [name, email, hashedPassword, specialization_id]);
 
-          try {
-            await sendMail({
-              to: email,
-              subject: "Tài khoản bác sĩ được tạo",
-              html: `
-            <p>Xin chào <strong>${name}</strong>,</p>
-            <p>Tài khoản bác sĩ của bạn đã được tạo.</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Mật khẩu:</strong> ${password}</p>
-            <p>Vui lòng đăng nhập và hoàn thiện hồ sơ để được duyệt sử dụng hệ thống.</p>
-          `,
-            });
-            res.status(201).json({
-              msg: "Tạo tài khoản thành công, mật khẩu đã gửi qua email!",
-            });
-          } catch (e) {
-            console.error("❌ Lỗi gửi email:", e);
-            res
-              .status(500)
-              .json({ msg: "Tạo thành công nhưng lỗi khi gửi email!" });
-          }
-        }
-      );
-    }
-  );
+    await sendMail({
+      to: email,
+      subject: "Tài khoản bác sĩ được tạo",
+      html: `
+        <p>Xin chào <strong>${name}</strong>,</p>
+        <p>Tài khoản bác sĩ của bạn đã được tạo.</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Mật khẩu:</strong> ${password}</p>
+        <p>Vui lòng đăng nhập và hoàn thiện hồ sơ để được duyệt.</p>
+      `,
+    });
+
+    return res
+      .status(201)
+      .json({ msg: "Tạo tài khoản thành công, mật khẩu đã gửi qua email!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi tạo tài khoản:", err);
+    return res.status(500).json({ msg: "Lỗi khi tạo tài khoản!" });
+  }
 };
+
 
 // Đăng nhập bác sĩ (Giữ nguyên, không cần sửa)
 exports.doctorLogin = (req, res) => {
@@ -187,7 +175,7 @@ exports.getDoctorById = (req, res) => {
 // Cập nhật hồ sơ bác sĩ
 exports.updateDoctor = (req, res) => {
   const doctorId = req.params.id;
-  const { phone, introduction, experience } = req.body;
+  const { phone, introduction, experience, gpa, university, graduation_date, degree_type } = req.body;
 
   const img = req.files?.img?.[0]?.filename || null;
   const certificate = req.files?.certificate_image?.[0]?.filename || null;
@@ -203,14 +191,17 @@ exports.updateDoctor = (req, res) => {
   if (certificate) { fields.push("certificate_image = ?"); values.push(certificate); }
   if (degree) { fields.push("degree_image = ?"); values.push(degree); }
 
-  // <<< THAY ĐỔI QUAN TRỌNG #2 >>>
-  // Khi bác sĩ nộp hồ sơ (tức là có cập nhật ít nhất một trường),
-  // trạng thái sẽ chuyển thành 'pending' để admin duyệt.
+  // ✅ Thêm các trường học vấn nếu có
+  if (gpa !== undefined) { fields.push("gpa = ?"); values.push(gpa); }
+  if (university !== undefined) { fields.push("university = ?"); values.push(university); }
+  if (graduation_date !== undefined) { fields.push("graduation_date = ?"); values.push(graduation_date); }
+  if (degree_type !== undefined) { fields.push("degree_type = ?"); values.push(degree_type); }
+
+  // <<< Giữ nguyên logic cập nhật trạng thái >>>
   if (fields.length > 0) {
     fields.push("account_status = ?");
     values.push("pending");
   } else {
-    // Nếu không có gì để cập nhật thì báo lỗi
     return res.status(400).json({ msg: "Không có thông tin nào để cập nhật!" });
   }
 
@@ -223,17 +214,15 @@ exports.updateDoctor = (req, res) => {
       return res.status(500).json({ msg: "Lỗi khi cập nhật bác sĩ!" });
     }
 
-    // Trả về thông tin mới nhất của bác sĩ sau khi cập nhật
     db.query("SELECT * FROM doctors WHERE id = ?", [doctorId], (err2, rows) => {
       if (err2 || rows.length === 0) {
-        return res
-          .status(500)
-          .json({ msg: "Không thể lấy dữ liệu sau khi cập nhật!" });
+        return res.status(500).json({ msg: "Không thể lấy dữ liệu sau khi cập nhật!" });
       }
       res.json(rows[0]);
     });
   });
 };
+
 
 // Lấy tất cả bác sĩ (Giữ nguyên, không cần sửa)
 exports.getAllDoctors = (req, res) => {
@@ -253,19 +242,22 @@ exports.getAllDoctors = (req, res) => {
     }
 
     const mappedDoctors = results.map((doc) => ({
-      id: doc.id,
-      name: doc.name,
-      phone: doc.phone,
-      email: doc.email,
-      introduction: doc.introduction,
-      account_status: doc.account_status,
-      specialty_name: doc.specialty_name || "Chưa cập nhật",
-      img: doc.img ? `/uploads/${doc.img}` : null,
-      certificate_image: doc.certificate_image
-        ? `/uploads/${doc.certificate_image}`
-        : null,
-      degree_image: doc.degree_image ? `/uploads/${doc.degree_image}` : null,
-    }));
+  id: doc.id,
+  name: doc.name,
+  phone: doc.phone,
+  email: doc.email,
+  introduction: doc.introduction,
+  account_status: doc.account_status,
+  specialty_name: doc.specialty_name || "Chưa cập nhật",
+  img: doc.img ? `/uploads/${doc.img}` : null,
+  certificate_image: doc.certificate_image
+    ? doc.certificate_image.split('|').map(img => `/uploads/${img}`).join('|')
+    : null,
+  degree_image: doc.degree_image
+    ? doc.degree_image.split('|').map(img => `/uploads/${img}`).join('|')
+    : null,
+}));
+
 
     res.json(mappedDoctors);
   });
@@ -275,31 +267,42 @@ exports.getTopDoctors = (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 5;
 
   const sql = `
-    SELECT
-      d.id,
-      d.name,
-      d.img,
-      d.introduction,
-      s.name AS specialty_name,
-      AVG(r.rating) AS average_rating,
-      COUNT(r.id) AS review_count
-    FROM
-      doctors d
-    LEFT JOIN
-      specializations s ON d.specialization_id = s.id
-    LEFT JOIN
-      ratings r ON d.id = r.product_id -- THAY ĐỔI: Join với bảng 'ratings' qua cột 'product_id'
-    WHERE
-      d.account_status = 'active' -- Chỉ lấy các bác sĩ đang hoạt động
-    GROUP BY
-      d.id, d.name, d.img, d.introduction, s.name
-    HAVING
-      COUNT(r.id) > 0 -- Chỉ lấy những bác sĩ có ít nhất 1 đánh giá
-    ORDER BY
-      average_rating DESC, -- Ưu tiên xếp hạng trung bình cao nhất
-      review_count DESC    -- Nếu bằng điểm, ai nhiều đánh giá hơn thì xếp trên
-    LIMIT ?;
-  `;
+  SELECT
+    d.id,
+    d.name,
+    d.img,
+    d.introduction,
+    d.degree_image,
+    d.gpa,
+    d.university,
+    d.graduation_date,
+    d.degree_type,
+    d.certificate_image,
+    d.certificate_source,
+    s.name AS specialty_name,
+    AVG(r.rating) AS average_rating,
+    COUNT(r.id) AS review_count
+  FROM
+    doctors d
+  LEFT JOIN
+    specializations s ON d.specialization_id = s.id
+  LEFT JOIN
+    ratings r ON d.id = r.product_id
+  WHERE
+    d.account_status = 'active'
+  GROUP BY
+    d.id, d.name, d.img, d.introduction,
+    d.degree_image, d.gpa, d.university, d.graduation_date, d.degree_type,
+    d.certificate_image, d.certificate_source,
+    s.name
+  HAVING
+    COUNT(r.id) > 0
+  ORDER BY
+    average_rating DESC,
+    review_count DESC
+  LIMIT ?;
+`;
+
 
   db.query(sql, [limit], (err, results) => {
     if (err) {
@@ -308,16 +311,35 @@ exports.getTopDoctors = (req, res) => {
     }
 
     // Ánh xạ kết quả để có đường dẫn ảnh đầy đủ và định dạng dữ liệu
-    const topDoctors = results.map((doc) => ({
-      id: doc.id,
-      name: doc.name,
-      introduction: doc.introduction,
-      specialty_name: doc.specialty_name || "Chưa cập nhật",
-      img: doc.img ? `/uploads/${doc.img}` : null,
-      // Làm tròn điểm trung bình đến 1 chữ số thập phân
-      average_rating: parseFloat(doc.average_rating).toFixed(1),
-      review_count: doc.review_count,
-    }));
+   const topDoctors = results.map((doc) => ({
+  id: doc.id,
+  name: doc.name,
+  introduction: doc.introduction,
+  specialty_name: doc.specialty_name || "Chưa cập nhật",
+  img: doc.img ? `/uploads/${doc.img}` : null,
+  average_rating: parseFloat(doc.average_rating).toFixed(1),
+  review_count: doc.review_count,
+
+  // Thông tin bằng cấp
+  degrees: doc.degree_image
+    ? doc.degree_image.split('|').map((img) => ({
+        filename: `/uploads/${img}`,
+        gpa: doc.gpa || '',
+        university: doc.university || '',
+        graduation_date: doc.graduation_date || '',
+        degree_type: doc.degree_type || '',
+      }))
+    : [],
+
+  // Chứng chỉ hành nghề + nơi cấp
+  certificate_images: doc.certificate_image
+    ? doc.certificate_image.split('|').map((img, i) => ({
+        filename: `/uploads/${img}`,
+        source: doc.certificate_source?.split('|')[i] || '',
+      }))
+    : [],
+}));
+
 
     res.json(topDoctors);
   });

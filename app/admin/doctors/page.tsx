@@ -18,13 +18,34 @@ interface Doctor {
   certificate: string | null;
   degree: string | null;
   introduction: string;
+
+  // Các trường bổ sung để hiển thị đầy đủ hồ sơ
+  certificate_source: string | null;
+  gpa: string | null;
+  university: string | null;
+  graduation_date: string | null;
+  degree_type: string | null;
 }
 
+
 interface DoctorFromAPI {
-  id: number; name: string; phone: string; email: string; img: string | null;
-  specialty_name: string; account_status: 'active' | string; certificate_image: string | null;
-  degree_image: string | null; introduction: string;
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  img: string | null;
+  specialty_name: string;
+  account_status: 'active' | string;
+  certificate_image: string | null;
+  degree_image: string | null;
+  certificate_source: string | null;
+  gpa: string | null;
+  university: string | null;
+  graduation_date: string | null;
+  degree_type: string | null;
+  introduction: string;
 }
+
 
 // --- Hàm getFullUrl không đổi ---
 const getFullUrl = (base: string, path: string | null | undefined): string | null => {
@@ -139,13 +160,42 @@ export default function DoctorsPage() {
       const response = await fetch(`${API_URL}/api/doctors`);
       if (!response.ok) throw new Error('Không thể kết nối tới server.');
       const data: DoctorFromAPI[] = await response.json();
-      const mappedDoctors: Doctor[] = data.map(doc => ({
-          id: doc.id, name: doc.name, phone: doc.phone, email: doc.email, introduction: doc.introduction,
-          img: getFullUrl(API_URL, doc.img) || '/default-avatar.jpg',
-          certificate: getFullUrl(API_URL, doc.certificate_image), degree: getFullUrl(API_URL, doc.degree_image),
-          specialization: doc.specialty_name || 'Chưa cập nhật',
-          status: doc.account_status === 'active' ? 'Đang hoạt động' : 'Chờ xét duyệt',
-        }));
+     const mappedDoctors: Doctor[] = data.map(doc => {
+  const degreeImages = doc.degree_image ? doc.degree_image.split('|') : [];
+  const certificateImages = doc.certificate_image ? doc.certificate_image.split('|') : [];
+  const certificateSources = doc.certificate_source ? doc.certificate_source.split('|') : [];
+
+  return {
+    id: doc.id,
+    name: doc.name,
+    phone: doc.phone,
+    email: doc.email,
+    introduction: doc.introduction,
+    img: getFullUrl(API_URL, doc.img) || '/default-avatar.jpg',
+
+    // ✅ Lấy ảnh bằng cấp đầu tiên (hiện tại đang hiển thị 1 ảnh)
+    degree: degreeImages[0] ? getFullUrl(API_URL, degreeImages[0]) : null,
+
+    // ✅ Nối lại đường dẫn đầy đủ cho các ảnh chứng chỉ
+    certificate: certificateImages.length
+      ? certificateImages.map(img => getFullUrl(API_URL, img)).join('|')
+      : null,
+
+    // ✅ Nơi cấp chứng chỉ (giữ nguyên chuỗi đã nối)
+    certificate_source: doc.certificate_source,
+
+    // ✅ Thông tin học vấn
+    gpa: doc.gpa,
+    university: doc.university,
+    graduation_date: doc.graduation_date,
+    degree_type: doc.degree_type,
+
+    specialization: doc.specialty_name || 'Chưa cập nhật',
+    status: doc.account_status === 'active' ? 'Đang hoạt động' : 'Chờ xét duyệt',
+  };
+});
+
+
       setDoctors(mappedDoctors);
     } catch (err: any) {
       setError(err.message); console.error("Lỗi khi fetch dữ liệu bác sĩ:", err);
@@ -275,19 +325,64 @@ export default function DoctorsPage() {
                 </div>
                 <div className="md:col-span-2 space-y-4">
                   <div><h4 className="font-semibold text-gray-700 border-b pb-1 mb-2">Thông tin liên hệ</h4><p className="text-gray-600"><strong>Điện thoại:</strong> {selectedDoctor.phone}</p><p className="text-gray-600"><strong>Email:</strong> {selectedDoctor.email}</p></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-700 border-b pb-1 mb-2">Chứng chỉ & Bằng cấp</h4>
-                    <div className="flex flex-wrap gap-4 mt-2">
-                       <div className="text-center">
-                          <p className="text-xs font-bold text-gray-500 mb-1">BẰNG CẤP</p>
-                          {selectedDoctor.degree ? (<a href={selectedDoctor.degree} target="_blank" rel="noopener noreferrer"><img src={selectedDoctor.degree} alt="Bằng cấp" className="w-40 h-auto rounded-md border shadow-md hover:shadow-xl transition-shadow"/></a>) : (<div className="w-40 h-28 bg-gray-100 flex items-center justify-center rounded-md border text-gray-400 flex-col gap-1"><ImageOff size={24} /><span className="text-xs">Chưa có</span></div>)}
-                       </div>
-                       <div className="text-center">
-                          <p className="text-xs font-bold text-gray-500 mb-1">CHỨNG CHỈ</p>
-                          {selectedDoctor.certificate ? (<a href={selectedDoctor.certificate} target="_blank" rel="noopener noreferrer"><img src={selectedDoctor.certificate} alt="Chứng chỉ" className="w-40 h-auto rounded-md border shadow-md hover:shadow-xl transition-shadow"/></a>) : (<div className="w-40 h-28 bg-gray-100 flex items-center justify-center rounded-md border text-gray-400 flex-col gap-1"><ImageOff size={24} /><span className="text-xs">Chưa có</span></div>)}
-                       </div>
-                    </div>
-                  </div>
+  <div>
+  <h4 className="font-semibold text-gray-700 border-b pb-1 mb-2">Chứng chỉ & Bằng cấp</h4>
+  <div className="flex flex-wrap gap-4 mt-2">
+
+    {/* BẰNG CẤP - chỉ 1 ảnh */}
+    <div className="text-center">
+      <p className="text-xs font-bold text-gray-500 mb-1">BẰNG CẤP</p>
+      {selectedDoctor.degree ? (
+        <div className="w-40 text-center">
+          <a href={selectedDoctor.degree} target="_blank" rel="noopener noreferrer">
+            <img
+              src={selectedDoctor.degree}
+              alt="Bằng cấp"
+              className="w-40 h-auto rounded-md border shadow-md hover:shadow-xl transition-shadow"
+            />
+          </a>
+          <div className="mt-1 text-[11px] text-gray-500 leading-tight space-y-0.5 text-left">
+            <p><strong>Trường:</strong> {selectedDoctor.university || 'N/A'}</p>
+            <p><strong>GPA:</strong> {selectedDoctor.gpa || 'N/A'}</p>
+            <p><strong>Ngày TN:</strong> {selectedDoctor.graduation_date || 'N/A'}</p>
+            <p><strong>Loại:</strong> {selectedDoctor.degree_type || 'N/A'}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="w-40 h-28 bg-gray-100 flex items-center justify-center rounded-md border text-gray-400 flex-col gap-1">
+          <ImageOff size={24} />
+          <span className="text-xs">Chưa có</span>
+        </div>
+      )}
+    </div>
+
+    {/* CHỨNG CHỈ - nhiều ảnh */}
+    <div className="text-center">
+  <p className="text-xs font-bold text-gray-500 mb-1">CHỨNG CHỈ</p>
+  {selectedDoctor.certificate ? (
+    <div className="flex flex-wrap gap-4 justify-center">
+      {selectedDoctor.certificate.split('|').map((img, index) => (
+        <div key={index} className="w-40 text-center">
+          <a href={img} target="_blank" rel="noopener noreferrer">
+            <img src={img} alt={`Chứng chỉ ${index + 1}`} />
+          </a>
+          <p className="text-xs mt-1 text-gray-500">
+            {selectedDoctor.certificate_source?.split('|')[index] || 'Không rõ nơi cấp'}
+          </p>
+        </div>
+      ))}
+    </div>
+      ) : (
+        <div className="w-40 h-28 bg-gray-100 flex items-center justify-center rounded-md border text-gray-400 flex-col gap-1">
+          <ImageOff size={24} />
+          <span className="text-xs">Chưa có</span>
+        </div>
+      )}
+    </div>
+
+  </div>
+</div>
+
                   <div><h4 className="font-semibold text-gray-700 border-b pb-1 mb-2">Giới thiệu</h4><p className="text-gray-600 text-justify leading-relaxed">{selectedDoctor.introduction}</p></div>
                 </div>
               </div>
