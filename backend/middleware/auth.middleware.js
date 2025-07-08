@@ -2,19 +2,6 @@
 
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key-for-development";
-
-/**
- * ================================================================
- * Middleware chính: Xác thực JSON Web Token
- * ================================================================
- * - Middleware này được export mặc định.
- * - Nó kiểm tra header 'Authorization' để tìm token 'Bearer'.
- * - Nếu token hợp lệ, nó giải mã và gắn thông tin người dùng vào `req.user`.
- *
- * Cách dùng:
- * const authMiddleware = require('../middleware/auth.middleware');
- * router.get('/protected-route', authMiddleware, (req, res) => { ... });
- */
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   
