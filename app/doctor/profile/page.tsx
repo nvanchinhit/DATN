@@ -81,12 +81,6 @@ export default function DoctorProfilePage() {
 
         setDoctor({ ...data, Certificates: certificates, Degrees: degrees });
 
-<<<<<<< HEAD
-        localStorage.setItem(
-          'user',
-          JSON.stringify({ id: data.id, name: data.name, img: data.img })
-        );
-=======
         // Ta chỉ cần đảm bảo rằng role_id cũng được lưu lại.
 localStorage.setItem(
   'user',
@@ -97,7 +91,6 @@ localStorage.setItem(
     role_id: data.role_id // <-- THÊM DÒNG NÀY
   })
 );
->>>>>>> d63bbed (All)
       } catch (err: any) {
         setError(err.message);
       } finally {
