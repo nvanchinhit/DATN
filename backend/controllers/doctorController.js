@@ -66,6 +66,7 @@ exports.createDoctorAccount = async (req, res) => {
 
 
 // Đăng nhập bác sĩ (Giữ nguyên, không cần sửa)
+// Đăng nhập bác sĩ (Giữ nguyên, không cần sửa)
 exports.doctorLogin = (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -83,24 +84,38 @@ exports.doctorLogin = (req, res) => {
     const match = await bcrypt.compare(password, doctor.password);
     if (!match) return res.status(400).json({ msg: "Mật khẩu không đúng!" });
 
-    const token = jwt.sign({ id: doctor.id, email }, secret, {
+    // =========================================================
+    // SỬA LỖI Ở ĐÂY: Thêm `role_id` vào payload của token
+    // =========================================================
+    const payload = {
+        id: doctor.id,
+        email: doctor.email,
+        role_id: doctor.role_id // Đảm bảo `role_id` được đưa vào token
+    };
+
+    const token = jwt.sign(payload, secret, {
       expiresIn: "7d",
     });
 
-    res.json({
-      msg: "Đăng nhập thành công!",
-      token,
-      doctor: {
+    // Trả về object doctor đầy đủ (nhưng không có mật khẩu)
+    const doctorInfo = {
         id: doctor.id,
         name: doctor.name,
         email: doctor.email,
         specialization_id: doctor.specialization_id,
         account_status: doctor.account_status,
-        role_id: doctor.role_id,
-      },
+        role_id: doctor.role_id, // Trả về cả role_id cho frontend
+        img: doctor.img
+    };
+
+    res.json({
+      msg: "Đăng nhập thành công!",
+      token,
+      doctor: doctorInfo,
     });
   });
 };
+
 
 // Duyệt bác sĩ (Giữ nguyên, không cần sửa)
 exports.approveDoctor = (req, res) => {
@@ -366,11 +381,13 @@ exports.getTopDoctors = (req, res) => {
 // FILE: controllers/doctorController.js
 // THAY THẾ TOÀN BỘ HÀM NÀY
 
+// FILE: controllers/doctorController.js
+// ✅ THAY THẾ TOÀN BỘ HÀM CŨ BẰNG HÀM NÀY
+
 exports.updateDoctorProfile = async (req, res) => {
     const doctorId = req.params.id;
 
-    // BẮT BUỘC PHẢI CÓ LOG NÀY ĐỂ XEM SERVER NHẬN GÌ
-    console.log(`\n\n[INCOMING REQUEST] /api/doctors/${doctorId} at ${new Date().toISOString()}`);
+    console.log(`\n[INCOMING REQUEST] /api/doctors/${doctorId}/profile at ${new Date().toISOString()}`);
     console.log("--- RAW BODY ---");
     console.log(req.body);
     console.log("--- RAW FILES ---");
@@ -379,58 +396,77 @@ exports.updateDoctorProfile = async (req, res) => {
     
     try {
         const {
-            introduction, experience, phone, gpa, university, graduation_date, degree_type,
+            phone, introduction, experience, gpa, university, graduation_date, degree_type,
             certificate_authorities,
         } = req.body;
 
-        // ✅ CÁCH LẤY DỮ LIỆU AN TOÀN NHẤT: Kiểm tra cả hai kiểu tên
-        const existing_images_string = req.body.existing_certificate_images; // Tên mà frontend đang gửi
-        const existing_sources_string = req.body.existing_certificate_sources;
-
-        console.log(`[DEBUG] Chuỗi ảnh cũ nhận được từ req.body: `, existing_images_string);
-
+        const imgFile = req.files?.img?.[0];
+        const degreeFile = req.files?.degree_image?.[0];
         const newCertificateFiles = req.files?.certificate_files || [];
+
         const fieldsToUpdate = {};
-        
-        // Cập nhật các trường khác
-        if (introduction !== undefined) fieldsToUpdate.introduction = introduction;
-        // ... (các trường khác)
-        if (req.files?.img?.[0]) fieldsToUpdate.img = req.files.img[0].filename;
-        if (req.files?.degree_image?.[0]) fieldsToUpdate.degree_image = req.files.degree_image[0].filename;
 
-        // LOGIC GỘP CHUỖI
-        let oldImages = [];
-        if (existing_images_string && typeof existing_images_string === 'string') {
-            oldImages = existing_images_string.split(',').filter(Boolean);
-        }
-        const newImages = newCertificateFiles.map(file => file.filename);
-        const finalImages = oldImages.concat(newImages);
+        // ✅ SỬA LỖI TẠI ĐÂY:
+        // Tạo một đối tượng chứa các trường văn bản để dễ dàng lặp qua
+        const textFields = {
+            phone,
+            introduction,
+            experience,
+            gpa,
+            university,
+            graduation_date,
+            degree_type
+        };
 
-        let oldSources = [];
-        if (existing_sources_string && typeof existing_sources_string === 'string') {
-            oldSources = existing_sources_string.split(',').filter(Boolean);
+        // Lặp qua từng trường để xử lý
+        for (const [key, value] of Object.entries(textFields)) {
+            // Chỉ thêm vào object update nếu trường đó được gửi từ frontend
+            if (value !== undefined) {
+                // QUAN TRỌNG: Chuyển chuỗi rỗng thành NULL để tương thích với DB
+                // Nếu giá trị là chuỗi rỗng, gán là null, ngược lại giữ nguyên giá trị.
+                fieldsToUpdate[key] = (value === '') ? null : value;
+            }
         }
-        let newSources = certificate_authorities ? (Array.isArray(certificate_authorities) ? certificate_authorities : [certificate_authorities]) : [];
-        const finalSources = oldSources.concat(newSources);
-        
-        fieldsToUpdate.certificate_image = finalImages.join(',');
-        fieldsToUpdate.certificate_source = finalSources.join(',');
+
+        // Xử lý các file (logic này vẫn giữ nguyên)
+        if (imgFile) fieldsToUpdate.img = imgFile.filename;
+        if (degreeFile) fieldsToUpdate.degree_image = degreeFile.filename;
+
+        // Xử lý logic cho các chứng chỉ
+        if (newCertificateFiles.length > 0) {
+            const newImageNames = newCertificateFiles.map(file => file.filename).join(',');
+            fieldsToUpdate.certificate_image = newImageNames;
+            const authoritiesArray = Array.isArray(certificate_authorities) ? certificate_authorities : (certificate_authorities ? [certificate_authorities] : []);
+            fieldsToUpdate.certificate_source = authoritiesArray.join(',');
+        }
+
+        if (Object.keys(fieldsToUpdate).length === 0) {
+            return res.status(400).json({ msg: "Không có thông tin mới nào để cập nhật." });
+        }
+
+        // Bất kỳ cập nhật nào cũng cần admin duyệt lại
         fieldsToUpdate.account_status = 'pending';
 
         console.log("[FINAL CHECK] Dữ liệu chuẩn bị UPDATE vào DB:", fieldsToUpdate);
-        
-        if (Object.keys(fieldsToUpdate).length > 1) {
-             const [result] = await db.promise().query("UPDATE doctors SET ? WHERE id = ?", [fieldsToUpdate, doctorId]);
-             console.log("[DB SUCCESS] Query result:", result);
-        }
 
-        res.status(200).json({ msg: "Cập nhật hồ sơ thành công!" });
+        const [result] = await db.promise().query("UPDATE doctors SET ? WHERE id = ?", [fieldsToUpdate, doctorId]);
+        
+        console.log("[DB SUCCESS] Query result:", result);
+
+        if (result.affectedRows > 0) {
+            res.status(200).json({ msg: "Cập nhật hồ sơ thành công! Hồ sơ của bạn sẽ được xét duyệt lại." });
+        } else {
+            res.status(404).json({ msg: `Không tìm thấy bác sĩ với ID ${doctorId}.` });
+        }
 
     } catch (err) {
         console.error("❌❌❌ [CONTROLLER ERROR] ❌❌❌", err);
-        res.status(500).json({ msg: "Lỗi máy chủ khi cập nhật hồ sơ." });
+        // Trả về lỗi cụ thể hơn cho client nếu có thể
+        const errorMessage = err.sqlMessage || "Lỗi máy chủ khi cập nhật hồ sơ.";
+        res.status(500).json({ msg: errorMessage });
     }
 };
+
 exports.getAllDoctorsForAdmin = (req, res) => {
     const API_BASE_URL = `${req.protocol}://${req.get('host')}`; // Tự động lấy base URL, ví dụ: http://localhost:5000
 

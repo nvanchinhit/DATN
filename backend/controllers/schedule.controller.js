@@ -1,18 +1,21 @@
-// backend/controllers/schedule.controller.js
+// file: backend/controllers/schedule.controller.js
 
 const db = require('../config/db.config');
 
 // Các tham số cấu hình cho việc chia slot
-const SLOT_DURATION_MINUTES = 30; 
-const BREAK_IN_MINUTES = 15;      
+const SLOT_DURATION_MINUTES = 30; // Mỗi ca khám kéo dài 30 phút
+const BREAK_IN_MINUTES = 15;      // Thời gian nghỉ giữa các ca là 15 phút
 
 /**
- * Thuật toán chia ca làm việc lớn thành các slot nhỏ
+ * Thuật toán chia một ca làm việc lớn (ví dụ: sáng 7h-12h) thành các khung giờ khám nhỏ.
+ * @param {object} shift - Đối tượng chứa thông tin ca làm việc.
+ * @returns {Array} - Mảng các khung giờ nhỏ, sẵn sàng để INSERT vào database.
  */
 const generateTimeSlots = (shift) => {
     const slots = [];
     const { id: work_shift_id, doctor_id, work_date, start_time, end_time } = shift;
-
+    
+    // Chuyển đổi thời gian string thành đối tượng Date để tính toán
     let currentTime = new Date(`${work_date}T${start_time}`);
     const shiftEndTime = new Date(`${work_date}T${end_time}`);
 
@@ -20,127 +23,157 @@ const generateTimeSlots = (shift) => {
         const slotStartTime = new Date(currentTime);
         const slotEndTime = new Date(slotStartTime.getTime() + SLOT_DURATION_MINUTES * 60000);
 
-        if (slotEndTime > shiftEndTime) {
-            break;
-        }
-
-        const sqlStartTime = slotStartTime.toTimeString().split(' ')[0];
-        const sqlEndTime = slotEndTime.toTimeString().split(' ')[0];
+        // Nếu thời gian kết thúc của slot cuối cùng vượt quá giờ kết thúc của ca, thì không tạo slot đó
+        if (slotEndTime > shiftEndTime) break;
 
         slots.push([
             work_shift_id,
             doctor_id,
             work_date,
-            sqlStartTime,
-            sqlEndTime,
-            'Available'
+            slotStartTime.toTimeString().split(' ')[0], // Format thành 'HH:mm:ss'
+            slotEndTime.toTimeString().split(' ')[0],
+            'Available', // Trạng thái ban đầu luôn là 'Available'
+            1            // Mặc định bác sĩ luôn BẬT (active) các slot khi mới tạo
         ]);
-
+        
+        // Cập nhật currentTime cho vòng lặp tiếp theo, cộng thêm cả thời gian khám và thời gian nghỉ
         currentTime = new Date(slotEndTime.getTime() + BREAK_IN_MINUTES * 60000);
     }
     return slots;
 };
 
-// ======================= EXPORTED FUNCTIONS (ĐÃ SỬA LỖI) =======================
-
-// 1. Controller để tạo một ca làm việc và các slot con
+/**
+ * 1. Controller để tạo một ca làm việc (work shift) và tự động tạo các khung giờ (time slots) con.
+ */
 exports.createWorkShift = (req, res) => {
-    const { doctorId, workDate, shiftName, startTime, endTime } = req.body;
+    const doctorId = req.user.id; 
+    // Sửa ở đây: đổi `shiftName` thành `name` để khớp với frontend
+    const { workDate, name, startTime, endTime } = req.body; 
 
-    if (!doctorId || !workDate || !shiftName || !startTime || !endTime) {
-        return res.status(400).json({ success: false, message: "Vui lòng cung cấp đủ thông tin." });
+    // Sửa ở đây: kiểm tra `name` thay vì `shiftName`
+    if (!workDate || !name || !startTime || !endTime) { 
+        return res.status(400).json({ success: false, message: "Vui lòng cung cấp đủ thông tin ca làm việc." });
     }
 
-    // Hành động 1: Tạo ca làm việc gốc
     const shiftSql = 'INSERT INTO doctor_work_shifts (doctor_id, work_date, shift_name, start_time, end_time) VALUES (?, ?, ?, ?, ?)';
-    db.query(shiftSql, [doctorId, workDate, shiftName, startTime, endTime], (err, result) => {
+    // Sửa ở đây: truyền biến `name` vào câu SQL
+    db.query(shiftSql, [doctorId, workDate, name, startTime, endTime], (err, result) => {
         if (err) {
             console.error("Lỗi khi tạo work_shift:", err);
-            return res.status(500).json({ success: false, message: 'Lỗi khi tạo ca làm việc.' });
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ success: false, message: 'Bạn đã tạo ca làm việc này cho ngày đã chọn.' });
+            }
+            return res.status(500).json({ success: false, message: 'Lỗi server khi tạo ca làm việc.' });
         }
 
         const newShiftId = result.insertId;
         const newShift = { id: newShiftId, doctor_id: doctorId, work_date: workDate, start_time: startTime, end_time: endTime };
-
-        // Hành động 2: Thuật toán chia nhỏ
         const timeSlots = generateTimeSlots(newShift);
 
         if (timeSlots.length === 0) {
-            return res.status(201).json({ success: true, message: 'Tạo ca làm việc thành công (không có slot nào được tạo).', shiftId: newShiftId });
+            return res.status(201).json({ success: true, message: 'Tạo ca làm việc thành công.', shiftId: newShiftId });
         }
         
-        // Hành động 3: Insert hàng loạt các slot con
-        const slotSql = 'INSERT INTO doctor_time_slot (work_shift_id, doctor_id, slot_date, start_time, end_time, status) VALUES ?';
-        db.query(slotSql, [timeSlots], (err, result) => {
+        const slotSql = 'INSERT INTO doctor_time_slot (work_shift_id, doctor_id, slot_date, start_time, end_time, status, is_active) VALUES ?';
+        db.query(slotSql, [timeSlots], (err, slotResult) => {
             if (err) {
                 console.error("Lỗi khi tạo time_slots:", err);
-                // Nếu tạo slot con thất bại, xóa ca làm việc gốc đã tạo để đảm bảo toàn vẹn
-                db.query('DELETE FROM doctor_work_shifts WHERE id = ?', [newShiftId], () => {
-                    res.status(500).json({ success: false, message: 'Lỗi khi tạo các khung giờ làm việc chi tiết.' });
-                });
-                return;
+                db.query('DELETE FROM doctor_work_shifts WHERE id = ?', [newShiftId]); 
+                return res.status(500).json({ success: false, message: 'Lỗi khi tạo các khung giờ chi tiết.' });
             }
-            
             res.status(201).json({ success: true, message: `Tạo ca làm việc và ${timeSlots.length} khung giờ thành công!`, shiftId: newShiftId });
         });
     });
 };
-
-// 2. Controller để lấy tất cả các ca làm việc trong một ngày
-exports.getShiftsByDate = (req, res) => {
+/**
+ * 2. Controller để lấy lịch (cả ca và slot) của bác sĩ đã đăng nhập theo một ngày cụ thể.
+ */
+exports.getScheduleForDoctorByDate = (req, res) => {
+    const doctorId = req.user.id;
     const { date } = req.query;
     if (!date) {
-        return res.status(400).json({ success: false, message: "Vui lòng cung cấp ngày (date)." });
+        return res.status(400).json({ success: false, message: "Vui lòng cung cấp ngày." });
     }
 
-    const sql = `
-        SELECT 
-            ws.id, 
-            ws.doctor_id,
-            d.name as doctor_name,
-            ws.work_date,
-            ws.shift_name,
-            ws.start_time,
-            ws.end_time,
-            ws.status
-        FROM doctor_work_shifts ws
-        JOIN doctors d ON ws.doctor_id = d.id
-        WHERE ws.work_date = ?
-        ORDER BY d.name, ws.start_time
+    // Lấy thông tin các ca làm việc (sáng, chiều)
+    const shiftsSql = `
+        SELECT ws.id, ws.shift_name, ws.start_time, ws.end_time, ws.status 
+        FROM doctor_work_shifts ws 
+        WHERE ws.work_date = ? AND ws.doctor_id = ? 
+        ORDER BY ws.start_time
     `;
+    db.query(shiftsSql, [date, doctorId], (err, shifts) => {
+        if (err) return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy ca làm việc.' });
+        
+        // Lấy thông tin các khung giờ chi tiết
+        const slotsSql = `
+            SELECT id, work_shift_id, start_time, end_time, status, is_active 
+            FROM doctor_time_slot 
+            WHERE slot_date = ? AND doctor_id = ? 
+            ORDER BY start_time
+        `;
+        db.query(slotsSql, [date, doctorId], (err, slots) => {
+            if (err) return res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy khung giờ.' });
+            
+            // Chuyển đổi giá trị `is_active` từ 0/1 thành true/false để frontend dễ xử lý
+            const formattedSlots = slots.map(slot => ({
+                ...slot,
+                is_active: !!slot.is_active // Chuyển 1 -> true, 0 -> false
+            }));
 
-    db.query(sql, [date], (err, results) => {
-        if (err) {
-            console.error("Lỗi khi lấy danh sách ca làm việc:", err);
-            return res.status(500).json({ success: false, message: 'Lỗi máy chủ.' });
-        }
-        res.json({ success: true, data: results });
+            res.json({ success: true, data: { shifts, slots: formattedSlots } });
+        });
     });
 };
 
-// 3. Controller để hủy một ca làm việc
+/**
+ * 3. Controller để hủy một ca làm việc.
+ * Khi hủy một ca lớn, tất cả các slot con chưa được đặt cũng sẽ bị vô hiệu hóa.
+ */
 exports.cancelWorkShift = (req, res) => {
     const { shiftId } = req.params;
+    const doctorId = req.user.id;
 
-    // Hành động 1: Cập nhật ca làm việc gốc
-    const updateShiftSql = "UPDATE `doctor_work_shifts` SET `status` = 'Cancelled' WHERE `id` = ?";
-    db.query(updateShiftSql, [shiftId], (err, result) => {
-        if (err) {
-             return res.status(500).json({ success: false, message: 'Lỗi khi hủy ca làm việc.' });
-        }
-        if (result.affectedRows === 0) {
-             return res.status(404).json({ success: false, message: 'Không tìm thấy ca làm việc này.' });
-        }
+    // Cập nhật trạng thái của ca làm việc lớn
+    const updateShiftSql = "UPDATE `doctor_work_shifts` SET `status` = 'Cancelled' WHERE `id` = ? AND `doctor_id` = ?";
+    db.query(updateShiftSql, [shiftId, doctorId], (err, result) => {
+        if (err) return res.status(500).json({ success: false, message: 'Lỗi khi hủy ca làm việc.' });
+        if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Không tìm thấy ca làm việc này hoặc bạn không có quyền.' });
         
-        // Hành động 2: Cập nhật tất cả các slot con còn trống
-        const updateSlotsSql = "UPDATE `doctor_time_slot` SET `status` = 'Cancelled' WHERE `work_shift_id` = ? AND `status` = 'Available'";
-        db.query(updateSlotsSql, [shiftId], (err, result) => {
-            if (err) {
-                // Nếu bước này lỗi, ca làm việc vẫn ở trạng thái 'Cancelled', không quá nghiêm trọng.
-                return res.status(500).json({ success: false, message: 'Lỗi khi hủy các khung giờ con.' });
-            }
+        // Tắt (is_active = 0) tất cả các slot con của ca đó MÀ CHƯA CÓ AI ĐẶT
+        const updateSlotsSql = "UPDATE `doctor_time_slot` SET `is_active` = 0 WHERE `work_shift_id` = ? AND `status` = 'Available'";
+        db.query(updateSlotsSql, [shiftId], (err, slotResult) => {
+            if (err) return res.status(500).json({ success: false, message: 'Lỗi khi cập nhật các khung giờ con.' });
+            res.json({ success: true, message: 'Hủy ca làm việc thành công.' });
+        });
+    });
+};
 
-            res.json({ success: true, message: 'Hủy ca làm việc và các khung giờ trống thành công.' });
+/**
+ * 4. Controller để BẬT/TẮT một khung giờ khám nhỏ (slot).
+ * Đây là hành động bác sĩ chủ động đóng/mở một slot cụ thể.
+ */
+exports.toggleSlotStatus = (req, res) => {
+    const { slotId } = req.params;
+    const doctorId = req.user.id;
+
+    // Bước 1: Kiểm tra xem slot có tồn tại và đã có người đặt chưa
+    const findSlotSql = "SELECT `status` FROM `doctor_time_slot` WHERE `id` = ? AND `doctor_id` = ?";
+    db.query(findSlotSql, [slotId, doctorId], (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: "Lỗi máy chủ." });
+        if (results.length === 0) return res.status(404).json({ success: false, message: "Không tìm thấy khung giờ này." });
+
+        const currentStatus = results[0].status;
+        if (currentStatus === 'Booked') {
+            return res.status(400).json({ success: false, message: "Không thể tắt khung giờ đã có bệnh nhân đặt." });
+        }
+
+        // Bước 2: Chỉ cập nhật cột `is_active`.
+        // Dùng `is_active = !is_active` để đảo ngược giá trị (0 thành 1, 1 thành 0)
+        const updateSlotSql = "UPDATE `doctor_time_slot` SET `is_active` = !is_active WHERE `id` = ?";
+        db.query(updateSlotSql, [slotId], (err, updateResult) => {
+            if (err) return res.status(500).json({ success: false, message: "Lỗi khi cập nhật trạng thái khung giờ." });
+            res.json({ success: true, message: `Đã thay đổi trạng thái hoạt động của khung giờ.` });
         });
     });
 };

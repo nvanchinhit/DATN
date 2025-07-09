@@ -122,30 +122,45 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
   if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
+  // CÂU SQL NÀY ĐÃ ĐÚNG: Lấy thêm dts.is_active và trạng thái is_booked
   const sql = `
     SELECT 
       dts.id, 
       DATE_FORMAT(dts.slot_date, '%Y-%m-%d') AS slot_date,
       dts.start_time, 
       dts.end_time,
+      dts.is_active,  -- <<-- Cột quan trọng để biết bác sĩ có BẬT/TẮT slot không
       CASE WHEN a.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_booked
     FROM doctor_time_slot AS dts
-    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id
+    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy' -- Chỉ coi là đã đặt nếu lịch hẹn không bị hủy
     WHERE dts.doctor_id = ? AND dts.slot_date >= CURDATE()
     ORDER BY dts.slot_date, dts.start_time`;
+
   db.query(sql, [doctorId], (err, results) => {
     if (err) return res.status(500).json({ error: 'Lỗi server.' });
+
+    // LOGIC GOM NHÓM NÀY CŨNG ĐÃ ĐÚNG: Thêm `is_active` vào object trả về
     const groupedSlots = results.reduce((acc, slot) => {
       const date = slot.slot_date; 
       const start = slot.start_time.substring(0, 5);
       const end = slot.end_time.substring(0, 5);
       if (!acc[date]) acc[date] = [];
-      acc[date].push({ id: slot.id, start, end, is_booked: !!slot.is_booked });
+
+      acc[date].push({ 
+        id: slot.id, 
+        start, 
+        end, 
+        is_booked: !!slot.is_booked,      // Chuyển 0/1 thành true/false
+        is_active: !!slot.is_active      // Chuyển 0/1 thành true/false
+      });
       return acc;
     }, {});
+
     res.json(groupedSlots);
   });
 });
+
+
 // routes/appointment.routes.js
 router.put('/appointments/:id/confirm', (req, res) => {
   const { id } = req.params;
