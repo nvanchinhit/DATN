@@ -2,9 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db.config');
 
-// =========================
-// ĐẶT LỊCH KHÁM MỚI (POST)
-// =========================
 // SỬA LỖI Ở ĐÂY: Nhận thêm customer_id từ request body
   const {
     doctor_id,

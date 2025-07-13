@@ -1,298 +1,225 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { Calendar, Clock, User, X, Loader2, Search, AlertCircle, Check, Trash2 } from 'lucide-react';
 import Sidebardoctor from "@/components/layout/Sidebardoctor";
+
+// ====================================================================
+// INTERFACES (Định nghĩa cấu trúc dữ liệu)
+// ====================================================================
+interface BookingDetail {
+  id: number;
+  patientName: string;
+  patientEmail: string;
+  patientPhone: string;
+  note: string;
+  status: string;
+  paymentStatus: string;
+}
 
 interface Slot {
   id: number;
-  slot_date: string;
-  start_time: string;
-  end_time: string;
+  date: string;
+  start: string;
+  end: string;
   is_booked: boolean;
-  status?: string;
+  booking: BookingDetail | null;
 }
 
-interface AppointmentDetail {
-  id: number;
-  patient_name: string;
-  email: string;
-  phone: string;
-  note: string;
-  status: string;
-  payment_status: string;
+interface GroupedSlotsApiResponse {
+  [date: string]: Omit<Slot, 'date'>[];
 }
 
+// ====================================================================
+// COMPONENT CHÍNH CỦA TRANG
+// ====================================================================
 export default function DoctorSchedulePage() {
   const [doctorId, setDoctorId] = useState<number | null>(null);
-  const [doctorSlots, setDoctorSlots] = useState<Slot[]>([]);
+  const [allSlots, setAllSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [appointmentDetail, setAppointmentDetail] = useState<AppointmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [filterDate, setFilterDate] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // 1. Lấy doctorId từ localStorage
   useEffect(() => {
     const rawData = localStorage.getItem('user');
     if (rawData) {
       try {
         const parsed = JSON.parse(rawData);
-        setDoctorId(parsed.id);
+        if (parsed?.id && parsed?.role_id === 3) {
+          setDoctorId(parsed.id);
+        } else {
+          setError("Dữ liệu đăng nhập không hợp lệ hoặc không phải tài khoản bác sĩ.");
+          setLoading(false);
+        }
       } catch (err) {
-        console.error("Lỗi parse user:", err);
+        setError("Lỗi đọc dữ liệu người dùng.");
+        setLoading(false);
       }
+    } else {
+        setError("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+        setLoading(false);
     }
   }, []);
 
-  const fetchDoctorSlots = () => {
+  // 2. Hàm gọi API để lấy lịch
+  const fetchDoctorSlots = useCallback(() => {
     if (!doctorId) return;
     setLoading(true);
+    setError(null);
     fetch(`http://localhost:5000/api/doctors/${doctorId}/time-slots`)
-      .then((res) => res.json())
-      .then((data) => {
-        const merged: Slot[] = [];
-        Object.entries(data).forEach(([date, slots]: any) => {
-          slots.forEach((slot: any) => {
-            let displayStatus = 'Trống';
-            if (slot.is_booked) {
-              const statusMap: Record<string, string> = {
-                pending: 'Chờ xác nhận',
-                confirmed: 'Đã xác nhận',
-                rejected: 'Từ chối',
-                'Chưa xác nhận': 'Chờ xác nhận'
-                
-              };
-              console.log("SLOT:", slot);
-
-
-             const bookingStatus = slot.booking?.status;
-displayStatus = statusMap[bookingStatus] || bookingStatus || 'Chờ xác nhận';
-
-            }
-            merged.push({
-              id: slot.id,
-              slot_date: date,
-              start_time: slot.start,
-              end_time: slot.end,
-              is_booked: slot.is_booked,
-                status: displayStatus,
-            });
-          });
-        });
-        setDoctorSlots(merged);
-        setLoading(false);
+      .then((res) => {
+        if (!res.ok) throw new Error('Không thể tải lịch hẹn từ máy chủ.');
+        return res.json();
       })
-      .catch((err) => {
-        console.error("Lỗi lấy lịch khám:", err);
+      .then((data: GroupedSlotsApiResponse) => {
+        const flattenedSlots = Object.entries(data).flatMap(([date, slotsOnDate]) =>
+          slotsOnDate.map(slot => ({ ...slot, date }))
+        );
+        setAllSlots(flattenedSlots);
+      })
+      .catch((err: any) => {
+        console.error("Lỗi khi lấy lịch khám:", err);
+        setError(err.message);
+      })
+      .finally(() => {
         setLoading(false);
       });
-  };
-
-  useEffect(() => {
-      fetchDoctorSlots();
   }, [doctorId]);
 
+  // 3. Tự động gọi API khi có doctorId
+  useEffect(() => {
+    if (doctorId) {
+      fetchDoctorSlots();
+    }
+  }, [doctorId, fetchDoctorSlots]);
+
+  // 4. Hàm xử lý khi xem chi tiết
   const handleViewDetail = (slot: Slot) => {
-    setSelectedSlot(slot);
     if (slot.is_booked) {
-      fetch(`http://localhost:5000/api/appointments/slot/${slot.id}`)
-        .then(res => res.json())
-        .then(data => {
-          const statusMap: Record<string, string> = {
-            pending: 'Chờ xác nhận',
-            confirmed: 'Đã xác nhận',
-            rejected: 'Từ chối',
-            'Chưa xác nhận': 'Chờ xác nhận'
-          };
-          data.status = statusMap[data.status] || data.status;
-          setAppointmentDetail(data);
-        })
-        .catch(() => setAppointmentDetail(null));
-    } else {
-      setAppointmentDetail(null);
+      setSelectedSlot(slot);
     }
   };
 
-  const handleConfirm = async () => {
-    if (!appointmentDetail || !selectedSlot) return;
-    setConfirming(true);
+  // 5. Hàm xử lý hành động (Xác nhận / Hủy) - ĐÃ SỬA LỖI 401
+  const handleAppointmentAction = async (action: 'confirm' | 'reject') => {
+    const appointmentId = selectedSlot?.booking?.id;
+    // Lấy token từ localStorage
+    const token = localStorage.getItem('doctorToken'); // Hoặc tên key bạn dùng để lưu token
+
+    // Kiểm tra nếu không có appointmentId hoặc đang gửi hoặc không có token
+    if (!appointmentId || submitting || !token) {
+      if (!token) {
+        alert("Lỗi xác thực. Vui lòng đăng nhập lại.");
+      }
+      return;
+    }
+    
+    setSubmitting(true);
     try {
-      await fetch(`http://localhost:5000/api/appointments/${appointmentDetail.id}/confirm`, { method: 'PUT' });
-      setAppointmentDetail({ ...appointmentDetail, status: 'Đã xác nhận' });
-      setDoctorSlots(prev =>
-        prev.map(slot =>
-          slot.id === selectedSlot.id ? { ...slot, status: 'Đã xác nhận', is_booked: true } : slot
-        )
-      );
-      setTimeout(() => fetchDoctorSlots(), 500);
-      alert('✅ Lịch đã được xác nhận!');
-    } catch {
-      alert('❌ Xác nhận thất bại!');
+      // Gọi API với header Authorization
+      const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/${action}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // <--- SỬA LỖI Ở ĐÂY
+        },
+      });
+
+      if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || `Thao tác thất bại.`);
+      }
+      
+      // Tải lại dữ liệu mới nhất từ server
+      fetchDoctorSlots();
+      // Đóng popup
+      setSelectedSlot(null);
+      alert(`✅ Lịch đã được ${action === 'confirm' ? 'xác nhận' : 'hủy'} thành công!`);
+    } catch (err: any) {
+      alert(`❌ Lỗi: ${err.message}`);
     } finally {
-      setConfirming(false);
+      setSubmitting(false);
     }
   };
 
-  const handleReject = async () => {
-    if (!appointmentDetail || !selectedSlot) return;
-    try {
-     await fetch(`http://localhost:5000/api/appointments/${appointmentDetail.id}/confirm`, { method: 'PUT' });
-      setAppointmentDetail({ ...appointmentDetail, status: 'Từ chối' });
-      setDoctorSlots(prev =>
-        prev.map(slot =>
-          slot.id === selectedSlot.id ? { ...slot, status: 'Từ chối', is_booked: true } : slot
-        )
-      );
-      setTimeout(() => fetchDoctorSlots(), 500);
-      alert('❌ Lịch đã bị từ chối.');
-    } catch {
-      alert('❌ Từ chối thất bại!');
-    }
-  };
-
-  const filteredSlots = doctorSlots.filter(slot => {
-    const matchesDate = filterDate ? slot.slot_date === filterDate : true;
-    const matchesSearch = search ? slot.status?.toLowerCase().includes(search.toLowerCase()) : true;
+  // --- LOGIC LỌC VÀ HIỂN THỊ ---
+  const filteredSlots = allSlots.filter(slot => {
+    const status = slot.booking?.status || 'Trống';
+    const patientName = slot.booking?.patientName || '';
+    const matchesDate = filterDate ? slot.date === filterDate : true;
+    const matchesSearch = searchTerm
+      ? status.toLowerCase().includes(searchTerm.toLowerCase()) || patientName.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
     return matchesDate && matchesSearch;
   });
 
-  const pendingSlots = doctorSlots.filter(slot => slot.status === 'Chờ xác nhận');
+  const pendingSlots = allSlots.filter(slot => slot.booking?.status === 'Chưa xác nhận');
 
+  const groupedForRender = filteredSlots.reduce((acc: Record<string, Slot[]>, slot) => {
+    if (!acc[slot.date]) acc[slot.date] = [];
+    acc[slot.date].push(slot);
+    return acc;
+  }, {});
 
-  const groupedByDate: Record<string, Slot[]> = {};
-  filteredSlots.forEach(slot => {
-    if (!groupedByDate[slot.slot_date]) groupedByDate[slot.slot_date] = [];
-    groupedByDate[slot.slot_date].push(slot);
-  });
-
+  // --- RENDER COMPONENT ---
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex bg-gray-50 min-h-screen">
       <Sidebardoctor />
-      <main className="flex-1 p-8">
-        <h1 className="text-2xl font-bold text-blue-800 mb-6">📅 Lịch khám bác sĩ</h1>
-
-        <div className="flex gap-4 mb-6">
-          <input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="border rounded px-4 py-2 w-1/3"
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo trạng thái..."
-            className="border rounded px-4 py-2 w-2/3"
-          />
+      <main className="flex-1 p-6 md:p-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+          <Calendar className="text-blue-600"/> Quản lý Lịch khám
+        </h1>
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-col md:flex-row items-center gap-4">
+            <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full md:w-auto border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"/>
+            <div className="relative w-full md:flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo trạng thái hoặc tên bệnh nhân..." className="w-full pl-10 pr-4 py-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"/>
+            </div>
         </div>
-
-        {pendingSlots.length > 0 && (
-          <div className="mb-10">
-            <h2 className="text-xl font-bold text-red-600 mb-4">⏳ Đơn chờ xác nhận</h2>
-            <div className="space-y-2">
-              {pendingSlots.map(slot => (
-                <div
-                  key={slot.id}
-                  onClick={() => handleViewDetail(slot)}
-                  className="p-3 border border-yellow-500 bg-yellow-50 rounded cursor-pointer hover:bg-yellow-100 flex justify-between"
-                >
-                  <span>📆 {slot.slot_date} ⏰ {slot.start_time} - {slot.end_time}</span>
-                  <span className="font-semibold text-yellow-700">{slot.status}</span>
+        {error && ( <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg flex items-center gap-3"> <AlertCircle /> {error} </div> )}
+        {!loading && pendingSlots.length > 0 && ( <div className="mb-8 p-4 bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-lg"> <h2 className="text-xl font-bold text-yellow-800 mb-3">⏳ {pendingSlots.length} Lịch chờ xác nhận</h2> <div className="space-y-2 max-h-48 overflow-y-auto pr-2"> {pendingSlots.map(slot => ( <div key={slot.id} onClick={() => handleViewDetail(slot)} className="p-3 bg-white rounded-md cursor-pointer hover:bg-yellow-100 flex justify-between items-center shadow-sm border border-gray-200"> <div> <span className="font-semibold text-gray-800">{slot.booking?.patientName}</span> <span className="text-sm text-gray-600 ml-2">({new Date(slot.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {slot.start})</span> </div> <span className="font-semibold text-yellow-700">{slot.booking?.status}</span> </div> ))} </div> </div> )}
+        {loading ? ( <div className="flex justify-center items-center py-10"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div> ) : Object.keys(groupedForRender).length === 0 && !error ? ( <p className="text-center text-gray-500 mt-10">Không có lịch hẹn nào phù hợp.</p> ) : ( Object.entries(groupedForRender).map(([date, slots]) => ( <div key={date} className="mb-8"> <h2 className="text-xl font-semibold text-blue-700 mb-4 flex items-center gap-2"><Calendar size={20}/> Ngày: {new Date(date + 'T00:00:00').toLocaleDateString('vi-VN')}</h2> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"> {slots.map(slot => { let borderClass = 'border-gray-200'; if(slot.booking?.status === 'Chờ xác nhận') borderClass = 'border-yellow-400 bg-yellow-50'; else if(slot.booking?.status === 'Đã xác nhận') borderClass = 'border-green-400 bg-green-50'; else if(slot.booking?.status === 'Từ chối') borderClass = 'border-red-300 bg-red-50 opacity-70'; return ( <div key={slot.id} onClick={() => handleViewDetail(slot)} className={`p-4 rounded-lg shadow-sm border-2 transition-all ${slot.is_booked ? 'cursor-pointer hover:shadow-md hover:-translate-y-1' : 'cursor-default bg-gray-100/50'} ${borderClass}`}> <div className="flex justify-between items-center font-semibold text-lg"> <span className="flex items-center gap-2 text-gray-800"><Clock size={18}/> {slot.start} - {slot.end}</span> </div> <div className="mt-2 h-10 flex flex-col justify-end"> {slot.is_booked && slot.booking ? ( <> <p className="text-gray-700 flex items-center gap-2 truncate font-medium"><User size={16}/>{slot.booking.patientName}</p> <span className={`text-xs font-bold mt-1 ${slot.booking.status === 'Chờ xác nhận' ? 'text-yellow-600' : ''} ${slot.booking.status === 'Đã xác nhận' ? 'text-green-600' : ''} ${slot.booking.status === 'Từ chối' ? 'text-red-600' : ''}`}> {slot.booking.status} </span> </> ) : ( <span className="text-sm text-gray-400">Trống</span> )} </div> </div> ); })} </div> </div> )) )}
+        
+        {/* === POPUP CHI TIẾT VỚI ĐẦY ĐỦ NÚT BẤM === */}
+        {selectedSlot && selectedSlot.booking && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={() => setSelectedSlot(null)}>
+            <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg text-gray-800" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <h2 className="text-2xl font-bold text-blue-700">Chi tiết lịch khám</h2>
+                    <button onClick={() => setSelectedSlot(null)} className="text-gray-400 hover:text-gray-600" title="Đóng"><X size={24}/></button>
                 </div>
-              ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-base">
+                <p><strong className="text-gray-600">Bệnh nhân:</strong> {selectedSlot.booking.patientName}</p>
+                <p><strong className="text-gray-600">Trạng thái:</strong> <span className="font-bold">{selectedSlot.booking.status}</span></p>
+                <p><strong className="text-gray-600">Ngày:</strong> {new Date(selectedSlot.date + 'T00:00:00').toLocaleDateString('vi-VN')}</p>
+                <p><strong className="text-gray-600">Giờ:</strong> {selectedSlot.start} - {selectedSlot.end}</p>
+                <p className="sm:col-span-2"><strong className="text-gray-600">Email:</strong> {selectedSlot.booking.patientEmail}</p>
+                <p className="sm:col-span-2"><strong className="text-gray-600">SĐT:</strong> {selectedSlot.booking.patientPhone}</p>
+                <p className="sm:col-span-2"><strong className="text-gray-600">Thanh toán:</strong> {selectedSlot.booking.paymentStatus}</p>
+                <p className="sm:col-span-2"><strong className="text-gray-600">Ghi chú:</strong> {selectedSlot.booking.note || 'Không có'}</p>
+              </div>
+
+              {/* PHẦN NÚT BẤM (CHỈ HIỆN KHI CẦN) */}
+              <div className="mt-6 pt-4 border-t">
+                  {selectedSlot.booking.status === 'Chưa xác nhận' && (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button onClick={() => handleAppointmentAction('confirm')} disabled={submitting} className="w-full flex justify-center items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait">
+                        {submitting ? <Loader2 className="animate-spin"/> : <Check/>} Xác nhận lịch
+                      </button>
+                      <button onClick={() => handleAppointmentAction('reject')} disabled={submitting} className="w-full flex justify-center items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-red-700 transition-all disabled:bg-gray-400 disabled:cursor-wait">
+                        {submitting ? <Loader2 className="animate-spin"/> : <Trash2/>} Hủy lịch
+                      </button>
+                    </div>
+                  )}
+                  {selectedSlot.booking.status === 'Đã xác nhận' && <p className="text-center text-green-600 font-semibold">✔️ Lịch hẹn này đã được bạn xác nhận.</p>}
+                  {selectedSlot.booking.status === 'Từ chối' && <p className="text-center text-red-600 font-semibold">❌ Lịch hẹn này đã bị bạn hủy.</p>}
+              </div>
             </div>
           </div>
-        )}
-
-        {loading ? (
-          <p>⏳ Đang tải lịch...</p>
-        ) : (
-          Object.keys(groupedByDate).map(date => (
-            <div key={date} className="mb-8">
-              <h2 className="text-xl font-semibold text-blue-700 mb-4">📆 Ngày: {date}</h2>
-              <div className="space-y-3">
-                {groupedByDate[date].map(slot => (
-                  <div
-                    key={slot.id}
-                    onClick={() => handleViewDetail(slot)}
-                    className={`p-4 rounded-lg shadow-sm cursor-pointer border hover:shadow-md transition flex justify-between items-center
-                      ${slot.status === 'Chờ xác nhận' ? 'bg-yellow-100 border-yellow-500' :
-                        slot.status === 'Đã xác nhận' ? 'bg-green-100 border-green-500' :
-                        slot.status === 'Từ chối' ? 'bg-red-100 border-red-500' :
-                        'bg-white border-gray-300'}`}
-                  >
-                    <div className="text-blue-800 font-medium text-lg">
-                      ⏰ {slot.start_time} - {slot.end_time}
-                    </div>
-                    <div className={`text-sm font-semibold ${slot.status === 'Đã xác nhận' ? 'text-green-700' : slot.status === 'Từ chối' ? 'text-red-600' : 'text-black'}`}>
-                      {slot.status}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
-
-        {selectedSlot && appointmentDetail && (
-           // Giao diện popup chi tiết mới
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-xl text-gray-900">
-              <h2 className="text-2xl font-bold mb-4 text-blue-700 border-b pb-2">📝 Chi tiết lịch khám</h2>
-
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-base">
-                <p><span className="font-semibold text-black">📅 Ngày:</span> {selectedSlot.slot_date}</p>
-                <p><span className="font-semibold text-black">⏰ Giờ:</span> {selectedSlot.start_time} - {selectedSlot.end_time}</p>
-                <p><span className="font-semibold text-black">📌 Trạng thái:</span> {appointmentDetail.status}</p>
-                <p><span className="font-semibold text-black">💵 Thanh toán:</span> {appointmentDetail.payment_status}</p>
-              </div>
-
-              <div className="border-t my-4" />
-              <div className="space-y-1 text-base">
-                <p><span className="font-semibold text-black">🙍‍♂️ Bệnh nhân:</span> {appointmentDetail.patient_name}</p>
-                <p><span className="font-semibold text-black">📧 Email:</span> {appointmentDetail.email}</p>
-                <p><span className="font-semibold text-black">📞 SĐT:</span> {appointmentDetail.phone}</p>
-                <p><span className="font-semibold text-black">🗒️ Ghi chú:</span> {appointmentDetail.note || 'Không có'}</p>
-              </div>
-
-              {appointmentDetail.status === 'Chờ xác nhận' && (
-                <div className="flex gap-4 mt-6">
-                  <button
-                    onClick={handleConfirm}
-                    disabled={confirming}
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
-                  >
-                    ✅ Xác nhận
-                  </button>
-                  <button
-                    onClick={handleReject}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full"
-                  >
-                    ❌ Từ chối
-                  </button>
-                </div>
-              )}
-
-              {appointmentDetail.status === 'Đã xác nhận' && (
-                <p className="mt-4 text-green-600 font-semibold text-center">✔️ Lịch đã được xác nhận</p>
-              )}
-
-              {appointmentDetail.status === 'Từ chối' && (
-                <p className="mt-4 text-red-600 font-semibold text-center">❌ Lịch đã bị từ chối</p>
-              )}
-                <button
-                  onClick={() => {
-                    setSelectedSlot(null);
-                    setAppointmentDetail(null);
-                  }}
-                  className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-         
         )}
       </main>
     </div>

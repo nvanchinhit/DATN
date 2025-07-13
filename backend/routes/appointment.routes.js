@@ -1,10 +1,11 @@
-// backend/routes/appointment.routes.js
+ // backend/routes/appointment.routes.js
 
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db.config');
 const authMiddleware = require('../middleware/auth.middleware');
 const { isDoctor } = require('../middleware/auth.middleware');
+const { sendConfirmationEmail, sendRejectionEmail } = require('../utils/sendEmail');
 
 /**
  * ==========================================================
@@ -44,20 +45,42 @@ router.post('/', authMiddleware, (req, res) => {
     });
   });
 });
-router.put('/appointments/:id/confirm', (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body; // 'Đã xác nhận' hoặc 'Từ chối'
+// ==========================================================
+router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
+  const appointmentId = req.params.id;
 
-  const sql = `UPDATE appointments SET doctor_confirmation = ? WHERE id = ?`;
+  // Cập nhật trạng thái thành 'Đã xác nhận'
+  db.query("UPDATE appointments SET status = 'Đã xác nhận' WHERE id = ?", [appointmentId], (err, result) => {
+    if (err) return res.status(500).json({ message: 'Lỗi server khi xác nhận.' });
+    if (result.affectedRows === 0) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn.' });
 
-  db.query(sql, [status, id], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Lỗi cập nhật xác nhận lịch.' });
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
-    res.json({ message: 'Cập nhật thành công!' });
+    // Lấy thông tin để gửi mail cho bệnh nhân
+    const infoSql = `
+      SELECT a.name, a.email, a.reason, a.payment_status,
+             d.name AS doctor_name, 
+             DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
+             TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
+             TIME_FORMAT(ts.end_time, '%H:%i') as end_time
+      FROM appointments a
+      JOIN doctors d ON a.doctor_id = d.id
+      JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+      WHERE a.id = ?`;
+      
+    db.query(infoSql, [appointmentId], (e, rows) => {
+        if (e || rows.length === 0) {
+            console.error("Không thể lấy thông tin để gửi mail xác nhận:", e);
+            return res.json({ message: 'Xác nhận thành công nhưng không thể gửi email!' });
+        }
+        
+        const appt = rows[0];
+        sendConfirmationEmail({
+            name: appt.name, email: appt.email, doctor: appt.doctor_name, date: appt.slot_date,
+            start: appt.start_time, end: appt.end_time, reason: appt.reason, payment: appt.payment_status
+        });
+        res.json({ message: 'Xác nhận thành công và đã gửi email thông báo.' });
+    });
   });
 });
-
-
 /**
  * ==========================================================
  * ROUTE 2: LẤY TẤT CẢ LỊCH HẸN CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP

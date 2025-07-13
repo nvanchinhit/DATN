@@ -120,43 +120,81 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
 
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
-  if (!doctorId) return res.status(400).json({ error: 'Thiếu ID bác sĩ.' });
 
-  // CÂU SQL NÀY ĐÃ ĐÚNG: Lấy thêm dts.is_active và trạng thái is_booked
+  // 1. Kiểm tra đầu vào
+  if (!doctorId || isNaN(parseInt(doctorId))) {
+    return res.status(400).json({ error: 'ID bác sĩ không hợp lệ.' });
+  }
+
+  // 2. Câu lệnh SQL "Tất cả trong một", đã sửa 'note' thành 'reason'
   const sql = `
     SELECT 
       dts.id, 
       DATE_FORMAT(dts.slot_date, '%Y-%m-%d') AS slot_date,
       dts.start_time, 
       dts.end_time,
-      dts.is_active,  -- <<-- Cột quan trọng để biết bác sĩ có BẬT/TẮT slot không
-      CASE WHEN a.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_booked
+      dts.is_active,
+      a.id AS appointment_id,
+      a.name AS patient_name,
+      a.email AS patient_email,
+      a.phone AS patient_phone,
+      a.reason AS patient_note,      -- << ĐÃ SỬA TẠI ĐÂY
+      a.payment_status,
+      a.status AS booking_status
     FROM doctor_time_slot AS dts
-    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy' -- Chỉ coi là đã đặt nếu lịch hẹn không bị hủy
+    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
     WHERE dts.doctor_id = ? AND dts.slot_date >= CURDATE()
     ORDER BY dts.slot_date, dts.start_time`;
 
+  // 3. Thực thi truy vấn
   db.query(sql, [doctorId], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Lỗi server.' });
+    // Bẫy lỗi nếu truy vấn SQL thất bại
+    if (err) {
+      console.error(`[ERROR] Lỗi khi truy vấn time-slots cho doctorId ${doctorId}:`, err);
+      return res.status(500).json({ error: 'Lỗi máy chủ khi truy vấn dữ liệu.' });
+    }
 
-    // LOGIC GOM NHÓM NÀY CŨNG ĐÃ ĐÚNG: Thêm `is_active` vào object trả về
-    const groupedSlots = results.reduce((acc, slot) => {
-      const date = slot.slot_date; 
-      const start = slot.start_time.substring(0, 5);
-      const end = slot.end_time.substring(0, 5);
-      if (!acc[date]) acc[date] = [];
+    // 4. Xử lý và gom nhóm kết quả
+    try {
+      const groupedSlots = results.reduce((acc, slot) => {
+        const date = slot.slot_date;
+        if (!acc[date]) {
+          acc[date] = [];
+        }
 
-      acc[date].push({ 
-        id: slot.id, 
-        start, 
-        end, 
-        is_booked: !!slot.is_booked,      // Chuyển 0/1 thành true/false
-        is_active: !!slot.is_active      // Chuyển 0/1 thành true/false
-      });
-      return acc;
-    }, {});
+        // Tạo object booking nếu có cuộc hẹn tồn tại (appointment_id không phải là null)
+        const bookingInfo = slot.appointment_id
+          ? {
+              id: slot.appointment_id,
+              patientName: slot.patient_name,
+              patientEmail: slot.patient_email,
+              patientPhone: slot.patient_phone,
+              note: slot.patient_note, // Frontend sẽ nhận trường `note`
+              paymentStatus: slot.payment_status,
+              status: slot.booking_status
+            }
+          : null;
 
-    res.json(groupedSlots);
+        acc[date].push({
+          id: slot.id, // ID của time_slot
+          start: slot.start_time.substring(0, 5),
+          end: slot.end_time.substring(0, 5),
+          is_active: !!slot.is_active, // Chuyển 1/0 thành true/false
+          is_booked: !!bookingInfo,     // true nếu có cuộc hẹn, false nếu không
+          booking: bookingInfo          // Object chi tiết cuộc hẹn hoặc null
+        });
+
+        return acc;
+      }, {});
+
+      // 5. Trả về kết quả thành công
+      res.json(groupedSlots);
+
+    } catch (e) {
+      // Bẫy lỗi nếu có sự cố trong lúc xử lý logic (ví dụ: lỗi với hàm reduce)
+      console.error(`[ERROR] Lỗi logic khi xử lý time-slots cho doctorId ${doctorId}:`, e);
+      res.status(500).json({ error: 'Lỗi máy chủ khi xử lý dữ liệu.' });
+    }
   });
 });
 
