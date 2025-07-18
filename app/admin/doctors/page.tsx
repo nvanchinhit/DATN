@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, Pencil, Trash2, PlusCircle, Search, X, LoaderCircle, AlertTriangle, ImageOff, CheckCircle, GraduationCap, Briefcase, Info } from 'lucide-react';
+import { Eye, PlusCircle, Search, X, LoaderCircle, AlertTriangle, ImageOff, CheckCircle, GraduationCap, Briefcase, Info, User, Mail, Stethoscope } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 
-// --- Interfaces được cấu trúc lại cho rõ ràng ---
+// --- Interfaces ---
 interface Doctor {
   id: number;
   name: string;
@@ -17,7 +17,6 @@ interface Doctor {
   experience: string | null;
   account_status: string;
   specialty_name: string;
-  
   degree: {
     image: string | null;
     gpa: string | null;
@@ -25,7 +24,6 @@ interface Doctor {
     graduation_date: string | null;
     degree_type: string | null;
   } | null;
-  
   certificates: {
     image: string;
     source: string;
@@ -51,11 +49,16 @@ interface DoctorFromAPI {
   degree_type: string | null;
 }
 
+interface Specialty {
+  id: number;
+  name: string;
+}
+
 // --- Helper Functions ---
 const getFullUrl = (path: string | null): string => {
-  if (!path) return '/default-avatar.png';
+  if (!path) return '/default-avatar.png'; // QUAN TRỌNG: Đảm bảo file này tồn tại trong thư mục /public của bạn
   if (path.startsWith('http')) return path;
-  const finalPath = path.startsWith('/') ? path : `/${path}`;
+  const finalPath = path.startsWith('/uploads') ? path : `/uploads${path.startsWith('/') ? '' : '/'}${path}`;
   try {
     return new URL(finalPath, API_URL).href;
   } catch (e) {
@@ -69,11 +72,128 @@ const statusMap: { [key: string]: { text: string; color: string } } = {
   inactive: { text: 'Chưa hoàn thiện', color: 'bg-gray-100 text-gray-800' }
 };
 
-// === COMPONENT MODAL THÊM BÁC SĨ MỚI ===
+// === COMPONENT MODAL THÊM BÁC SĨ MỚI (ĐÃ SỬA LẠI ĐÚNG NHƯ YÊU CẦU) ===
 const AddDoctorModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void; }) => {
-    // ... Giữ nguyên code hiện tại của bạn ...
-    return <div/>; // Placeholder
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    specialization_id: ''
+  });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
+
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/specializations`);
+        if (!res.ok) throw new Error('Không thể tải danh sách chuyên khoa');
+        const data = await res.json();
+        setSpecialties(data);
+      } catch (error) {
+        setApiError('Lỗi tải chuyên khoa.');
+      }
+    };
+    fetchSpecialties();
+  }, []);
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ và tên.';
+    if (!formData.email.trim()) newErrors.email = 'Vui lòng nhập email.';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email không hợp lệ.';
+    if (!formData.specialization_id) newErrors.specialization_id = 'Vui lòng chọn chuyên khoa.';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError('');
+    setApiSuccess('');
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/doctors/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.msg || 'Thêm bác sĩ thất bại.');
+      }
+      setApiSuccess(data.msg || 'Thêm bác sĩ thành công! Mật khẩu đã được gửi đến email.');
+      onSuccess(); // Tải lại danh sách bác sĩ
+      setTimeout(() => {
+        onClose(); // Đóng modal sau 2 giây
+      }, 2000);
+    } catch (err: any) {
+      setApiError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <motion.div 
+        initial={{ opacity: 0, y: -50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
+        className="bg-white rounded-xl shadow-xl w-full max-w-lg relative"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-800">Tạo tài khoản Bác sĩ</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1"><User size={14}/>Họ và tên</label>
+            <input type="text" name="name" value={formData.name} onChange={handleChange} className={`w-full p-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'}`} />
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1"><Mail size={14}/>Email</label>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} className={`w-full p-2 border rounded-md ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1"><Stethoscope size={14}/>Chuyên khoa</label>
+            <select name="specialization_id" value={formData.specialization_id} onChange={handleChange} className={`w-full p-2 border rounded-md bg-white ${errors.specialization_id ? 'border-red-500' : 'border-gray-300'}`}>
+              <option value="" disabled>-- Chọn chuyên khoa --</option>
+              {specialties.map(spec => (
+                <option key={spec.id} value={spec.id}>{spec.name}</option>
+              ))}
+            </select>
+            {errors.specialization_id && <p className="text-xs text-red-500 mt-1">{errors.specialization_id}</p>}
+          </div>
+          {apiError && <p className="text-sm text-red-600 text-center py-2">{apiError}</p>}
+          {apiSuccess && <p className="text-sm text-green-600 text-center py-2">{apiSuccess}</p>}
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300">Hủy</button>
+            <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 flex items-center gap-2">
+              {isSubmitting && <LoaderCircle size={18} className="animate-spin" />}
+              {isSubmitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
 };
+
 
 // === COMPONENT TRANG QUẢN LÝ BÁC SĨ CHÍNH ===
 export default function DoctorsPage() {
@@ -92,38 +212,34 @@ export default function DoctorsPage() {
     setError(null);
     try {
       const response = await fetch(`${API_URL}/api/doctors/all-for-admin`);
-      if (!response.ok) throw new Error('Không thể tải dữ liệu bác sĩ.');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Server response (not ok):", errorText);
+        throw new Error('Không thể tải dữ liệu bác sĩ. Server có thể đang gặp sự cố.');
+      }
       
       const data: DoctorFromAPI[] = await response.json();
       const mappedDoctors: Doctor[] = data.map(doc => {
-          const certificateImages = doc.certificate_image ? doc.certificate_image.split(',') : [];
-          const certificateSources = doc.certificate_source ? doc.certificate_source.split(',') : [];
+          const certificateImages = doc.certificate_image ? doc.certificate_image.split(',').filter(Boolean) : [];
+          const certificateSources = doc.certificate_source ? doc.certificate_source.split(',').filter(Boolean) : [];
           return {
-              id: doc.id,
-              name: doc.name,
-              phone: doc.phone,
-              email: doc.email,
-              img: getFullUrl(doc.img),
-              introduction: doc.introduction,
-              experience: doc.experience,
+              id: doc.id, name: doc.name, phone: doc.phone, email: doc.email,
+              img: getFullUrl(doc.img), introduction: doc.introduction, experience: doc.experience,
               account_status: doc.account_status,
               specialty_name: doc.specialty_name || 'Chưa cập nhật',
               degree: doc.degree_image ? {
-                  image: getFullUrl(doc.degree_image),
-                  gpa: doc.gpa,
-                  university: doc.university,
-                  graduation_date: doc.graduation_date,
-                  degree_type: doc.degree_type,
+                  image: getFullUrl(doc.degree_image), gpa: doc.gpa, university: doc.university,
+                  graduation_date: doc.graduation_date, degree_type: doc.degree_type,
               } : null,
               certificates: certificateImages.map((img, index) => ({
-                  image: getFullUrl(img),
-                  source: certificateSources[index] || 'Không rõ nơi cấp'
+                  image: getFullUrl(img), source: certificateSources[index] || 'Không rõ nơi cấp'
               }))
           };
       });
       setDoctors(mappedDoctors);
     } catch (err: any) {
       setError(err.message);
+      console.error("Fetch doctors failed:", err);
     } finally {
       setLoading(false);
     }
@@ -156,7 +272,7 @@ export default function DoctorsPage() {
   
   const specializations = useMemo(() => {
     const specs = doctors.map(d => d.specialty_name).filter(Boolean);
-    return [...new Set(specs)] as string[];
+    return [...new Set(specs)];
   }, [doctors]);
   
   const statuses = useMemo(() => Object.keys(statusMap), []);
@@ -166,7 +282,7 @@ export default function DoctorsPage() {
     .filter(doc => (filterSpecialization === 'all' ? true : doc.specialty_name === filterSpecialization))
     .filter(doc => {
       const term = searchTerm.toLowerCase();
-      return !term || (doc.name.toLowerCase().includes(term) || doc.email?.toLowerCase().includes(term) || `BS${doc.id}`.toLowerCase().includes(term));
+      return !term || (doc.name.toLowerCase().includes(term) || (doc.email && doc.email.toLowerCase().includes(term)) || `bs${doc.id}`.toLowerCase().includes(term));
     }), [doctors, filterStatus, filterSpecialization, searchTerm]);
   
   const handleViewDetails = (doctor: Doctor) => setSelectedDoctor(doctor);
@@ -185,10 +301,13 @@ export default function DoctorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input type="text" placeholder="Tìm theo tên, SĐT, mã BS..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" />
+            <input type="text" placeholder="Tìm theo tên, email, mã BS..." value={searchTerm} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)} className="w-full h-10 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" />
           </div>
           <select value={filterSpecialization} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterSpecialization(e.target.value)} className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition bg-white"><option value="all">Tất cả chuyên khoa</option>{specializations.map(spec => (<option key={spec} value={spec}>{spec}</option>))}</select>
-          <select value={filterStatus} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)} className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition bg-white"><option value="all">Tất cả trạng thái</option>{statuses.map(status => (<option key={status} value={statusMap[status]?.text || status}>{statusMap[status]?.text || status}</option>))}</select>
+          <select value={filterStatus} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterStatus(e.target.value)} className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition bg-white">
+            <option value="all">Tất cả trạng thái</option>
+            {statuses.map(status => (<option key={status} value={status}>{statusMap[status]?.text || status}</option>))}
+          </select>
         </div>
       </div>
 
@@ -213,7 +332,7 @@ export default function DoctorsPage() {
                   <td className="px-6 py-4 text-gray-700">{doc.specialty_name}</td>
                   <td className="px-6 py-4"><span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${statusMap[doc.account_status]?.color || 'bg-gray-200'}`}>{statusMap[doc.account_status]?.text || doc.account_status}</span></td>
                   <td className="px-6 py-4 flex justify-center items-center gap-4">
-                    {doc.account_status !== 'active' && (<button onClick={() => handleApproveDoctor(doc.id)} disabled={approvingId === doc.id} className="text-green-600 hover:text-green-800" title="Duyệt">{approvingId === doc.id ? <LoaderCircle size={18} className="animate-spin" /> : <CheckCircle size={18} />}</button>)}
+                    {doc.account_status === 'pending' && (<button onClick={() => handleApproveDoctor(doc.id)} disabled={approvingId === doc.id} className="text-green-600 hover:text-green-800" title="Duyệt">{approvingId === doc.id ? <LoaderCircle size={18} className="animate-spin" /> : <CheckCircle size={18} />}</button>)}
                     <button onClick={() => handleViewDetails(doc)} className="text-blue-600 hover:text-blue-800" title="Xem chi tiết"><Eye size={18} /></button>
                   </td>
                 </tr>
@@ -225,7 +344,6 @@ export default function DoctorsPage() {
 
       <AnimatePresence>{isAddModalOpen && <AddDoctorModal onClose={() => setIsAddModalOpen(false)} onSuccess={fetchDoctors} />}</AnimatePresence>
       
-      {/* ✅ MODAL CHI TIẾT ĐÃ ĐƯỢC THÊM LẠI ĐẦY ĐỦ */}
       <AnimatePresence>
         {selectedDoctor && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={handleCloseModal}>
