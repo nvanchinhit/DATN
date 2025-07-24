@@ -1,5 +1,4 @@
 // Sidebardoctor.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,11 +13,11 @@ interface Doctor {
 
 export default function Sidebardoctor() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Component này chạy sau DoctorLayout, nên localStorage đã được cập nhật
     const doctorDataString = localStorage.getItem('user');
     if (doctorDataString) {
       try {
@@ -27,7 +26,8 @@ export default function Sidebardoctor() {
         console.error("Lỗi đọc dữ liệu user:", error);
       }
     }
-  }, [pathname]); // Cập nhật lại thông tin bác sĩ khi chuyển trang
+    setIsLoading(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -35,60 +35,121 @@ export default function Sidebardoctor() {
     router.push('/doctor/login');
   };
 
-  if (!doctor) {
-    // Có thể hiển thị một sidebar dạng skeleton loading ở đây nếu muốn
+  if (isLoading) {
     return (
-        <aside className="w-64 bg-white border-r p-4 flex flex-col min-h-screen shadow-md animate-pulse">
-            <div className="text-center mb-8">
-                <div className="w-24 h-24 rounded-full mx-auto mb-3 bg-gray-300"></div>
-                <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto"></div>
+      <aside className="w-72 bg-gradient-to-b from-blue-50 to-white border-r border-blue-100 p-6 flex flex-col min-h-screen shadow-xl">
+        <div className="text-center mb-10">
+          <div className="w-28 h-28 rounded-full mx-auto mb-4 bg-gradient-to-r from-blue-200 to-blue-300 animate-pulse shadow-lg"></div>
+          <div className="h-6 bg-blue-200 rounded-lg w-3/4 mx-auto animate-pulse"></div>
+          <div className="h-4 bg-blue-100 rounded-lg w-1/2 mx-auto mt-2 animate-pulse"></div>
+        </div>
+        <div className="flex-grow space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-12 bg-blue-100 rounded-xl animate-pulse"></div>
+          ))}
+        </div>
+      </aside>
+    );
+  }
+
+  if (!doctor) {
+    return (
+      <aside className="w-72 bg-gradient-to-b from-blue-50 to-white border-r border-blue-100 p-6 flex flex-col min-h-screen shadow-xl">
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <div className="w-16 h-16 rounded-full bg-gray-200 mx-auto mb-4 flex items-center justify-center">
+              <span className="text-2xl">👤</span>
             </div>
-            <div className="flex-grow space-y-2">
-                <div className="h-10 bg-gray-300 rounded"></div>
-                <div className="h-10 bg-gray-300 rounded"></div>
-                <div className="h-10 bg-gray-300 rounded"></div>
-            </div>
-        </aside>
+            <p>Không tìm thấy thông tin bác sĩ</p>
+          </div>
+        </div>
+      </aside>
     );
   }
 
   const isActive = (href: string) => pathname.startsWith(href);
 
+  const menuItems = [
+    { href: '/doctor/dashboard', icon: '📊', label: 'Dashboard', color: 'from-blue-500 to-blue-600' },
+    { href: '/doctor/schedule', icon: '🗓️', label: 'Lịch khám', color: 'from-green-500 to-green-600' },
+    { href: '/doctor/patients', icon: '📁', label: 'Hồ sơ bệnh án', color: 'from-purple-500 to-purple-600' },
+    { href: '/doctor/profile', icon: '👤', label: 'Hồ sơ cá nhân', color: 'from-orange-500 to-orange-600' },
+  ];
+
   return (
-    <aside className="w-64 bg-white border-r p-4 flex flex-col min-h-screen shadow-md">
-      <div className="text-center mb-8">
-        <img
-          // <<< SỬA #1: HIỂN THỊ ẢNH ĐÚNG CÁCH >>>
-          // Dữ liệu `img` bây giờ đã có trong `doctor` object
-          src={doctor.img ? `http://localhost:5000/uploads/${doctor.img}` : "https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr"}
-          alt="avatar"
-          className="w-24 h-24 rounded-full mx-auto mb-3 object-cover border-4 border-blue-200"
-        />
-        <h2 className="font-bold text-lg text-gray-800">{doctor.name}</h2>
+    <aside className="w-72 bg-gradient-to-b from-blue-50 via-white to-blue-50 border-r border-blue-100 p-6 flex flex-col min-h-screen shadow-xl relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100/50 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-100/30 to-transparent rounded-full translate-y-20 -translate-x-20"></div>
+      
+      {/* Doctor Profile Section */}
+      <div className="text-center mb-10 relative z-10">
+        <div className="relative mb-4">
+          <img
+            src={doctor.img ? `http://localhost:5000/uploads/${doctor.img}` : "https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr"}
+            alt="avatar"
+            className="w-28 h-28 rounded-full mx-auto object-cover border-4 border-white shadow-lg ring-4 ring-blue-100 transition-transform hover:scale-105"
+          />
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-400 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+            <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+        <h2 className="font-bold text-xl text-gray-800 mb-1">{doctor.name}</h2>
+        <p className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full inline-block">
+          Bác sĩ chuyên khoa
+        </p>
       </div>
 
-      <nav className="flex-grow space-y-2 text-gray-700">
-        <Link href="/doctor/dashboard" className={`block p-3 rounded-lg transition-colors ${isActive('/doctor/dashboard') ? 'bg-blue-600 text-white font-semibold shadow' : 'hover:bg-gray-100'}`}>
-            📊 Dashboard
-        </Link>
-        <Link href="/doctor/schedule" className={`block p-3 rounded-lg transition-colors ${isActive('/doctor/schedule') ? 'bg-blue-600 text-white font-semibold shadow' : 'hover:bg-gray-100'}`}>
-            🗓️ Lịch khám
-        </Link>
-        <Link href="/doctor/patients" className={`block p-3 rounded-lg transition-colors ${isActive('/doctor/patients') ? 'bg-blue-600 text-white font-semibold shadow' : 'hover:bg-gray-100'}`}>
-            📁 Hồ sơ bệnh án
-        </Link>
-        <Link href="/doctor/profile" className={`block p-3 rounded-lg transition-colors ${isActive('/doctor/profile') ? 'bg-blue-600 text-white font-semibold shadow' : 'hover:bg-gray-100'}`}>
-            👤 Hồ sơ cá nhân
-        </Link>
+      {/* Navigation Menu */}
+      <nav className="flex-grow space-y-3 text-gray-700 relative z-10">
+        {menuItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`group relative block p-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] ${
+              isActive(item.href)
+                ? `bg-gradient-to-r ${item.color} text-white font-semibold shadow-lg shadow-blue-200/50`
+                : 'hover:bg-white hover:shadow-lg hover:shadow-blue-100/50 bg-white/50 backdrop-blur-sm'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <span className={`text-xl transition-transform group-hover:scale-110 ${
+                isActive(item.href) ? 'drop-shadow-sm' : ''
+              }`}>
+                {item.icon}
+              </span>
+              <span className="font-medium">{item.label}</span>
+            </div>
+            {isActive(item.href) && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full shadow-lg"></div>
+            )}
+          </Link>
+        ))}
       </nav>
 
-      <div className="mt-auto">
-        <button 
+      {/* Logout Button */}
+      <div className="mt-8 relative z-10">
+        <button
           onClick={handleLogout}
-          className="w-full text-left p-3 rounded-lg transition-colors hover:bg-red-100 text-red-600 font-medium"
+          className="group w-full text-left p-4 rounded-xl transition-all duration-300 hover:bg-red-50 text-red-600 font-medium border-2 border-red-100 hover:border-red-200 hover:shadow-lg hover:shadow-red-100/50 transform hover:scale-[1.02]"
         >
-          🚪 Đăng xuất
+          <div className="flex items-center space-x-3">
+            <span className="text-xl transition-transform group-hover:scale-110">🚪</span>
+            <span>Đăng xuất</span>
+          </div>
         </button>
+      </div>
+
+      {/* Decorative bottom element */}
+      <div className="mt-6 pt-4 border-t border-blue-100 relative z-10">
+        <div className="text-center text-xs text-gray-400">
+          <p>Hệ thống quản lý y tế</p>
+          <div className="flex justify-center space-x-1 mt-2">
+            <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+          </div>
+        </div>
       </div>
     </aside>
   );

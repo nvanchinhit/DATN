@@ -87,6 +87,40 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
  * METHOD: GET /api/appointments/my-appointments
  * ==========================================================
  */
+// ✅ Lấy hồ sơ bệnh án theo bác sĩ
+router.get('/doctor/:doctorId', async (req, res) => {
+  const { doctorId } = req.params;
+
+  try {
+    const [rows] = await db.execute(
+      `SELECT 
+        a.id AS appointment_id,
+        a.reason,
+        a.created_at,
+        a.customer_id,
+        a.doctor_id,
+        c.name AS patient_name,
+        c.email AS patient_email,
+        mr.id AS medical_record_id,
+        mr.diagnosis,
+        mr.treatment,
+        mr.notes
+      FROM appointments a
+      JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN medical_records mr ON mr.appointment_id = a.id
+      WHERE a.doctor_id = ?
+      ORDER BY c.id, a.created_at DESC`,
+      [doctorId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Lỗi khi lấy hồ sơ:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ khi truy vấn hồ sơ.' });
+  }
+});
+
+module.exports = router;
 router.get('/my-appointments', authMiddleware, (req, res) => {
   const customerId = req.user.id;
   const sql = `
@@ -175,5 +209,29 @@ router.put('/:id/status', [authMiddleware, isDoctor], (req, res) => {
     res.json({ message: `Đã cập nhật trạng thái lịch hẹn thành "${status}"` });
   });
 });
+router.put('/appointments/:id/diagnosis', (req, res) => {
+  const { id } = req.params;
+  const { diagnosis, doctor_note, follow_up_date, is_examined } = req.body;
 
+  const sql = `
+    UPDATE appointments
+    SET 
+      diagnosis = ?, 
+      doctor_note = ?, 
+      follow_up_date = ?, 
+      is_examined = ?
+    WHERE id = ?
+  `;
+
+  db.query(sql, [diagnosis, doctor_note, follow_up_date, is_examined || 0, id], (err, result) => {
+    if (err) {
+      console.error("❌ Lỗi khi lưu bệnh án:", err);
+      return res.status(500).json({ error: "Không thể lưu bệnh án." });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Không tìm thấy cuộc hẹn." });
+    }
+    res.json({ message: "✅ Lưu bệnh án thành công." });
+  });
+});
 module.exports = router;

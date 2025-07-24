@@ -33,6 +33,7 @@ const adminRoutes = require('./admin.routes');
 const scheduleRoutes = require('./schedule.routes');
 
 
+
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
@@ -60,6 +61,36 @@ router.get('/products-by-brand', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(result);
   });
+});
+// Lưu bệnh án (diagnosis)
+router.put('/appointments/:id/diagnosis', (req, res) => {
+  const { id } = req.params;
+  const { diagnosis, doctor_note, follow_up_date, is_examined } = req.body;
+
+  const sql = `
+    UPDATE appointments
+    SET 
+      diagnosis = ?, 
+      doctor_note = ?, 
+      follow_up_date = ?, 
+      is_examined = ?
+    WHERE id = ?
+  `;
+
+  db.query(
+    sql,
+    [diagnosis, doctor_note, follow_up_date, is_examined || 0, id],
+    (err, result) => {
+      if (err) {
+        console.error("❌ Lỗi khi lưu bệnh án:", err);
+        return res.status(500).json({ error: "Không thể lưu bệnh án." });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Không tìm thấy lịch hẹn." });
+      }
+      res.json({ message: "✅ Lưu bệnh án thành công." });
+    }
+  );
 });
 
 router.get('/doctors/top', (req, res) => {
@@ -102,6 +133,8 @@ router.get('/appointments/slot/:slotId', (req, res) => {
 });
 
 
+
+
 router.get('/doctors-by-specialization/:specializationId', (req, res) => {
   const { specializationId } = req.params;
   if (!specializationId) return res.status(400).json({ error: 'Thiếu ID chuyên khoa.' });
@@ -117,6 +150,7 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
     res.json(results);
   });
 });
+// thống kê tổng quan
 
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
@@ -140,7 +174,11 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       a.phone AS patient_phone,
       a.reason AS patient_note,      -- << ĐÃ SỬA TẠI ĐÂY
       a.payment_status,
-      a.status AS booking_status
+      a.status AS booking_status,
+      a.diagnosis,
+      a.doctor_note,
+      a.follow_up_date,
+      a.is_examined
     FROM doctor_time_slot AS dts
     LEFT JOIN appointments AS a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
     WHERE dts.doctor_id = ? AND dts.slot_date >= CURDATE()
@@ -171,7 +209,11 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
               patientPhone: slot.patient_phone,
               note: slot.patient_note, // Frontend sẽ nhận trường `note`
               paymentStatus: slot.payment_status,
-              status: slot.booking_status
+              status: slot.booking_status,
+              diagnosis: slot.diagnosis,
+              doctorNote: slot.doctor_note,
+              followUpDate: slot.follow_up_date,
+              isExamined: !!slot.is_examined
             }
           : null;
 
