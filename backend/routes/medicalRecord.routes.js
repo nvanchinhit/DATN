@@ -16,17 +16,20 @@ router.get('/doctor/:doctorId', (req, res) => {
       a.id AS appointment_id,
       a.name AS patient_name,
       a.reason,
-      a.customer_id, -- Đảm bảo cột này được lấy
-      a.doctor_id,   -- Đảm bảo cột này được lấy
+      a.customer_id,
+      a.doctor_id,
       mr.id AS medical_record_id,
       mr.diagnosis,
       mr.treatment,
       mr.notes,
-      mr.created_at  -- Đây là created_at của bảng medical_records
+      mr.created_at,
+      c.name AS customer_name, -- lấy tên tài khoản đặt lịch
+      c.email AS patient_email
     FROM appointments a
     LEFT JOIN medical_records mr ON a.id = mr.appointment_id
+    JOIN customers c ON a.customer_id = c.id
     WHERE a.doctor_id = ? AND a.status = 'Đã xác nhận'
-    ORDER BY a.id DESC; -- Sửa ở đây: Sắp xếp theo ID của lịch hẹn (rõ ràng hơn)
+    ORDER BY a.id DESC;
   `;
 
   db.query(sql, [doctorId], (err, results) => {
@@ -90,36 +93,11 @@ router.post('/', (req, res) => {
   });
 });
 
-// ✅ Hàm lấy hồ sơ theo customer_id
-const getRecordsByCustomer = async (req, res) => {
-  const { customerId } = req.params;
 
-  try {
-    const [rows] = await db.execute(
-      `SELECT 
-        a.id AS appointment_id,
-        a.reason,
-        a.created_at,
-        a.doctor_id,
-        c.name AS patient_name,
-        c.email AS patient_email,
-        mr.id AS medical_record_id,
-        mr.diagnosis,
-        mr.treatment,
-        mr.notes
-      FROM appointments a
-      JOIN customers c ON a.customer_id = c.id
-      LEFT JOIN medical_records mr ON a.id = mr.appointment_id
-      WHERE a.customer_id = ?
-      ORDER BY a.created_at DESC`,
-      [customerId]
-    );
+// Import controller đúng chuẩn
+const medicalRecordController = require('../controllers/medicalRecordController');
 
-    res.json(rows);
-  } catch (err) {
-    console.error('Lỗi khi lấy hồ sơ theo customer:', err);
-    res.status(500).json({ error: 'Lỗi khi lấy hồ sơ bệnh án theo bệnh nhân.' });
-  }
-};
+// Route lấy lịch sử hồ sơ bệnh án theo customerId
+router.get('/history/:customerId', medicalRecordController.getRecordsByCustomer);
 
 module.exports = router;

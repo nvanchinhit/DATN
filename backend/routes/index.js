@@ -427,66 +427,81 @@ router.get('/doctors', (req, res) => {
 });
 
 
+// Thay thế route này trong file index.js của bạn
+
 router.get('/specializations/:specializationId/schedule', (req, res) => {
-  const { specializationId } = req.params;
-  const { date } = req.query; // Nhận ngày từ query, ví dụ: /schedule?date=2025-07-16
+    const { specializationId } = req.params;
+    const { date } = req.query;
 
-  // 1. Kiểm tra đầu vào
-  if (!specializationId || !date) {
-    return res.status(400).json({ error: 'Thiếu ID chuyên khoa hoặc ngày.' });
-  }
-
-  // 2. Câu lệnh SQL để lấy lịch khám theo chuyên khoa và ngày
-  const sql = `
-    SELECT 
-      dts.id AS time_slot_id,
-      TIME_FORMAT(dts.start_time, '%H:%i') AS start_time,
-      TIME_FORMAT(dts.end_time, '%H:%i') AS end_time,
-      d.id AS doctor_id,
-      d.name AS doctor_name,
-      d.img AS doctor_img
-    FROM doctor_time_slot dts
-    JOIN doctors d ON dts.doctor_id = d.id
-    LEFT JOIN appointments a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
-    WHERE 
-      d.specialization_id = ? 
-      AND d.account_status = 'active'
-      AND dts.slot_date = ?
-      AND dts.is_active = 1
-      AND a.id IS NULL -- Chỉ lấy những slot chưa được đặt
-    ORDER BY dts.start_time, d.name;
-  `;
-
-  // 3. Thực thi truy vấn
-  db.query(sql, [specializationId, date], (err, results) => {
-    if (err) {
-      console.error("Lỗi truy vấn lịch khám theo chuyên khoa:", err);
-      return res.status(500).json({ error: 'Lỗi server khi lấy lịch khám.' });
+    if (!specializationId || !date) {
+        return res.status(400).json({ error: 'Thiếu ID chuyên khoa hoặc ngày.' });
     }
 
-    // 4. Gom nhóm kết quả theo khung giờ
-    const groupedByTime = results.reduce((acc, slot) => {
-      const timeKey = `${slot.start_time} - ${slot.end_time}`;
-      if (!acc[timeKey]) {
-        acc[timeKey] = {
-          time: timeKey,
-          slots: []
-        };
-      }
-      acc[timeKey].slots.push({
-        time_slot_id: slot.time_slot_id,
-        doctor: {
-          id: slot.doctor_id,
-          name: slot.doctor_name,
-          img: slot.doctor_img
+    const sql = `
+        SELECT 
+            dts.id AS time_slot_id,
+            dts.is_active, 
+            TIME_FORMAT(dts.start_time, '%H:%i') AS start_time,
+            TIME_FORMAT(dts.end_time, '%H:%i') AS end_time,
+            d.id AS doctor_id,
+            d.name AS doctor_name,
+            d.img AS doctor_img,
+            a.id AS appointment_id
+        FROM doctor_time_slot dts
+        JOIN doctors d ON dts.doctor_id = d.id
+        LEFT JOIN appointments a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
+        WHERE 
+            d.specialization_id = ? 
+            AND d.account_status = 'active'
+            AND dts.slot_date = ?
+        ORDER BY dts.start_time, d.name;
+    `;
+
+    db.query(sql, [specializationId, date], (err, results) => {
+        if (err) {
+            console.error("Lỗi truy vấn lịch khám:", err);
+            return res.status(500).json({ error: 'Lỗi server.' });
         }
-      });
-      return acc;
-    }, {});
-    
-    // Trả về một mảng các object đã được nhóm lại
-    res.json(Object.values(groupedByTime));
-  });
+
+        // <<<<<<< SỬA ĐỔI LOGIC GOM NHÓM >>>>>>>
+        const groupedByTime = results.reduce((acc, slot) => {
+            const timeKey = `${slot.start_time} - ${slot.end_time}`;
+
+            if (!acc[timeKey]) {
+                acc[timeKey] = {
+                    time: timeKey,
+                    totalSlots: 0,
+                    availableSlots: 0,
+                    bookedSlots: 0,     // Đếm số slot đã được đặt
+                    inactiveSlots: 0,   // Đếm số slot bị bác sĩ tắt
+                    slots: []
+                };
+            }
+
+            const group = acc[timeKey];
+            group.totalSlots++;
+
+            if (slot.appointment_id !== null) {
+                group.bookedSlots++;
+            } else if (!slot.is_active) {
+                group.inactiveSlots++;
+            } else {
+                // Chỉ "có sẵn" khi chưa đặt VÀ bác sĩ đang bật
+                group.availableSlots++;
+                group.slots.push({
+                    time_slot_id: slot.time_slot_id,
+                    doctor: {
+                        id: slot.doctor_id,
+                        name: slot.doctor_name,
+                        img: slot.doctor_img
+                    }
+                });
+            }
+            return acc;
+        }, {});
+        
+        res.json(Object.values(groupedByTime));
+    });
 });
 
 module.exports = router;

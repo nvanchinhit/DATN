@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Stethoscope, GraduationCap, FileText, BadgeInfo, ImageOff, Loader2 } from 'lucide-react';
+// <-- Thêm icon mới ShieldCheck
+import { X, Stethoscope, GraduationCap, FileText, BadgeInfo, ImageOff, Loader2, School, Award, CalendarCheck, Star, ShieldCheck } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-// Interface cho chi tiết bác sĩ - PHẢI KHỚP VỚI API
+// Interface cho chi tiết bác sĩ - ĐÃ CẬP NHẬT
 interface DoctorDetails {
   id: number;
   name: string;
@@ -14,9 +15,12 @@ interface DoctorDetails {
   introduction: string | null;
   experience: string | null;
   university: string | null;
+  gpa: string | null;
+  graduation_date: string | null;
   degree_type: string | null;
-  degree_image: string | null;      // <-- Đổi tên cho đúng
-  certificate_image: string | null; // <-- Đổi tên cho đúng
+  degree_image: string | null;
+  certificate_image: string | null;
+  certificate_source: string | null; // <-- Thêm trường nguồn cấp chứng chỉ
   specialization_name: string;
 }
 
@@ -30,11 +34,23 @@ interface DoctorDetailsModalProps {
 const getImageUrl = (fileName: string | null | undefined): string | null => {
     if (!fileName) return null;
     if (fileName.startsWith('http')) return fileName;
-    // Xử lý trường hợp tên file có thể có hoặc không có /uploads/
     const path = fileName.startsWith('/') ? fileName : `/${fileName}`;
     const cleanPath = path.startsWith('/uploads/') ? path : `/uploads${path}`;
     return `${API_URL}${cleanPath}`;
 }
+
+const formatGraduationYear = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'Chưa có thông tin';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString;
+        }
+        return date.getFullYear().toString();
+    } catch (e) {
+        return dateString;
+    }
+};
 
 export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: DoctorDetailsModalProps) {
   const [activeTab, setActiveTab] = useState('info');
@@ -71,8 +87,7 @@ export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: Doctor
 
   if (!isOpen) return null;
 
-  // Đọc đúng thuộc tính từ object doctor
-  const avatarUrl = doctor ? getImageUrl(doctor.img) : '/default-avatar.png';
+  const avatarUrl = doctor ? getImageUrl(doctor.img) || '/default-avatar.png' : '/default-avatar.png';
   const degreeUrl = doctor ? getImageUrl(doctor.degree_image) : null;
   const certificateUrl = doctor ? getImageUrl(doctor.certificate_image) : null;
 
@@ -119,7 +134,7 @@ export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: Doctor
                 <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
                     <nav className="-mb-px flex space-x-6 px-6">
                          <TabButton id="info" activeTab={activeTab} setActiveTab={setActiveTab} icon={<BadgeInfo size={16}/>}>Giới thiệu & Kinh nghiệm</TabButton>
-                         <TabButton id="degree" activeTab={activeTab} setActiveTab={setActiveTab} icon={<GraduationCap size={16}/>}>Bằng cấp</TabButton>
+                         <TabButton id="degree" activeTab={activeTab} setActiveTab={setActiveTab} icon={<GraduationCap size={16}/>}>Học vấn & Bằng cấp</TabButton>
                          <TabButton id="certificate" activeTab={activeTab} setActiveTab={setActiveTab} icon={<FileText size={16}/>}>Chứng chỉ</TabButton>
                     </nav>
                 </div>
@@ -138,8 +153,41 @@ export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: Doctor
                                     <p className='whitespace-pre-line'>{doctor.experience || 'Chưa có thông tin.'}</p>
                                 </div>
                             )}
-                            {activeTab === 'degree' && <ImageViewer url={degreeUrl} type="Bằng cấp" />}
-                            {activeTab === 'certificate' && <ImageViewer url={certificateUrl} type="Chứng chỉ" />}
+                            {activeTab === 'degree' && (
+                                <div className="space-y-6">
+                                    <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-lg shadow-sm">
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-4 border-b border-blue-200 pb-2">Thông tin học vấn</h4>
+                                        <div className="space-y-3">
+                                            <InfoRow icon={<School size={18} className="text-blue-500" />} label="Trường tốt nghiệp" value={doctor.university} />
+                                            <InfoRow icon={<Award size={18} className="text-blue-500" />} label="Loại bằng" value={doctor.degree_type} />
+                                            <InfoRow icon={<CalendarCheck size={18} className="text-blue-500" />} label="Năm tốt nghiệp" value={formatGraduationYear(doctor.graduation_date)} />
+                                            <InfoRow icon={<Star size={18} className="text-blue-500" />} label="GPA" value={doctor.gpa} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-2">Ảnh minh chứng bằng cấp</h4>
+                                        <ImageViewer url={degreeUrl} type="Bằng cấp" />
+                                    </div>
+                                </div>
+                            )}
+                            {/* --- THAY ĐỔI LỚN TẠI ĐÂY --- */}
+                            {activeTab === 'certificate' && (
+                                <div className="space-y-6">
+                                    {/* Section for text details */}
+                                    <div className="p-5 bg-blue-50/70 border border-blue-200 rounded-lg shadow-sm">
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-4 border-b border-blue-200 pb-2">Thông tin chứng chỉ</h4>
+                                        <div className="space-y-3">
+                                            <InfoRow icon={<ShieldCheck size={18} className="text-blue-500" />} label="Nguồn cấp" value={doctor.certificate_source} />
+                                        </div>
+                                    </div>
+
+                                    {/* Section for the image */}
+                                    <div>
+                                        <h4 className="text-lg font-semibold text-gray-800 mb-2">Ảnh minh chứng chứng chỉ</h4>
+                                        <ImageViewer url={certificateUrl} type="Chứng chỉ" />
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </div>
@@ -171,5 +219,21 @@ const ImageViewer = ({ url, type }: { url: string | null, type: string }) => {
         <a href={url} target="_blank" rel="noopener noreferrer" title={`Xem ảnh ${type} đầy đủ`}>
             <img src={url} alt={type} className="rounded-lg border w-full h-auto object-contain max-h-[50vh] bg-gray-100" />
         </a>
+    );
+};
+
+// --- Component con để hiển thị một dòng thông tin ---
+const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | null | undefined }) => {
+    // Không hiển thị nếu không có dữ liệu hoặc dữ liệu là chuỗi rỗng
+    if (!value || value.trim() === '') return null;
+    
+    return (
+        <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-5 pt-0.5">{icon}</div>
+            <div className="flex-grow">
+                <p className="font-medium text-gray-500 text-sm">{label}</p>
+                <p className="text-gray-800 font-semibold">{value}</p>
+            </div>
+        </div>
     );
 };

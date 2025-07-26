@@ -300,7 +300,7 @@ exports.getTopDoctors = (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 5;
 
   const sql = `
-  SELECT
+SELECT
     d.id,
     d.name,
     d.img,
@@ -315,25 +315,25 @@ exports.getTopDoctors = (req, res) => {
     s.name AS specialty_name,
     AVG(r.rating) AS average_rating,
     COUNT(r.id) AS review_count
-  FROM
+FROM
     doctors d
-  LEFT JOIN
+LEFT JOIN
     specializations s ON d.specialization_id = s.id
-  LEFT JOIN
-    ratings r ON d.id = r.product_id
-  WHERE
+LEFT JOIN
+    ratings r ON d.id = r.doctor_id  -- <<< ĐÃ SỬA LỖI TẠI ĐÂY
+WHERE
     d.account_status = 'active'
-  GROUP BY
+GROUP BY
     d.id, d.name, d.img, d.introduction,
     d.degree_image, d.gpa, d.university, d.graduation_date, d.degree_type,
     d.certificate_image, d.certificate_source,
     s.name
-  HAVING
+HAVING
     COUNT(r.id) > 0
-  ORDER BY
+ORDER BY
     average_rating DESC,
     review_count DESC
-  LIMIT ?;
+LIMIT 5;
 `;
 
 

@@ -1,37 +1,43 @@
-'use client';
-
+"use client";
 import React, { useEffect, useState, useCallback } from 'react';
 import Sidebardoctor from '@/components/layout/Sidebardoctor';
 
-// Interface không cần trường 'prescription' nữa
 interface PatientAppointment {
   appointment_id: number;
   patient_name: string;
-  patient_email: string; 
+  patient_email: string;
   reason: string;
   customer_id: number;
   doctor_id: number;
   medical_record_id: number | null;
   diagnosis: string | null;
-  treatment: string | null; // Đây là ghi chú nội bộ của bác sĩ
+  treatment: string | null;
   notes: string | null;
   created_at: string | null;
+  customer_name?: string; // tên tài khoản đặt lịch
 }
+
+interface MedicalRecordHistory {
+  appointment_id: number;
+  customer_id: number;
+  diagnosis: string | null;
+  doctor_note: string | null;
+  follow_up_date: string | null;
+  reason: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  created_at?: string | null;
+  patient_name?: string; // tên bệnh nhân từng ca khám
+}
+
 
 export default function PatientMedicalRecordsPage() {
   const [patients, setPatients] = useState<PatientAppointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  
-  // State cho form tạo hồ sơ
-  const [diagnosis, setDiagnosis] = useState('');
-  const [treatment, setTreatment] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // State MỚI dành riêng cho form soạn đơn thuốc
-  const [prescriptionText, setPrescriptionText] = useState('');
-  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [history, setHistory] = useState<MedicalRecordHistory[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchPatientData = useCallback((doctorId: number) => {
     setIsLoading(true);
@@ -45,6 +51,21 @@ export default function PatientMedicalRecordsPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  // Lấy lịch sử hồ sơ bệnh án của tài khoản đặt lịch
+  const fetchMedicalRecordHistory = async (customerId: number) => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/medical-records/history/${customerId}`);
+      if (!res.ok) throw new Error('Không thể tải lịch sử hồ sơ bệnh án.');
+      const data = await res.json();
+      setHistory(data);
+    } catch (err: any) {
+      setHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     const doctorInfoString = localStorage.getItem('user');
     if (doctorInfoString) {
@@ -56,81 +77,20 @@ export default function PatientMedicalRecordsPage() {
     }
   }, [fetchPatientData]);
 
-  // Hàm lưu hồ sơ (chỉ lưu chẩn đoán và ghi chú điều trị nội bộ)
-  const handleSaveRecord = async (appointment: PatientAppointment) => {
-    if (!diagnosis || !treatment) {
-      alert('Vui lòng điền đầy đủ Chẩn đoán và Phương pháp điều trị (ghi chú).');
-      return;
-    }
-    try {
-      const response = await fetch('http://localhost:5000/api/medical-records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appointment_id: appointment.appointment_id,
-          doctor_id: appointment.doctor_id,
-          customer_id: appointment.customer_id,
-          diagnosis,
-          treatment, // Ghi chú nội bộ
-          notes,
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Có lỗi xảy ra khi lưu hồ sơ.');
+  // Nhóm theo customer_id
+  const customers = Array.from(
+    patients.reduce((map, p) => {
+      if (!map.has(p.customer_id)) {
+        map.set(p.customer_id, {
+          customer_id: p.customer_id,
+          customer_name: p.customer_name || '', // chỉ lấy tên tài khoản từ backend
+          patient_email: p.patient_email
+        });
       }
+      return map;
+    }, new Map<number, { customer_id: number; customer_name: string; patient_email: string }>() ).values()
+  );
 
-      alert('✅ Đã lưu hồ sơ bệnh án thành công!');
-      
-      setDiagnosis('');
-      setTreatment('');
-      setNotes('');
-      
-      const doctorInfoString = localStorage.getItem('user');
-      if (doctorInfoString) {
-        const loggedInDoctor = JSON.parse(doctorInfoString);
-        fetchPatientData(loggedInDoctor.id);
-      }
-    } catch (err: any) {
-      alert(`❌ Lỗi: ${err.message}`);
-    }
-  };
-
-  // HÀM GỬI EMAIL ĐÃ CẬP NHẬT
-  const handleSendPrescription = async (appointment: PatientAppointment) => {
-    if (!prescriptionText.trim()) {
-      alert('Vui lòng nhập nội dung đơn thuốc.');
-      return;
-    }
-
-    setSendingEmailId(appointment.appointment_id);
-    try {
-      const response = await fetch(`http://localhost:5000/api/auth/medical-records/send-prescription`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          medical_record_id: appointment.medical_record_id,
-          prescription_text: prescriptionText, // Gửi nội dung từ form
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.msg || 'Không thể gửi đơn thuốc.');
-      }
-
-      alert(`✅ Đã gửi đơn thuốc thành công đến email: ${appointment.patient_email}`);
-      setPrescriptionText(''); // Xóa nội dung form sau khi gửi thành công
-
-    } catch (err: any) {
-      alert(`❌ Lỗi khi gửi đơn thuốc: ${err.message}`);
-    } finally {
-      setSendingEmailId(null);
-    }
-  }
-  
-  // --- Giao diện chính ---
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebardoctor />
@@ -140,78 +100,86 @@ export default function PatientMedicalRecordsPage() {
         {error && <p className="text-red-500 bg-red-100 p-3 rounded">{error}</p>}
         {!isLoading && !error && (
           <div className="space-y-4">
-            {patients.map((p) => (
-              <div key={p.appointment_id} className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-semibold text-blue-900">{p.patient_name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">📝 <span className="font-medium">Lý do khám:</span> {p.reason}</p>
+            {customers.map((c) => (
+              <div key={c.customer_id} className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+                {/* Bỏ header ID người dùng đặt lịch và tên bệnh nhân */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 rounded-full h-12 w-12 flex items-center justify-center text-blue-600 text-2xl font-bold shadow-sm">
+                      <span>{c.customer_name && c.customer_name.trim().length > 0 ? c.customer_name.charAt(0).toUpperCase() : 'N'}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                        {c.customer_name && c.customer_name.trim().length > 0 ? c.customer_name : 'Chưa có tên'}
+                        <span className="ml-2 px-2 py-0.5 text-xs rounded bg-blue-200 text-blue-800 font-semibold">ID: {c.customer_id}</span>
+                      </h3>
+                    </div>
                   </div>
-                  <button onClick={() => setSelectedPatientId(selectedPatientId === p.appointment_id ? null : p.appointment_id)} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium">
-                    {selectedPatientId === p.appointment_id ? 'Đóng' : (p.medical_record_id ? 'Xem / Gửi Đơn' : 'Tạo Hồ Sơ')}
+                  <button
+                    onClick={() => {
+                      if (selectedCustomerId === c.customer_id) {
+                        setSelectedCustomerId(null);
+                        setHistory([]);
+                      } else {
+                        setSelectedCustomerId(c.customer_id);
+                        fetchMedicalRecordHistory(c.customer_id);
+                      }
+                    }}
+                    className={`px-5 py-2 rounded-lg font-semibold text-sm shadow transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${selectedCustomerId === c.customer_id ? 'bg-gray-300 text-gray-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                  >
+                    {selectedCustomerId === c.customer_id ? 'Đóng' : 'Xem hồ sơ'}
                   </button>
                 </div>
-                {selectedPatientId === p.appointment_id && (
-                  <div className="mt-4 border-t border-gray-200 pt-4">
-                    {!p.medical_record_id ? (
-                      // FORM TẠO HỒ SƠ (GHI CHÚ NỘI BỘ)
-                      <div className="bg-gray-50 p-4 rounded-md">
-                        <h4 className="font-semibold text-gray-800 text-lg mb-3">🩺 Tạo hồ sơ bệnh án</h4>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Chẩn đoán <span className="text-red-500">*</span></label>
-                            <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} className="w-full border-gray-300 rounded-md p-2" rows={3} placeholder="Nhập chẩn đoán..." />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Phương pháp điều trị (Ghi chú nội bộ) <span className="text-red-500">*</span></label>
-                            <textarea value={treatment} onChange={(e) => setTreatment(e.target.value)} className="w-full border-gray-300 rounded-md p-2" rows={3} placeholder="Ghi chú hướng điều trị cho lần sau..." />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú thêm</label>
-                            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border-gray-300 rounded-md p-2" rows={2} placeholder="Ghi chú khác (nếu có)..." />
-                          </div>
-                          <button onClick={() => handleSaveRecord(p)} className="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 font-semibold">💾 Lưu Hồ Sơ</button>
+                {selectedCustomerId === c.customer_id && (
+                  <div className="mt-6 border-t border-blue-100 pt-6">
+                    <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl shadow-sm">
+                      <h4 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">🕑 Lịch sử các lần đặt lịch khám</h4>
+                      {loadingHistory ? (
+                        <div className="flex items-center gap-2 text-blue-500"><svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg> Đang tải lịch sử...</div>
+                      ) : history.length === 0 ? (
+                        <div className="text-gray-400 italic">Không có lịch sử khám.</div>
+                      ) : (
+                        <div className="relative pl-8 before:content-[''] before:absolute before:top-0 before:left-3 before:w-1 before:h-full before:bg-blue-100 before:rounded-full">
+                          {history.map((h, idx) => (
+                            <div key={h.appointment_id || idx} className="relative mb-8 group">
+                              <div className="absolute -left-1.5 top-2 w-7 h-7 bg-white border-2 border-blue-400 rounded-full flex items-center justify-center shadow group-hover:bg-blue-500 group-hover:border-blue-600 transition-colors">
+                                <span className="text-blue-500 group-hover:text-white font-bold text-lg">{idx + 1}</span>
+                              </div>
+                              <div className="ml-8 bg-white border border-blue-100 rounded-xl p-4 shadow group-hover:shadow-lg transition-shadow">
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-blue-700">Tên bệnh nhân:</span> <span className="text-blue-900">{h.patient_name || ''}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">Ca khám:</span> <span className="text-gray-900">{h.appointment_id}</span>
+                                    {h.start_time && h.end_time && (
+                                      <span className="ml-2 text-gray-500">({h.start_time.substring(0,5)} - {h.end_time.substring(0,5)})</span>
+                                    )}
+                                  </div>
+                                  {h.created_at && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="font-semibold text-gray-700">Thời gian đặt lịch:</span> <span className="text-gray-900">{new Date(h.created_at).toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">Lý do khám:</span> <span className="text-gray-900">{h.reason || 'Không rõ'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">Chẩn đoán:</span> <span className="text-gray-900">{h.diagnosis || 'Chưa có'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">Ngày tái khám:</span> <span className="text-gray-900">{h.follow_up_date ? new Date(h.follow_up_date).toLocaleDateString() : 'Không rõ'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">Ghi chú bác sĩ:</span> <span className="text-gray-900">{h.doctor_note || 'Chưa có'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ) : (
-                      // KHU VỰC HIỂN THỊ HỒ SƠ ĐÃ LƯU VÀ FORM GỬI ĐƠN THUỐC
-                      <div>
-                        {/* 1. Hiển thị thông tin nội bộ đã lưu */}
-                        <div className="bg-blue-50 border border-blue-300 p-4 rounded-md mb-4">
-                          <h4 className="text-lg font-semibold text-blue-800 mb-3">📄 Thông tin hồ sơ đã lưu</h4>
-                          <p><strong>Chẩn đoán:</strong> {p.diagnosis}</p>
-                          <p><strong>Ghi chú điều trị (Nội bộ):</strong> {p.treatment}</p>
-                          {p.notes && <p><strong>Ghi chú thêm:</strong> {p.notes}</p>}
-                        </div>
-
-                        {/* 2. Form soạn và gửi đơn thuốc */}
-                        <div className="bg-green-50 border border-green-300 p-4 rounded-md">
-                          <h4 className="text-lg font-semibold text-green-800 mb-3">📧 Soạn và Gửi Đơn Thuốc cho Bệnh nhân</h4>
-                          <div className="space-y-3">
-                            <label htmlFor={`prescription-${p.appointment_id}`} className="block text-sm font-medium text-gray-700">Nội dung đơn thuốc</label>
-                            <textarea
-                              id={`prescription-${p.appointment_id}`}
-                              value={prescriptionText}
-                              onChange={(e) => setPrescriptionText(e.target.value)}
-                              className="w-full border-gray-300 rounded-md p-2"
-                              rows={5}
-                              placeholder="Ví dụ:
-1. Paracetamol 500mg (20 viên)
-   - Uống 1 viên sau khi ăn, 3 lần/ngày.
-2. Amoxicillin 500mg (14 viên)
-   - Uống 1 viên sau khi ăn, 2 lần/ngày."
-                            />
-                            <button
-                              onClick={() => handleSendPrescription(p)}
-                              disabled={sendingEmailId === p.appointment_id}
-                              className="bg-sky-600 text-white px-5 py-2 rounded-md hover:bg-sky-700 font-semibold text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                              {sendingEmailId === p.appointment_id ? 'Đang gửi...' : 'Gửi Đơn Thuốc Qua Email'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
