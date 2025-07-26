@@ -31,6 +31,7 @@ const medicalRecordRoutes = require('./medicalRecord.routes');
 const ratingRoutes = require('./rating.routes'); // <-- Import
 const adminRoutes = require('./admin.routes');
 const scheduleRoutes = require('./schedule.routes');
+const paymentRoutes = require('./payment.routes');
 
 
 
@@ -42,7 +43,8 @@ router.use('/appointments', appointmentRoutes);
 router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:
 router.use('/medical-records', medicalRecordRoutes);
 router.use('/ratings', ratingRoutes);
-router.use('/schedules', scheduleRoutes); 
+router.use('/schedules', scheduleRoutes);
+router.use('/payment', paymentRoutes); 
 
 // Các route khác (sản phẩm, chuyên khoa, slot, v.v... giữ nguyên như cũ)
 

@@ -3,42 +3,82 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/app/contexts/page';
 import {
   LayoutDashboard, Stethoscope, Building, ClipboardList, CalendarClock,
-  Users, BarChart2, X, Menu, LogOut, User as UserIcon, Bell, Settings, Loader2
+  Users, BarChart2, X, Menu, LogOut, User as UserIcon, Bell, Settings, Loader2, CreditCard
 } from 'lucide-react';
+
+// Interface User
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role_id: number;
+}
 
 // Cấu trúc menu không đổi
 const adminMenuGroups = [
   { group: 'Tổng quan', items: [{ label: 'Bảng điều khiển', path: '/admin', icon: LayoutDashboard }, { label: 'Doanh thu', path: '/admin/revenues', icon: BarChart2 }] },
-  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/appointments', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope }, { label: 'Phòng khám', path: '/admin/clinics', icon: Building }, { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }] },
+  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/appointments', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope }, { label: 'Phòng khám', path: '/admin/clinics', icon: Building }, { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }, { label: 'Thanh toán', path: '/admin/payment', icon: CreditCard }] },
 ];
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, loading: authLoading } = useAuth(); 
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   
   // State để xác định có được phép render nội dung chính không
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-
-  // --- LOGIC BẢO MẬT ĐÃ SỬA LẠI ---
+  // Handle authentication directly
   useEffect(() => {
-    if (!authLoading) {
-      if (user && user.role_id === 1) {
-        setIsAuthorized(true);
-      } else {
+    const checkAuth = () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (token && userData) {
+          const parsedUser = JSON.parse(userData);
+          if (parsedUser.role_id === 1) {
+            setUser(parsedUser);
+            setIsAuthorized(true);
+          } else {
+            // Not admin, redirect to login
+            setIsAuthorized(false);
+            router.replace('/admin/login');
+          }
+        } else {
+          // No token, redirect to login
+          setIsAuthorized(false);
+          router.replace('/admin/login');
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setIsAuthorized(false);
         router.replace('/admin/login');
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [user, authLoading, router]);
+    };
 
+    checkAuth();
+  }, [router]);
+
+  // Handle logout
+  const handleLogout = () => {
+    setProfileMenuOpen(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setIsAuthorized(false);
+    router.push('/admin/login');
+  };
 
   // 1. Kiểm tra các trang không cần layout (như trang login)
   const noLayoutRoutes = ['/admin/login'];
@@ -46,16 +86,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-
   // --- CÁC HÀM VÀ COMPONENT KHÁC ---
   const isActive = (path: string) => {
     return pathname === path || (path !== '/admin' && pathname.startsWith(path));
-  };
-  
-  const handleLogout = () => {
-    setProfileMenuOpen(false); // Đóng dropdown trước khi logout
-    logout();
-    router.push('/admin/login');
   };
 
   const SidebarContent = () => (
@@ -121,7 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {/* --- LOGIC RENDER NỘI DUNG ĐƯỢC CHUYỂN VÀO ĐÂY --- */}
-            {authLoading || !isAuthorized ? (
+            {loading || !isAuthorized ? (
                 <div className="flex h-full w-full items-center justify-center">
                     <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
                 </div>

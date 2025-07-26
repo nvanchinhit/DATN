@@ -567,6 +567,30 @@ INSERT INTO `role` (`id`, `name`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `payment_settings`
+--
+
+CREATE TABLE `payment_settings` (
+  `id` int NOT NULL,
+  `bank_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `account_number` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `account_holder` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `token_auto` text COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text COLLATE utf8mb4_general_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payment_settings`
+--
+
+INSERT INTO `payment_settings` (`id`, `bank_name`, `account_number`, `account_holder`, `token_auto`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Vietcombank', '1234567890', 'NGUYEN VAN A', 'token_example_123', 'Cấu hình thanh toán mặc định', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `specializations`
 --
 
@@ -729,6 +753,12 @@ ALTER TABLE `role`
   ADD UNIQUE KEY `name` (`name`);
 
 --
+-- Indexes for table `payment_settings`
+--
+ALTER TABLE `payment_settings`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `specializations`
 --
 ALTER TABLE `specializations`
@@ -839,6 +869,12 @@ ALTER TABLE `ratings`
 --
 ALTER TABLE `role`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `payment_settings`
+--
+ALTER TABLE `payment_settings`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `specializations`

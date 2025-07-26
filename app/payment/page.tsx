@@ -1,27 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ScanLine, Clock, User, Mail, ShieldCheck } from 'lucide-react';
-
-const BANK_INFO = {
-  BANK_ID: '970416',
-  ACCOUNT_NO: '16087671',
-  ACCOUNT_NAME: 'NGUYEN VAN CHINH', 
-  TEMPLATE: 'compact2'
-};
+import { ScanLine, Clock, User, Mail, ShieldCheck, RefreshCw } from 'lucide-react';
 
 const CheckoutPage = () => {
   const [isClient, setIsClient] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 phút
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(true);
+  const [bankInfo, setBankInfo] = useState<any>(null);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, success, failed
   
   const service = {
     name: 'Phí khám Chuyên khoa Tim mạch',
     doctor: 'BS. Trần Văn Minh',
     doctorAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     date: '10:00 - 10:30, 29/10/2023',
-    price: 500000,
+    price: 50000, // Thay đổi từ 500000 thành 50000 để test
   };
   const user = {
     name: 'Nguyễn Văn A',
@@ -33,13 +29,79 @@ const CheckoutPage = () => {
     total: service.price,
   });
 
+  // Lấy thông tin ngân hàng từ API
+  const loadBankInfo = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/payment/settings', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setBankInfo({
+            BANK_ID: '970416', // Có thể lấy từ database nếu cần
+            ACCOUNT_NO: data.data.account_number,
+            ACCOUNT_NAME: data.data.account_holder,
+            TEMPLATE: 'compact2',
+            TOKEN_AUTO: data.data.token_auto
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading bank info:', error);
+    }
+  };
+
+  // Check lịch sử giao dịch từ API bên ngoài
+  const checkPaymentHistory = async () => {
+    if (!bankInfo?.TOKEN_AUTO) return;
+    
+    setIsCheckingPayment(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/payment/check-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: bankInfo.TOKEN_AUTO,
+          account_number: bankInfo.ACCOUNT_NO,
+          transaction_id: transaction.id,
+          amount: service.price
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment check response:', data);
+        
+        if (data.success && data.hasPayment) {
+          setPaymentStatus('success');
+          console.log('Payment confirmed! Status updated to success');
+        } else {
+          console.log('No payment found yet');
+        }
+      } else {
+        console.error('Error checking payment:', response.status);
+      }
+    } catch (error) {
+      console.error('Error checking payment history:', error);
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
   useEffect(() => {
     setIsClient(true);
+    loadBankInfo();
+    
     const transactionId = `TDCARE${Date.now()}`;
     setTransaction(prev => ({ ...prev, id: transactionId }));
-
-    const qrApiUrl = `https://img.vietqr.io/image/${BANK_INFO.BANK_ID}-${BANK_INFO.ACCOUNT_NO}-${BANK_INFO.TEMPLATE}.png?amount=${service.price}&addInfo=${encodeURIComponent(transactionId)}&accountName=${encodeURIComponent(BANK_INFO.ACCOUNT_NAME)}`;
-    setQrCodeUrl(qrApiUrl);
 
     const intervalId = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -47,6 +109,25 @@ const CheckoutPage = () => {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Tạo QR code khi có thông tin ngân hàng
+  useEffect(() => {
+    if (bankInfo && transaction.id) {
+      const qrApiUrl = `https://img.vietqr.io/image/${bankInfo.BANK_ID}-${bankInfo.ACCOUNT_NO}-${bankInfo.TEMPLATE}.png?amount=${service.price}&addInfo=${encodeURIComponent(transaction.id)}&accountName=${encodeURIComponent(bankInfo.ACCOUNT_NAME)}`;
+      setQrCodeUrl(qrApiUrl);
+    }
+  }, [bankInfo, transaction.id]);
+
+  // Tự động check payment mỗi 30 giây
+  useEffect(() => {
+    if (paymentStatus === 'pending' && bankInfo?.TOKEN_AUTO) {
+      const checkInterval = setInterval(() => {
+        checkPaymentHistory();
+      }, 30000); // 30 giây
+
+      return () => clearInterval(checkInterval);
+    }
+  }, [paymentStatus, bankInfo]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -57,6 +138,32 @@ const CheckoutPage = () => {
   const formatVND = (number: number) => {
     return isClient ? number.toLocaleString('vi-VN') + ' đ' : number + ' đ';
   };
+
+  const getStatusDisplay = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return {
+          text: 'Thanh toán thành công',
+          color: 'bg-green-50 text-green-700',
+          icon: ShieldCheck
+        };
+      case 'failed':
+        return {
+          text: 'Thanh toán thất bại',
+          color: 'bg-red-50 text-red-700',
+          icon: ShieldCheck
+        };
+      default:
+        return {
+          text: 'Đang chờ thanh toán',
+          color: 'bg-yellow-50 text-yellow-700',
+          icon: Clock
+        };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
+  const StatusIcon = statusDisplay.icon;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-10">
@@ -74,48 +181,64 @@ const CheckoutPage = () => {
             </h2>
             <p className="text-gray-500 mb-6">Quét mã dưới đây bằng ứng dụng Ngân hàng hoặc Ví điện tử để hoàn tất thanh toán.</p>
             
-            <div className="flex flex-col sm:flex-row gap-6 items-center">
-                
-                {/* --- THAY ĐỔI Ở ĐÂY --- */}
-                <div className="w-full max-w-xs mx-auto sm:mx-0 aspect-square p-3 bg-white border-4 border-blue-500 rounded-lg flex items-center justify-center">
-                    {qrCodeUrl ? (
-                      <>
-                        {isQrLoading && <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>}
-                        <img 
-                            src={qrCodeUrl} 
-                            alt="Mã QR thanh toán" 
-                            className={`w-full h-full object-contain transition-opacity duration-300 ${isQrLoading ? 'opacity-0' : 'opacity-100'}`}
-                            onLoad={() => setIsQrLoading(false)}
-                            onError={() => { setIsQrLoading(false); console.error("Lỗi tải ảnh QR. Vui lòng kiểm tra lại thông tin BANK_INFO."); }}
-                            style={{ display: isQrLoading ? 'none' : 'block' }}
-                        />
-                      </>
-                    ) : (
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                    )}
+            {!bankInfo ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col sm:flex-row gap-6 items-center">
+                    <div className="w-full max-w-xs mx-auto sm:mx-0 aspect-square p-3 bg-white border-4 border-blue-500 rounded-lg flex items-center justify-center">
+                        {qrCodeUrl ? (
+                          <>
+                            {isQrLoading && <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>}
+                            <img 
+                                src={qrCodeUrl} 
+                                alt="Mã QR thanh toán" 
+                                className={`w-full h-full object-contain transition-opacity duration-300 ${isQrLoading ? 'opacity-0' : 'opacity-100'}`}
+                                onLoad={() => setIsQrLoading(false)}
+                                onError={() => { setIsQrLoading(false); console.error("Lỗi tải ảnh QR."); }}
+                                style={{ display: isQrLoading ? 'none' : 'block' }}
+                            />
+                          </>
+                        ) : (
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                        )}
+                    </div>
+
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-gray-700 mb-3">Hướng dẫn:</h3>
+                        <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+                            <li>Mở ứng dụng Ngân hàng / Ví điện tử.</li>
+                            <li>Chọn tính năng quét mã QR (QR Pay).</li>
+                            <li>Quét mã và xác nhận giao dịch.</li>
+                        </ol>
+                        
+                        <div className="mt-4">
+                          <button
+                            onClick={checkPaymentHistory}
+                            disabled={isCheckingPayment}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
+                            {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
+                          </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex-1">
-                    <h3 className="font-semibold text-gray-700 mb-3">Hướng dẫn:</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-                        <li>Mở ứng dụng Ngân hàng / Ví điện tử.</li>
-                        <li>Chọn tính năng quét mã QR (QR Pay).</li>
-                        <li>Quét mã và xác nhận giao dịch.</li>
-                    </ol>
+                <div className="mt-8 text-center bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-yellow-600">
+                        <Clock size={20} />
+                        <p className="font-medium">Giao dịch sẽ hết hạn sau:</p>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-600 mt-1">{formatTime(timeLeft)}</p>
                 </div>
-            </div>
-
-            <div className="mt-8 text-center bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-center justify-center gap-2 text-yellow-600">
-                    <Clock size={20} />
-                    <p className="font-medium">Giao dịch sẽ hết hạn sau:</p>
-                </div>
-                <p className="text-3xl font-bold text-blue-600 mt-1">{formatTime(timeLeft)}</p>
-            </div>
+              </>
+            )}
           </div>
 
           <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100">
-            {/* ... Phần thông tin thanh toán không thay đổi ... */}
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Thông tin thanh toán</h2>
             <div className="space-y-4">
               <div className="p-4 bg-gray-50 rounded-lg">
@@ -160,9 +283,9 @@ const CheckoutPage = () => {
                   </div>
               </div>
 
-              <div className="text-center p-3 bg-green-50 text-green-700 rounded-lg flex items-center justify-center gap-2">
-                 <ShieldCheck size={16} />
-                 <p className="text-sm font-medium">Trạng thái: <span className="font-bold">Đang chờ thanh toán</span></p>
+              <div className={`text-center p-3 rounded-lg flex items-center justify-center gap-2 ${statusDisplay.color}`}>
+                 <StatusIcon size={16} />
+                 <p className="text-sm font-medium">Trạng thái: <span className="font-bold">{statusDisplay.text}</span></p>
               </div>
               
               {transaction.id && (
