@@ -7,22 +7,28 @@ import { Phone, Mail, ChevronDown, Search, User as UserIcon, LogOut, LayoutDashb
 export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const loadUser = () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        setUser(null);
+      if (typeof window !== 'undefined') {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        } else {
+          setUser(null);
+        }
       }
     };
 
     loadUser();
-    window.addEventListener("userChanged", loadUser);
+    if (typeof window !== 'undefined') {
+      window.addEventListener("userChanged", loadUser);
+    }
     
     // Đóng dropdown khi click ra ngoài
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,14 +40,18 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      window.removeEventListener("userChanged", loadUser);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("userChanged", loadUser);
+      }
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
     setUser(null);
     setDropdownOpen(false);
     router.push("/login");
@@ -55,6 +65,11 @@ export default function Header() {
     { href: "/about-us", label: "Về chúng tôi" },
     { href: "/contact-us", label: "Liên hệ" },
   ];
+
+  // Tránh hydration mismatch bằng cách chỉ render sau khi component đã mount
+  if (!mounted) {
+    return <div suppressHydrationWarning className="w-full bg-white shadow-md sticky top-0 z-50" />;
+  }
 
   return (
     <header className="w-full bg-white shadow-md sticky top-0 z-50">
