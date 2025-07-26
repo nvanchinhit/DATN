@@ -5,14 +5,85 @@ const router = express.Router();
 const db = require('../config/db.config');
 const authMiddleware = require('../middleware/auth.middleware');
 const { isDoctor } = require('../middleware/auth.middleware');
-const { sendConfirmationEmail, sendRejectionEmail } = require('../utils/sendEmail');
+const nodemailer = require('nodemailer');
+const mailConfig = require('../config/mail.config');
 
-/**
- * ==========================================================
- * ROUTE 1: ĐẶT LỊCH KHÁM MỚI (Dành cho người dùng đã đăng nhập)
- * METHOD: POST /api/appointments/
- * ==========================================================
- */
+// Cấu hình transporter email
+const transporter = nodemailer.createTransport({
+  host: mailConfig.HOST,
+  port: mailConfig.PORT,
+  secure: false,
+  auth: {
+    user: mailConfig.USERNAME,
+    pass: mailConfig.PASSWORD,
+  }
+});
+
+// Hàm gửi email thông báo đặt lịch thành công
+function sendBookingConfirmationEmail({ name, email, doctor, date, start, end, reason, payment }) {
+  const mailOptions = {
+    from: mailConfig.FROM_ADDRESS,
+    to: email,
+    subject: '✅ Lịch hẹn khám đã được đặt thành công',
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2 style="color: #007bff;">XÁC NHẬN ĐẶT LỊCH KHÁM</h2>
+        <p>Chào <strong>${name}</strong>,</p>
+        <p>Cảm ơn bạn đã đặt lịch khám tại bệnh viện chúng tôi. Dưới đây là thông tin chi tiết:</p>
+        <ul>
+          <li><strong>Bác sĩ:</strong> ${doctor}</li>
+          <li><strong>Ngày khám:</strong> ${date}</li>
+          <li><strong>Thời gian:</strong> ${start} - ${end}</li>
+          <li><strong>Lý do khám:</strong> ${reason}</li>
+          <li><strong>Trạng thái thanh toán:</strong> ${payment}</li>
+        </ul>
+        <p><strong>Lưu ý:</strong></p>
+        <ul>
+          <li>Vui lòng đến trước 15 phút để làm thủ tục</li>
+          <li>Lịch hẹn của bạn đang chờ bác sĩ xác nhận</li>
+          <li>Bạn sẽ nhận được email thông báo khi bác sĩ xác nhận lịch hẹn</li>
+        </ul>
+        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
+      </div>
+    `
+  };
+
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) console.error('❌ Lỗi gửi mail đặt lịch:', err);
+    else console.log('📧 Đã gửi mail đặt lịch thành công:', info.response);
+  });
+}
+
+// Hàm gửi email xác nhận lịch hẹn (khi bác sĩ xác nhận)
+function sendConfirmationEmail({ name, email, doctor, date, start, end, reason, payment }) {
+  const mailOptions = {
+    from: mailConfig.FROM_ADDRESS,
+    to: email,
+    subject: '✅ Lịch hẹn khám đã được xác nhận',
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <h2 style="color: #007bff;">XÁC NHẬN LỊCH KHÁM</h2>
+        <p>Chào <strong>${name}</strong>,</p>
+        <p>Bệnh viện xin xác nhận bạn đã đặt lịch khám thành công với các thông tin sau:</p>
+        <ul>
+          <li><strong>Bác sĩ:</strong> ${doctor}</li>
+          <li><strong>Ngày khám:</strong> ${date}</li>
+          <li><strong>Thời gian:</strong> ${start} - ${end}</li>
+          <li><strong>Lý do khám:</strong> ${reason}</li>
+          <li><strong>Thanh toán:</strong> ${payment}</li>
+        </ul>
+        <p>Vui lòng đến trước 15 phút để làm thủ tục.</p>
+        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
+      </div>
+    `
+  };
+
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) console.error('❌ Lỗi gửi mail xác nhận:', err);
+    else console.log('📧 Đã gửi mail xác nhận:', info.response);
+  });
+}
+
 router.post('/', authMiddleware, (req, res) => {
   const customer_id = req.user.id;
   const { doctor_id, time_slot_id, name, age, gender, email, phone, reason, address } = req.body;
@@ -41,7 +112,49 @@ router.post('/', authMiddleware, (req, res) => {
         console.error("Lỗi khi tạo lịch hẹn:", err);
         return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
       }
-      res.status(201).json({ message: 'Đặt lịch thành công!', appointmentId: result.insertId });
+
+      // Lấy thông tin chi tiết để gửi email
+      const emailInfoSql = `
+        SELECT 
+          a.name, a.email, a.reason,
+          d.name AS doctor_name, 
+          DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
+          TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
+          TIME_FORMAT(ts.end_time, '%H:%i') as end_time
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.id
+        JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+        WHERE a.id = ?`;
+
+      db.query(emailInfoSql, [result.insertId], (emailErr, emailRows) => {
+        if (emailErr || emailRows.length === 0) {
+          console.error("Không thể lấy thông tin để gửi email:", emailErr);
+          // Vẫn trả về thành công nhưng không gửi email
+          return res.status(201).json({ 
+            message: 'Đặt lịch thành công! Vui lòng kiểm tra email để xem chi tiết.', 
+            appointmentId: result.insertId 
+          });
+        }
+
+        const appointmentInfo = emailRows[0];
+        
+        // Gửi email thông báo đặt lịch thành công
+        sendBookingConfirmationEmail({
+          name: appointmentInfo.name,
+          email: appointmentInfo.email,
+          doctor: appointmentInfo.doctor_name,
+          date: appointmentInfo.slot_date,
+          start: appointmentInfo.start_time,
+          end: appointmentInfo.end_time,
+          reason: appointmentInfo.reason || 'Không cung cấp',
+          payment: 'Chưa thanh toán'
+        });
+
+        res.status(201).json({ 
+          message: 'Đặt lịch thành công! Email xác nhận đã được gửi.', 
+          appointmentId: result.insertId 
+        });
+      });
     });
   });
 });

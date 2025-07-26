@@ -296,7 +296,6 @@ exports.getAllDoctors = (req, res) => {
   });
 };
 exports.getTopDoctors = (req, res) => {
-  // Cho phép client tùy chỉnh số lượng bác sĩ top, mặc định là 5
   const limit = parseInt(req.query.limit, 10) || 5;
 
   const sql = `
@@ -320,7 +319,7 @@ exports.getTopDoctors = (req, res) => {
   LEFT JOIN
     specializations s ON d.specialization_id = s.id
   LEFT JOIN
-    ratings r ON d.id = r.product_id
+    ratings r ON d.id = r.doctor_id -- ✅ sửa tại đây
   WHERE
     d.account_status = 'active'
   GROUP BY
@@ -334,8 +333,7 @@ exports.getTopDoctors = (req, res) => {
     average_rating DESC,
     review_count DESC
   LIMIT ?;
-`;
-
+  `;
 
   db.query(sql, [limit], (err, results) => {
     if (err) {
@@ -343,46 +341,37 @@ exports.getTopDoctors = (req, res) => {
       return res.status(500).json({ msg: "Lỗi máy chủ khi lấy dữ liệu." });
     }
 
-    // Ánh xạ kết quả để có đường dẫn ảnh đầy đủ và định dạng dữ liệu
-   const topDoctors = results.map((doc) => ({
-  id: doc.id,
-  name: doc.name,
-  introduction: doc.introduction,
-  specialty_name: doc.specialty_name || "Chưa cập nhật",
-  img: doc.img ? `/uploads/${doc.img}` : null,
-  average_rating: parseFloat(doc.average_rating).toFixed(1),
-  review_count: doc.review_count,
+    const topDoctors = results.map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      introduction: doc.introduction,
+      specialty_name: doc.specialty_name || "Chưa cập nhật",
+      img: doc.img ? `/uploads/${doc.img}` : null,
+      average_rating: parseFloat(doc.average_rating).toFixed(1),
+      review_count: doc.review_count,
 
-  // Thông tin bằng cấp
-  degrees: doc.degree_image
-    ? doc.degree_image.split('|').map((img) => ({
-        filename: `/uploads/${img}`,
-        gpa: doc.gpa || '',
-        university: doc.university || '',
-        graduation_date: doc.graduation_date || '',
-        degree_type: doc.degree_type || '',
-      }))
-    : [],
+      degrees: doc.degree_image
+        ? doc.degree_image.split('|').map((img) => ({
+            filename: `/uploads/${img}`,
+            gpa: doc.gpa || '',
+            university: doc.university || '',
+            graduation_date: doc.graduation_date || '',
+            degree_type: doc.degree_type || '',
+          }))
+        : [],
 
-  // Chứng chỉ hành nghề + nơi cấp
-  certificate_images: doc.certificate_image
-    ? doc.certificate_image.split('|').map((img, i) => ({
-        filename: `/uploads/${img}`,
-        source: doc.certificate_source?.split('|')[i] || '',
-      }))
-    : [],
-}));
-
+      certificate_images: doc.certificate_image
+        ? doc.certificate_image.split('|').map((img, i) => ({
+            filename: `/uploads/${img}`,
+            source: doc.certificate_source?.split('|')[i] || '',
+          }))
+        : [],
+    }));
 
     res.json(topDoctors);
   });
 };
 
-// FILE: controllers/doctorController.js
-// THAY THẾ TOÀN BỘ HÀM NÀY
-
-// FILE: controllers/doctorController.js
-// ✅ THAY THẾ TOÀN BỘ HÀM CŨ BẰNG HÀM NÀY
 
 exports.updateDoctorProfile = async (req, res) => {
     const doctorId = req.params.id;
