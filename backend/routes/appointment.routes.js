@@ -200,40 +200,6 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
  * METHOD: GET /api/appointments/my-appointments
  * ==========================================================
  */
-// ✅ Lấy hồ sơ bệnh án theo bác sĩ
-router.get('/doctor/:doctorId', async (req, res) => {
-  const { doctorId } = req.params;
-
-  try {
-    const [rows] = await db.execute(
-      `SELECT 
-        a.id AS appointment_id,
-        a.reason,
-        a.created_at,
-        a.customer_id,
-        a.doctor_id,
-        c.name AS patient_name,
-        c.email AS patient_email,
-        mr.id AS medical_record_id,
-        mr.diagnosis,
-        mr.treatment,
-        mr.notes
-      FROM appointments a
-      JOIN customers c ON a.customer_id = c.id
-      LEFT JOIN medical_records mr ON mr.appointment_id = a.id
-      WHERE a.doctor_id = ?
-      ORDER BY c.id, a.created_at DESC`,
-      [doctorId]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    console.error('❌ Lỗi khi lấy hồ sơ:', err);
-    res.status(500).json({ error: 'Lỗi máy chủ khi truy vấn hồ sơ.' });
-  }
-});
-
-module.exports = router;
 router.get('/my-appointments', authMiddleware, (req, res) => {
   const customerId = req.user.id;
   const sql = `
@@ -242,21 +208,25 @@ router.get('/my-appointments', authMiddleware, (req, res) => {
       a.status,
       a.reason,
       a.doctor_id,
-      d.name AS doctor_name,
+      d.name AS doctor_name, -- <<< SỬA LỖI TẠI ĐÂY: Đổi "d.full_name" thành "d.name"
       d.img AS doctor_img,
       spec.name AS specialization_name,
       ts.slot_date,
-      ts.start_time
+      ts.start_time,
+      r.rating,
+      r.comment
     FROM appointments a
     JOIN doctors d ON a.doctor_id = d.id
     JOIN specializations spec ON d.specialization_id = spec.id
     JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+    LEFT JOIN ratings r ON a.id = r.appointment_id
     WHERE a.customer_id = ?
     ORDER BY ts.slot_date DESC, ts.start_time DESC`;
 
   db.query(sql, [customerId], (err, results) => {
     if (err) {
-      console.error("Lỗi truy vấn lịch hẹn:", err);
+      // Lần tới nếu có lỗi, nó sẽ hiển thị ở đây
+      console.error("Lỗi truy vấn lịch hẹn:", err); 
       return res.status(500).json({ message: 'Lỗi máy chủ khi truy vấn dữ liệu.' });
     }
     res.json(results);

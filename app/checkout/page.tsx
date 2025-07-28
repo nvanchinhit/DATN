@@ -205,6 +205,9 @@ export default function CheckoutPage() {
                     Về Trang chủ
                   </Link>
               </div>
+              <div className="mt-4 text-center text-sm text-gray-600">
+                <p>💡 Sau khi khám xong, bạn có thể xem hồ sơ bệnh án tại mục "Hồ Sơ Bệnh Án" trong trang cá nhân.</p>
+              </div>
             </div>
           ) : ( // Nếu chưa đặt lịch, hiển thị form
             <>

@@ -171,6 +171,7 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       dts.end_time,
       dts.is_active,
       a.id AS appointment_id,
+      a.customer_id,
       a.name AS patient_name,
       a.email AS patient_email,
       a.phone AS patient_phone,
@@ -206,6 +207,7 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
         const bookingInfo = slot.appointment_id
           ? {
               id: slot.appointment_id,
+              customer_id: slot.customer_id,
               patientName: slot.patient_name,
               patientEmail: slot.patient_email,
               patientPhone: slot.patient_phone,

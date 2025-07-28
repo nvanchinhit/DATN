@@ -79,7 +79,12 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
             )}
           </div>
           <nav className="space-y-2">
-            <Link href="/profile/appointment" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>📅</span> Đặt Lịch Khám</Link>
+            <Link href="/profile/appointment" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>🗓️</span> Đặt Lịch Khám</Link>
+            {/* START: Thêm dòng mới cho Hồ Sơ Bệnh Án */}
+            <Link href="/profile/medical-record" className={`flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200 ${isActive('/profile/medical-record') ? 'bg-gray-200 font-semibold' : ''}`}>
+              <span>📄</span> Hồ Sơ Bệnh Án
+            </Link>
+            {/* END: Thêm dòng mới */}
             <div>
               <div className="flex items-center gap-3 p-2 rounded text-gray-700"><span>👤</span> Tài Khoản Của Tôi</div>
               <div className="pl-8 mt-2 space-y-2 text-gray-600">

@@ -44,5 +44,36 @@ router.post('/', authMiddleware, (req, res) => {
         });
     });
 });
+// Lấy tất cả đánh giá của người dùng đã đăng nhập
+router.get('/my-ratings', authMiddleware, (req, res) => {
+    const customer_id = req.user.id;
+
+    const sql = `
+        SELECT
+            r.id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            d.full_name AS doctor_name,
+            d.img AS doctor_img,
+            s.name AS specialization_name,
+            a.slot_date,
+            a.start_time
+        FROM ratings AS r
+        JOIN doctors AS d ON r.doctor_id = d.id
+        JOIN appointments AS a ON r.appointment_id = a.id
+        JOIN specializations AS s ON d.specialization_id = s.id
+        WHERE r.customer_id = ?
+        ORDER BY r.created_at DESC
+    `;
+
+    db.query(sql, [customer_id], (err, results) => {
+        if (err) {
+            console.error("Lỗi khi lấy danh sách đánh giá:", err);
+            return res.status(500).json({ message: "Lỗi máy chủ khi lấy dữ liệu." });
+        }
+        res.status(200).json(results);
+    });
+});
 
 module.exports = router;
