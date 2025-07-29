@@ -29,6 +29,13 @@ interface BookingInfo {
   time_slot_id: number;
 }
 
+interface DoctorInfo {
+  id: number;
+  name: string;
+  price: number;
+  specialization_name: string;
+}
+
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -36,6 +43,7 @@ export default function CheckoutPage() {
 
   const [bookingInfo, setBookingInfo] = useState<BookingInfo | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mode, setMode] = useState<'self' | 'other'>('self');
   const [form, setForm] = useState({
@@ -87,12 +95,32 @@ export default function CheckoutPage() {
     }
   }, [mode, currentUser]);
 
-  // Lấy thông tin đặt lịch từ URL
+  // Lấy thông tin đặt lịch từ URL và thông tin bác sĩ
   useEffect(() => {
     if (data) {
       try {
         const decoded = JSON.parse(decodeURIComponent(data));
         setBookingInfo({ ...decoded, time_slot_id: decoded.time.id });
+        
+        // Lấy thông tin chi tiết bác sĩ bao gồm giá tiền
+        const fetchDoctorInfo = async () => {
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/doctors/${decoded.doctorId}`);
+            if (response.ok) {
+              const doctorData = await response.json();
+              setDoctorInfo({
+                id: doctorData.id,
+                name: doctorData.name,
+                price: doctorData.price || 0,
+                specialization_name: doctorData.specialization_name || decoded.specialty
+              });
+            }
+          } catch (error) {
+            console.error("Lỗi khi lấy thông tin bác sĩ:", error);
+          }
+        };
+        
+        fetchDoctorInfo();
       } catch (err) {
         alert("Dữ liệu đặt lịch không hợp lệ.");
         router.back();
@@ -166,6 +194,14 @@ export default function CheckoutPage() {
     }
   };
 
+  // Hàm format giá tiền
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
   if (isLoading || !bookingInfo) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải thông tin...</div>;
   }
@@ -196,6 +232,9 @@ export default function CheckoutPage() {
                 <li><strong>Họ tên bệnh nhân:</strong> {form.name}</li>
                 <li><strong>Bác sĩ:</strong> {bookingInfo.doctorName}</li>
                 <li><strong>Ngày khám:</strong> {new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {bookingInfo.time.start} - {bookingInfo.time.end}</li>
+                {doctorInfo && doctorInfo.price > 0 && (
+                  <li><strong>Phí khám:</strong> {formatPrice(doctorInfo.price)}</li>
+                )}
               </div>
               <div className="flex justify-center gap-4">
                   <Link href="/profile/appointment" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-all">
@@ -256,6 +295,23 @@ export default function CheckoutPage() {
                   <label className="block text-sm font-medium text-gray-600 mb-1">Lý do khám bệnh (không bắt buộc)</label>
                   <textarea name="reason" placeholder="Mô tả ngắn gọn triệu chứng..." value={form.reason} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" rows={3} />
                 </div>
+
+                {/* Phần hiển thị giá tiền */}
+                {doctorInfo && doctorInfo.price > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-800 mb-1">Thông tin thanh toán</h3>
+                        <p className="text-sm text-blue-600">Phí khám bệnh</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-blue-800">{formatPrice(doctorInfo.price)}</p>
+                        <p className="text-xs text-blue-600">Thanh toán sau khi khám</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-center pt-6">
                   <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-10 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition-all text-base disabled:bg-gray-400 disabled:cursor-not-allowed">
                     {isSubmitting ? 'Đang xử lý...' : 'Xác nhận Đặt lịch'}

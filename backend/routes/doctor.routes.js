@@ -54,41 +54,8 @@ router.put(
   doctorController.updateDoctorProfile // <<< GỌI ĐÚNG HÀM CONTROLLER ĐÃ SỬA LỖI
 );
 
-// ❌ ĐÃ XÓA ROUTE /:id/profile THỪA THÃI
-
-// Route lấy chi tiết (đặt cuối)
+// Route lấy chi tiết bác sĩ (bao gồm giá tiền)
 router.get("/:id", doctorController.getDoctorById);
-router.get('/:id', (req, res) => {
-    const { id } = req.params;
-    // Câu lệnh SQL này lấy đúng tên cột từ CSDL của bạn
-    const sql = `
-        SELECT 
-            d.id,
-            d.name,
-            d.img,
-            d.introduction,
-            d.experience,
-            d.university,
-            d.degree_type,
-            d.degree_image,
-            d.certificate_image,
-            d.price, -- Thêm trường giá tiền
-            s.name AS specialization_name 
-        FROM doctors d 
-        LEFT JOIN specializations s ON d.specialization_id = s.id 
-        WHERE d.id = ?`;
-
-    db.query(sql, [id], (err, results) => {
-        if (err) {
-            console.error("Lỗi API chi tiết bác sĩ:", err);
-            return res.status(500).json({ error: 'Lỗi server khi truy vấn chi tiết bác sĩ.' });
-        }
-        if (results.length === 0) {
-            return res.status(404).json({ error: 'Không tìm thấy bác sĩ.' });
-        }
-        res.json(results[0]);
-    });
-});
 
 
 module.exports = router;

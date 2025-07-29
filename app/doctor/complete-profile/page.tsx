@@ -321,9 +321,21 @@ export default function CompleteProfilePage() {
   if (isLoading) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-gray-600">Đang tải dữ liệu hồ sơ...</div>;
   if (!form) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-red-600">Không thể tải hồ sơ. Vui lòng đăng nhập lại.</div>;
 
+  // State để quản lý việc chuyển hướng
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  // useEffect để xử lý chuyển hướng
+  useEffect(() => {
+    if (form?.account_status === 'active' && !shouldRedirect) {
+      setShouldRedirect(true);
+      setTimeout(() => {
+        router.push('/doctor/dashboard');
+      }, 2000); // Chờ 2 giây rồi chuyển hướng
+    }
+  }, [form?.account_status, shouldRedirect, router]);
+
   if (form.account_status === 'pending') return <PendingApprovalScreen />;
   if (form.account_status === 'active') {
-    router.push('/doctor/dashboard');
     return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-green-600">Hồ sơ đã được duyệt. Đang chuyển hướng...</div>;
   }
 

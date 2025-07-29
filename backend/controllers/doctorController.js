@@ -142,7 +142,27 @@ exports.approveDoctor = (req, res) => {
 exports.getDoctorById = (req, res) => {
   const doctorId = req.params.id;
   const sql = `
-    SELECT d.*, s.name AS specialization_name
+    SELECT 
+      d.id,
+      d.name,
+      d.phone,
+      d.email,
+      d.img,
+      d.introduction,
+      d.experience,
+      d.university,
+      d.gpa,
+      d.graduation_date,
+      d.degree_type,
+      d.certificate_image,
+      d.certificate_source,
+      d.degree_image,
+      d.account_status,
+      d.role_id,
+      d.specialization_id,
+      d.room_number,
+      d.price,
+      s.name AS specialization_name
     FROM doctors d
     LEFT JOIN specializations s ON d.specialization_id = s.id
     WHERE d.id = ?
