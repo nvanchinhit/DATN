@@ -21,7 +21,7 @@ const getImageUrl = (fileName: string | null | undefined): string => {
 // --- Interfaces ---
 // <<<<<<< SỬA ĐỔI 1: Cập nhật Interface >>>>>>>
 interface Specialization { id: number; name: string; }
-interface DoctorInfo { id: number; name: string; img: string; }
+interface DoctorInfo { id: number; name: string; img: string; price?: number; }
 interface SlotInfo { time_slot_id: number; doctor: DoctorInfo; }
 
 // Interface này phải khớp với dữ liệu mới từ API
@@ -84,6 +84,11 @@ function DoctorSelectionModal({
                         <div>
                           <p className="text-lg font-semibold text-gray-800">{slot.doctor.name}</p>
                           <p className="text-sm text-gray-600">Bác sĩ chuyên khoa</p>
+                          {typeof slot.doctor.price !== 'undefined' && (
+                            <p className="text-sm text-green-600 font-bold mt-1">
+                              Giá khám: {Number(slot.doctor.price).toLocaleString('vi-VN', { minimumFractionDigits: 0 })} VND
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex w-full sm:w-auto gap-2">
@@ -179,7 +184,8 @@ function SpecialtySchedulePage() {
       specialty: specialty.name,
       date: dateStr,
       time: { id: slot.time_slot_id, start: selectedTimeGroup.time.split(' - ')[0], end: selectedTimeGroup.time.split(' - ')[1] },
-      time_slot_id: slot.time_slot_id
+      time_slot_id: slot.time_slot_id,
+      price: typeof slot.doctor.price === 'number' ? slot.doctor.price : 0
     };
     const encoded = encodeURIComponent(JSON.stringify(bookingData));
     router.push(`/checkout?data=${encoded}`);

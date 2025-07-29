@@ -450,6 +450,7 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
             d.id AS doctor_id,
             d.name AS doctor_name,
             d.img AS doctor_img,
+            d.price AS doctor_price,
             a.id AS appointment_id
         FROM doctor_time_slot dts
         JOIN doctors d ON dts.doctor_id = d.id
@@ -497,7 +498,8 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
                     doctor: {
                         id: slot.doctor_id,
                         name: slot.doctor_name,
-                        img: slot.doctor_img
+                        img: slot.doctor_img,
+                        price: slot.doctor_price
                     }
                 });
             }

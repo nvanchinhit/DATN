@@ -70,8 +70,9 @@ router.get('/:id', (req, res) => {
             d.experience,
             d.university,
             d.degree_type,
-            d.degree_image,      -- Lấy đúng cột degree_image
-            d.certificate_image, -- Lấy đúng cột certificate_image
+            d.degree_image,
+            d.certificate_image,
+            d.price, -- Thêm trường giá tiền
             s.name AS specialization_name 
         FROM doctors d 
         LEFT JOIN specializations s ON d.specialization_id = s.id 
