@@ -68,9 +68,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = { user, token, loading, login, logout };
 
-  // Tránh hydration mismatch bằng cách chỉ render sau khi component đã mount
+  // Tránh hydration mismatch: chỉ render loading khi chưa mounted
   if (!mounted) {
-    return <div suppressHydrationWarning>{children}</div>;
+    return <div suppressHydrationWarning>Đang tải xác thực...</div>;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
