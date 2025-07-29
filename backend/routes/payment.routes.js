@@ -10,8 +10,8 @@ const adminAuth = [verifyToken, isAdmin];
 // Tạo instance controller
 const paymentController = new PaymentController();
 
-// GET - Lấy thông tin payment settings
-router.get('/settings', adminAuth, paymentController.getPaymentSettings.bind(paymentController));
+// GET - Lấy thông tin payment settings (không cần xác thực)
+router.get('/settings', paymentController.getPaymentSettings.bind(paymentController));
 
 // POST - Lưu thông tin payment settings
 router.post('/settings', adminAuth, paymentController.savePaymentSettings.bind(paymentController));
