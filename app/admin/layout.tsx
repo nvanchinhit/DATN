@@ -19,7 +19,7 @@ interface User {
 // Cấu trúc menu không đổi
 const adminMenuGroups = [
   { group: 'Tổng quan', items: [{ label: 'Bảng điều khiển', path: '/admin', icon: LayoutDashboard }, { label: 'Doanh thu', path: '/admin/revenues', icon: BarChart2 }] },
-  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/appointments', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope }, { label: 'Phòng khám', path: '/admin/clinics', icon: Building }, { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }, { label: 'Thanh toán', path: '/admin/payment', icon: CreditCard }] },
+  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/schedules', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope },  { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }, { label: 'Thanh toán', path: '/admin/payment', icon: CreditCard }] },
 ];
 
 

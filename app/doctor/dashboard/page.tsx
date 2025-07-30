@@ -160,7 +160,7 @@ export default function DoctorDashboardPage() {
   );
 }
 
-const StatCard = ({ icon, title, value, color, onClick }: { icon: React.ReactNode, title: string, value: number, color: string, onClick?: () => void }) => {
+const StatCard = ({ icon, title, value, color, onClick }: { icon: React.ReactNode, title: string, value: number, color: "yellow" | "gray" | "red" | "orange" | "green" | "blue" | "purple", onClick?: () => void }) => {
   const colorClasses = {
     yellow: 'bg-yellow-100 text-yellow-600', gray: 'bg-gray-100 text-gray-600', red: 'bg-red-100 text-red-600',
     orange: 'bg-orange-100 text-orange-600', green: 'bg-green-100 text-green-600', blue: 'bg-blue-100 text-blue-600',
