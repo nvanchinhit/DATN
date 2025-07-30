@@ -1,5 +1,5 @@
 // /routes/dashboard.js
-// PHIÊN BẢN HOÀN CHỈNH - ĐẦY ĐỦ CHỨC NĂNG
+// PHIÊN BẢN HOÀN CHỈNH - ĐÃ CẬP NHẬT LOGIC THỐNG KÊ "HÔM NAY" VÀ "SẮP TỚI"
 
 const express = require('express');
 const router = express.Router();
@@ -10,51 +10,22 @@ if (db.query) {
   db.query = util.promisify(db.query);
 }
 
-// Hàm lấy dữ liệu thô cho biểu đồ (Đã sửa lỗi SQL 'only_full_group_by')
+// ... (Hàm getRawChartData và getFullChartData giữ nguyên như cũ, không cần thay đổi)
 const getRawChartData = (range, doctorId) => {
     let dateFilter = '';
-    let groupByExpression = ''; 
+    let groupByExpression = '';
     let orderByExpression = '';
     let dateFormat = '';
-
     const dateColumn = 'dts.slot_date';
     const timeColumn = 'dts.start_time';
-
     switch (range) {
-        case '1d':
-            dateFormat = `HOUR(${timeColumn})`;
-            dateFilter = `AND ${dateColumn} = CURDATE()`;
-            groupByExpression = `HOUR(${timeColumn})`;
-            orderByExpression = `HOUR(${timeColumn})`;
-            break;
-        case '1w':
-            dateFormat = `DATE_FORMAT(${dateColumn}, '%d/%m')`;
-            dateFilter = `AND ${dateColumn} BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()`;
-            groupByExpression = `DATE(${dateColumn}), DATE_FORMAT(${dateColumn}, '%d/%m')`;
-            orderByExpression = `DATE(${dateColumn})`;
-            break;
-        case '1m':
-            dateFormat = `DATE_FORMAT(${dateColumn}, '%d/%m')`;
-            dateFilter = `AND ${dateColumn} BETWEEN DATE_SUB(CURDATE(), INTERVAL 29 DAY) AND CURDATE()`;
-            groupByExpression = `DATE(${dateColumn}), DATE_FORMAT(${dateColumn}, '%d/%m')`;
-            orderByExpression = `DATE(${dateColumn})`;
-            break;
-        case '6m':
-            dateFormat = `DATE_FORMAT(${dateColumn}, '%m/%Y')`;
-            dateFilter = `AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)`;
-            groupByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn}), DATE_FORMAT(${dateColumn}, '%m/%Y')`;
-            orderByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn})`;
-            break;
-        case '1y':
-            dateFormat = `DATE_FORMAT(${dateColumn}, '%m/%Y')`;
-            dateFilter = `AND YEAR(${dateColumn}) = YEAR(CURDATE())`;
-            groupByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn}), DATE_FORMAT(${dateColumn}, '%m/%Y')`;
-            orderByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn})`;
-            break;
-        default:
-            return Promise.resolve([]);
+        case '1d': dateFormat = `HOUR(${timeColumn})`; dateFilter = `AND ${dateColumn} = CURDATE()`; groupByExpression = `HOUR(${timeColumn})`; orderByExpression = `HOUR(${timeColumn})`; break;
+        case '1w': dateFormat = `DATE_FORMAT(${dateColumn}, '%d/%m')`; dateFilter = `AND ${dateColumn} BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND CURDATE()`; groupByExpression = `DATE(${dateColumn}), DATE_FORMAT(${dateColumn}, '%d/%m')`; orderByExpression = `DATE(${dateColumn})`; break;
+        case '1m': dateFormat = `DATE_FORMAT(${dateColumn}, '%d/%m')`; dateFilter = `AND ${dateColumn} BETWEEN DATE_SUB(CURDATE(), INTERVAL 29 DAY) AND CURDATE()`; groupByExpression = `DATE(${dateColumn}), DATE_FORMAT(${dateColumn}, '%d/%m')`; orderByExpression = `DATE(${dateColumn})`; break;
+        case '6m': dateFormat = `DATE_FORMAT(${dateColumn}, '%m/%Y')`; dateFilter = `AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)`; groupByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn}), DATE_FORMAT(${dateColumn}, '%m/%Y')`; orderByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn})`; break;
+        case '1y': dateFormat = `DATE_FORMAT(${dateColumn}, '%m/%Y')`; dateFilter = `AND YEAR(${dateColumn}) = YEAR(CURDATE())`; groupByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn}), DATE_FORMAT(${dateColumn}, '%m/%Y')`; orderByExpression = `YEAR(${dateColumn}), MONTH(${dateColumn})`; break;
+        default: return Promise.resolve([]);
     }
-
     const sql = `
       SELECT ${dateFormat} AS label, COUNT(a.id) AS total
       FROM appointments a
@@ -63,11 +34,8 @@ const getRawChartData = (range, doctorId) => {
       GROUP BY ${groupByExpression}
       ORDER BY ${orderByExpression} ASC;
     `;
-    
     return db.query(sql, [doctorId]);
 };
-
-// Hàm tạo dữ liệu biểu đồ hoàn chỉnh (Đã sửa lỗi định dạng ngày tháng)
 const getFullChartData = async (range, doctorId) => {
     const rawData = await getRawChartData(range, doctorId);
     const dataMap = new Map(rawData.map(item => [String(item.label), item.total]));
@@ -95,13 +63,13 @@ router.get('/:doctorId', async (req, res) => {
         const dateColumn = 'dts.slot_date';
         const statsSql = `
           SELECT
-            COUNT(CASE WHEN a.status = 'Chưa xác nhận' THEN 1 END) AS pending,
-            COUNT(CASE WHEN a.status = 'Đã khám xong' THEN 1 END) AS completed,
+            COUNT(CASE WHEN a.status = 'Chưa xác nhận' AND ${dateColumn} >= CURDATE() THEN 1 END) AS pending,
+            COUNT(CASE WHEN a.status = 'Đã khám xong' AND ${dateColumn} = CURDATE() THEN 1 END) AS completed_today,
+            COUNT(CASE WHEN a.status = 'Đã hủy' AND ${dateColumn} >= CURDATE() THEN 1 END) AS cancelled_future,
+            COUNT(CASE WHEN a.status = 'Từ chối' AND ${dateColumn} >= CURDATE() THEN 1 END) AS rejected_future,
             COUNT(CASE WHEN a.status = 'Đã khám xong' AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) THEN 1 END) AS completed_last_7_days,
             COUNT(CASE WHEN a.status = 'Đã khám xong' AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) THEN 1 END) AS completed_last_30_days,
-            COUNT(CASE WHEN a.status = 'Đã khám xong' AND YEAR(${dateColumn}) = YEAR(CURDATE()) THEN 1 END) AS completed_current_year,
-            COUNT(CASE WHEN a.status = 'Đã hủy' THEN 1 END) AS cancelled,
-            COUNT(CASE WHEN a.status = 'Từ chối' THEN 1 END) AS rejected
+            COUNT(CASE WHEN a.status = 'Đã khám xong' AND YEAR(${dateColumn}) = YEAR(CURDATE()) THEN 1 END) AS completed_current_year
           FROM appointments a
           LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
           WHERE a.doctor_id = ?;
@@ -129,22 +97,25 @@ router.get('/:doctorId/patients', async (req, res) => {
         let condition = '';
 
         switch (type) {
-            case 'pending': condition = `AND a.status = 'Chưa xác nhận'`; break;
-            case 'completed_total': condition = `AND a.status = 'Đã khám xong'`; break;
+            case 'pending': condition = `AND a.status = 'Chưa xác nhận' AND ${dateColumn} >= CURDATE()`; break;
+            case 'completed_today': condition = `AND a.status = 'Đã khám xong' AND ${dateColumn} = CURDATE()`; break;
+            case 'cancelled_future': condition = `AND a.status = 'Đã hủy' AND ${dateColumn} >= CURDATE()`; break;
+            case 'rejected_future': condition = `AND a.status = 'Từ chối' AND ${dateColumn} >= CURDATE()`; break;
             case 'completed_last_7_days': condition = `AND a.status = 'Đã khám xong' AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)`; break;
             case 'completed_last_30_days': condition = `AND a.status = 'Đã khám xong' AND ${dateColumn} >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)`; break;
             case 'completed_current_year': condition = `AND a.status = 'Đã khám xong' AND YEAR(${dateColumn}) = YEAR(CURDATE())`; break;
-            case 'cancelled': condition = `AND a.status = 'Đã hủy'`; break;
-            case 'rejected': condition = `AND a.status = 'Từ chối'`; break;
             default: return res.status(400).json({ message: 'Loại thống kê không hợp lệ' });
         }
+
+        const futureTypes = ['pending', 'cancelled_future', 'rejected_future'];
+        const orderBy = futureTypes.includes(type) ? 'ORDER BY dts.slot_date ASC, dts.start_time ASC' : 'ORDER BY dts.slot_date DESC, a.id DESC';
 
         const sql = `
             SELECT a.name, a.age, a.gender, dts.slot_date AS appointment_date, a.status
             FROM appointments a
             LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
             WHERE a.doctor_id = ? ${condition}
-            ORDER BY dts.slot_date DESC, a.id DESC;
+            ${orderBy};
         `;
 
         const patients = await db.query(sql, [doctorId]);
