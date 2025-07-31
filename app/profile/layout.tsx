@@ -5,13 +5,38 @@ import { useEffect, useState, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/page';
 import Link from 'next/link';
+import { 
+  User, 
+  Calendar, 
+  FileText, 
+  MapPin, 
+  Lock, 
+  LogOut,
+  Home,
+  Heart,
+  CreditCard
+} from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface UserInfo {
   name: string;
   avatar: string | null;
+  role_id: number;
 }
+
+const getRoleInfo = (roleId: number) => {
+  switch (roleId) {
+    case 1:
+      return { name: 'Quản trị viên', color: 'text-purple-600', bgColor: 'bg-purple-50' };
+    case 2:
+      return { name: 'Khách hàng', color: 'text-blue-600', bgColor: 'bg-blue-50' };
+    case 3:
+      return { name: 'Bác sĩ', color: 'text-green-600', bgColor: 'bg-green-50' };
+    default:
+      return { name: 'Người dùng', color: 'text-gray-600', bgColor: 'bg-gray-50' };
+  }
+};
 
 export default function ProfileLayout({ children }: { children: ReactNode }) {
   const { user, token, loading: authLoading, logout } = useAuth();
@@ -39,7 +64,11 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
            throw new Error('Không thể tải dữ liệu người dùng.');
         }
         const result = await res.json();
-        setUserInfo({ name: result.data.name, avatar: result.data.avatar });
+        setUserInfo({ 
+          name: result.data.name, 
+          avatar: result.data.avatar,
+          role_id: result.data.role_id || user.role_id
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -49,57 +78,147 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
     fetchUserInfo();
   }, [authLoading, user, token, router, logout]);
 
-  const displayAvatar = userInfo?.avatar ? `${API_URL}${userInfo.avatar}` : 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg';
   const isActive = (path: string) => pathname === path;
+  const roleInfo = userInfo ? getRoleInfo(userInfo.role_id) : getRoleInfo(2);
 
   if (authLoading || loading) {
-    return <p className="p-6 text-center text-lg">Đang tải trang...</p>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải trang...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-gray-100 py-6 px-4">
-      <div className="max-w-6xl mx-auto flex gap-8">
-        {/* === Sidebar DUY NHẤT === */}
-        <aside className="w-1/4 hidden lg:block">
-          <div className="flex items-center gap-3 pb-4 border-b mb-4">
-            <img 
-              src={displayAvatar} 
-              alt="Avatar" 
-              className="w-12 h-12 rounded-full object-cover" 
-              onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }} 
-            />
-            {userInfo && (
-              <div>
-                <p className="font-semibold truncate">{userInfo.name}</p>
-                <Link href="/profile" className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
-                  Sửa Hồ Sơ
-                </Link>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          
+          {/* === Sidebar Navigation === */}
+          <aside className="lg:w-64">
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              {/* Menu Header */}
+              <div className="mb-6 pb-4 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Tài khoản</h3>
+                <p className="text-sm text-gray-500">Quản lý thông tin cá nhân</p>
               </div>
-            )}
-          </div>
-          <nav className="space-y-2">
-            <Link href="/profile/appointment" className="flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200"><span>🗓️</span> Đặt Lịch Khám</Link>
-            {/* START: Thêm dòng mới cho Hồ Sơ Bệnh Án */}
-            <Link href="/profile/medical-record" className={`flex items-center gap-3 p-2 rounded text-gray-700 hover:bg-gray-200 ${isActive('/profile/medical-record') ? 'bg-gray-200 font-semibold' : ''}`}>
-              <span>📄</span> Hồ Sơ Bệnh Án
-            </Link>
-            {/* END: Thêm dòng mới */}
-            <div>
-              <div className="flex items-center gap-3 p-2 rounded text-gray-700"><span>👤</span> Tài Khoản Của Tôi</div>
-              <div className="pl-8 mt-2 space-y-2 text-gray-600">
-                <Link href="/profile" className={`block hover:text-blue-600 ${isActive('/profile') ? 'text-blue-600 font-semibold' : ''}`}>Hồ Sơ</Link>
-                <Link href="/profile/address" className={`block hover:text-blue-600 ${isActive('/profile/address') ? 'text-blue-600 font-semibold' : ''}`}>Địa Chỉ</Link>
-                <Link href="/profile/password" className={`block hover:text-blue-600 ${isActive('/profile/password') ? 'text-blue-600 font-semibold' : ''}`}>Đổi Mật Khẩu</Link>
-              </div>
-            </div>
-          </nav>
-        </aside>
 
-        {/* Vùng nội dung chính, nơi các page.tsx sẽ được render */}
-        <main className="flex-1 bg-white p-6 rounded-lg shadow-sm">
-          {children}
-        </main>
+              {/* Navigation Menu */}
+              <nav className="space-y-1">
+                {/* Main Services */}
+                <div className="mb-4">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+                    Dịch vụ
+                  </h4>
+                  <div className="space-y-1">
+                    <Link 
+                      href="/profile/appointment" 
+                      className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 ${
+                        isActive('/profile/appointment') ? 'bg-blue-50 text-blue-600 font-semibold' : ''
+                      }`}
+                    >
+                      <Calendar size={18} />
+                      <span>Đặt lịch khám</span>
+                    </Link>
+                    
+                    <Link 
+                      href="/profile/medical-record" 
+                      className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 ${
+                        isActive('/profile/medical-record') ? 'bg-blue-50 text-blue-600 font-semibold' : ''
+                      }`}
+                    >
+                      <FileText size={18} />
+                      <span>Hồ sơ bệnh án</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Account Management */}
+                <div className="mb-4">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+                    Quản lý tài khoản
+                  </h4>
+                  <div className="space-y-1">
+                    <Link 
+                      href="/profile" 
+                      className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 ${
+                        isActive('/profile') ? 'bg-blue-50 text-blue-600 font-semibold' : ''
+                      }`}
+                    >
+                      <User size={18} />
+                      <span>Hồ sơ cá nhân</span>
+                    </Link>
+                    
+                    <Link 
+                      href="/profile/address" 
+                      className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 ${
+                        isActive('/profile/address') ? 'bg-blue-50 text-blue-600 font-semibold' : ''
+                      }`}
+                    >
+                      <MapPin size={18} />
+                      <span>Địa chỉ</span>
+                    </Link>
+                    
+                    <Link 
+                      href="/profile/password" 
+                      className={`flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 ${
+                        isActive('/profile/password') ? 'bg-blue-50 text-blue-600 font-semibold' : ''
+                      }`}
+                    >
+                      <Lock size={18} />
+                      <span>Đổi mật khẩu</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mb-4">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+                    Thao tác nhanh
+                  </h4>
+                  <div className="space-y-1">
+                    <Link 
+                      href="/" 
+                      className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                    >
+                      <Home size={18} />
+                      <span>Về trang chủ</span>
+                    </Link>
+                    
+                    <Link 
+                      href="/shop" 
+                      className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                    >
+                      <Heart size={18} />
+                      <span>Mua thuốc</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Logout */}
+                <div className="pt-4 border-t border-gray-100">
+                  <button 
+                    onClick={logout}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl text-red-600 hover:bg-red-50 transition-all duration-200"
+                  >
+                    <LogOut size={18} />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <main className="flex-1">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );
