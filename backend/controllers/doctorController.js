@@ -162,7 +162,8 @@ exports.getDoctorById = (req, res) => {
       d.specialization_id,
       d.room_number,
       d.price,
-      s.name AS specialization_name
+      s.name AS specialization_name,
+      s.price AS specialty_price
     FROM doctors d
     LEFT JOIN specializations s ON d.specialization_id = s.id
     WHERE d.id = ?
@@ -200,6 +201,7 @@ exports.getDoctorById = (req, res) => {
     // ✅ Gửi phản hồi về client
     res.json({
       ...doctor,
+      specialty_price: doctor.specialty_price, // Thêm giá khám theo chuyên khoa
       Certificates,
       Degrees,
     });

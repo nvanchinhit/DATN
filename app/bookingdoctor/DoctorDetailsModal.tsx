@@ -22,6 +22,7 @@ interface DoctorDetails {
   certificate_image: string | null;
   certificate_source: string | null; // <-- Thêm trường nguồn cấp chứng chỉ
   specialization_name: string;
+  specialty_price?: number; // <-- Thêm giá khám theo chuyên khoa
 }
 
 // Props cho Modal
@@ -125,6 +126,11 @@ export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: Doctor
                       <div className="text-center sm:text-left">
                           <h2 className="text-3xl font-bold">{doctor.name}</h2>
                           <p className="text-blue-200 font-medium mt-1 flex items-center justify-center sm:justify-start gap-2"><Stethoscope size={18}/> {doctor.specialization_name}</p>
+                          {doctor.specialty_price && (
+                            <p className="text-green-200 font-semibold mt-2 text-lg">
+                              Giá khám: {Number(doctor.specialty_price).toLocaleString('vi-VN')} VND
+                            </p>
+                          )}
                       </div>
                   </div>
               </div>

@@ -102,6 +102,7 @@ router.get('/doctors/top', (req, res) => {
       d.name, 
       d.img, 
       s.name AS specialty,
+      s.price AS price,
       GROUP_CONCAT(DISTINCT DATE_FORMAT(ts.slot_date, '%Y-%m-%d')) AS available_dates
     FROM doctors d
     JOIN specializations s ON d.specialization_id = s.id
@@ -276,20 +277,25 @@ router.put('/appointments/:id/reject', (req, res) => {
 
 router.get('/specializations', (req, res) => {
   const search = req.query.search;
-  let sql = "SELECT id, name, image FROM specializations";
+  let sql = "SELECT id, name, image, price FROM specializations";
   let values = [];
   if (search) {
     sql += " WHERE name LIKE ?";
     values.push(`%${search}%`);
   }
+  console.log('GET /specializations query:', sql, values);
   db.query(sql, values, (err, results) => {
-    if (err) return res.status(500).json({ error: "Lỗi server." });
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: "Lỗi server." });
+    }
+    console.log('GET /specializations results:', results);
     res.json(results);
   });
 });
 
 router.get('/specializations/top', (req, res) => {
-  const sql = `SELECT id, name, image FROM specializations ORDER BY id DESC LIMIT 4`;
+  const sql = `SELECT id, name, image, price FROM specializations ORDER BY id DESC LIMIT 4`;
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ error: "Lỗi server." });
     res.json(results);
@@ -298,7 +304,7 @@ router.get('/specializations/top', (req, res) => {
 
 router.get('/specializations/:id', (req, res) => {
   const { id } = req.params;
-  db.query("SELECT id, name, image FROM specializations WHERE id = ?", [id], (err, results) => {
+  db.query("SELECT id, name, image, price FROM specializations WHERE id = ?", [id], (err, results) => {
     if (err) return res.status(500).json({ error: 'Lỗi server.' });
     if (results.length === 0) return res.status(404).json({ error: 'Không tìm thấy.' });
     res.json(results[0]);
@@ -371,29 +377,53 @@ router.get('/doctors/:doctorId/dashboard', (req, res) => {
 });
 
 router.post('/specializations', upload.single('image'), (req, res) => {
-  const { name } = req.body;
+  const { name, price } = req.body;
   if (!req.file || !name) return res.status(400).json({ error: 'Thiếu tên hoặc ảnh.' });
   const imageUrl = `/uploads/${req.file.filename}`;
-  db.query('INSERT INTO specializations (name, image) VALUES (?, ?)', [name, imageUrl], (err, result) => {
+  const priceValue = price ? parseFloat(price) : 0;
+  db.query('INSERT INTO specializations (name, image, price) VALUES (?, ?, ?)', [name, imageUrl, priceValue], (err, result) => {
     if (err) return res.status(500).json({ error: 'Lỗi khi thêm chuyên khoa.' });
-    res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl } });
+    res.status(201).json({ message: 'Thêm thành công!', newSpecialization: { id: result.insertId, name, image: imageUrl, price: priceValue } });
   });
 });
 
 router.put('/specializations/:id', upload.single('image'), (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
+  const { name, price } = req.body;
+  console.log('Update specialization request:', { id, name, price, file: req.file });
+  
   if (!name) return res.status(400).json({ error: 'Tên là bắt buộc.' });
+  const priceValue = price ? parseFloat(price) : 0;
+  console.log('Parsed price value:', priceValue);
+  
   if (req.file) {
     const imageUrl = `/uploads/${req.file.filename}`;
-    db.query('UPDATE specializations SET name = ?, image = ? WHERE id = ?', [name, imageUrl, id], (err, result) => {
-      if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
+    console.log('Updating with image:', imageUrl);
+    db.query('UPDATE specializations SET name = ?, image = ?, price = ? WHERE id = ?', [name, imageUrl, priceValue, id], (err, result) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Lỗi cập nhật' });
+      }
+      if (result.affectedRows === 0) {
+        console.log('No rows affected for ID:', id);
+        return res.status(404).json({ error: 'Không tìm thấy' });
+      }
+      console.log('Update successful, affected rows:', result.affectedRows);
       res.json({ message: 'Cập nhật thành công!' });
     });
   } else {
-    db.query('UPDATE specializations SET name = ? WHERE id = ?', [name, id], (err, result) => {
-      if (err || result.affectedRows === 0) return res.status(err ? 500 : 404).json({ error: err ? 'Lỗi cập nhật' : 'Không tìm thấy' });
-      res.json({ message: 'Cập nhật tên thành công!' });
+    console.log('Updating without image');
+    db.query('UPDATE specializations SET name = ?, price = ? WHERE id = ?', [name, priceValue, id], (err, result) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Lỗi cập nhật' });
+      }
+      if (result.affectedRows === 0) {
+        console.log('No rows affected for ID:', id);
+        return res.status(404).json({ error: 'Không tìm thấy' });
+      }
+      console.log('Update successful, affected rows:', result.affectedRows);
+      res.json({ message: 'Cập nhật thành công!' });
     });
   }
 });
@@ -420,7 +450,8 @@ router.get('/doctors', (req, res) => {
       d.certificate_image, 
       d.degree_image, 
       d.account_status,
-      s.name AS specialty_name 
+      s.name AS specialty_name,
+      s.price AS price
     FROM doctors d
     LEFT JOIN specializations s ON d.specialization_id = s.id
     WHERE d.account_status = 'active'`;
@@ -450,10 +481,11 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
             d.id AS doctor_id,
             d.name AS doctor_name,
             d.img AS doctor_img,
-            d.price AS doctor_price,
+            s.price AS specialty_price,
             a.id AS appointment_id
         FROM doctor_time_slot dts
         JOIN doctors d ON dts.doctor_id = d.id
+        JOIN specializations s ON d.specialization_id = s.id
         LEFT JOIN appointments a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
         WHERE 
             d.specialization_id = ? 
@@ -499,7 +531,7 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
                         id: slot.doctor_id,
                         name: slot.doctor_name,
                         img: slot.doctor_img,
-                        price: slot.doctor_price
+                        price: slot.specialty_price
                     }
                 });
             }

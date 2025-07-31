@@ -3,20 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Stethoscope, GraduationCap, FileText, BadgeInfo, ImageOff } from 'lucide-react';
+import { Doctor } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-
-interface Doctor {
-  id: number;
-  name: string;
-  img: string | null;
-  introduction: string;
-  specialty_name: string;
-  consultation_fee: number;
-  // Sử dụng đúng tên thuộc tính từ API
-  certificate_image: string | null;
-  degree_image: string | null;
-}
 
 interface DoctorDetailsModalProps {
   doctor: Doctor;
@@ -71,7 +60,7 @@ export default function DoctorDetailsModal({ doctor, specialtyName, onClose }: D
                   <div className="text-center sm:text-left">
                       <h2 className="text-3xl font-bold">{doctor.name}</h2>
                       <p className="text-blue-200 font-medium mt-1 flex items-center justify-center sm:justify-start gap-2"><Stethoscope size={18}/> {specialtyName}</p>
-                      {doctor.consultation_fee > 0 && (
+                      {doctor.consultation_fee && doctor.consultation_fee > 0 && (
                         <div className="mt-2 bg-white/20 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block">
                             Phí tư vấn: {doctor.consultation_fee.toLocaleString('vi-VN')} đ
                         </div>

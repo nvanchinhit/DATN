@@ -12,6 +12,7 @@ interface Doctor {
   img: string;
   introduction?: string;
   specialty: string;
+  price?: number;
 }
 
 const TopDoctors = () => {
@@ -64,6 +65,14 @@ const TopDoctors = () => {
                 <p className="text-gray-500 text-sm flex-grow">
                     {doctor.introduction || 'Bác sĩ có nhiều năm kinh nghiệm trong lĩnh vực.'}
                 </p>
+                {doctor.price && doctor.price > 0 && (
+                  <div className="mb-3">
+                    <span className="text-lg font-bold text-green-600">
+                      {doctor.price.toLocaleString('vi-VN')} VNĐ
+                    </span>
+                    <span className="text-sm text-gray-500 ml-1">/lần khám</span>
+                  </div>
+                )}
                  <div className="flex items-center text-sm text-yellow-500 mt-4 mb-4">
                   <Star className="w-4 h-4 fill-current" />
                   <Star className="w-4 h-4 fill-current" />

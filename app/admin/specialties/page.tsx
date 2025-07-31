@@ -11,6 +11,7 @@ interface Specialization {
   id: number;
   name: string;
   image: string;
+  price: number;
 }
 
 // === Component Modal Thêm/Sửa Chuyên Khoa ===
@@ -26,6 +27,7 @@ const SpecialtyModal = ({
   isLoading: boolean;
 }) => {
   const [name, setName] = useState(initialData.name || '');
+  const [price, setPrice] = useState(initialData.price?.toString() || '');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(initialData.image ? `${API_URL}${initialData.image}` : null);
   const [error, setError] = useState('');
@@ -48,9 +50,14 @@ const SpecialtyModal = ({
         setError('Vui lòng chọn hình ảnh cho chuyên khoa.');
         return;
     }
+    if (price && isNaN(parseFloat(price))) {
+      setError('Giá khám phải là số hợp lệ.');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('name', name);
+    formData.append('price', price || '0');
     if (selectedFile) {
       formData.append('image', selectedFile);
     }
@@ -81,6 +88,19 @@ const SpecialtyModal = ({
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
               value={name}
               onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá khám (VNĐ)</label>
+            <input
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="Nhập giá khám..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
             />
           </div>
 
@@ -165,9 +185,11 @@ export default function SpecialtiesAdminPage() {
     setLoading(true);
     try {
       const url = term ? `${API_URL}/api/specializations?search=${encodeURIComponent(term)}` : `${API_URL}/api/specializations`;
+      console.log('Fetching specialties from:', url);
       const res = await fetch(url);
       if(!res.ok) throw new Error("Lỗi mạng hoặc server.");
       const data = await res.json();
+      console.log('Fetched specialties:', data);
       setSpecialties(data);
     } catch (err) {
       console.error('Lỗi fetch:', err);
@@ -181,7 +203,7 @@ export default function SpecialtiesAdminPage() {
   useEffect(() => { const delay = setTimeout(() => { fetchSpecialties(searchTerm); }, 300); return () => clearTimeout(delay); }, [searchTerm, fetchSpecialties]);
 
   const handleOpenModal = (sp: Partial<Specialization> | null = null) => {
-    setCurrentSpecialization(sp || { name: '', image: '' });
+    setCurrentSpecialization(sp || { name: '', image: '', price: 0 });
     setIsModalOpen(true);
   };
   const handleCloseModal = () => { setIsModalOpen(false); setCurrentSpecialization(null); };
@@ -195,14 +217,19 @@ export default function SpecialtiesAdminPage() {
     const url = isEdit ? `${API_URL}/api/specializations/${currentSpecialization.id}` : `${API_URL}/api/specializations`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
+      console.log('Submitting form to:', url, 'Method:', method);
+      console.log('Form data:', Object.fromEntries(formData.entries()));
       const res = await fetch(url, { method, body: formData });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Thao tác thất bại.');
       }
+      const result = await res.json();
+      console.log('Update result:', result);
       handleCloseModal();
       await fetchSpecialties(searchTerm);
     } catch (err: any) {
+      console.error('Submit error:', err);
       alert(`❌ Lỗi: ${err.message}`);
     } finally {
       setFormIsLoading(false);
@@ -249,20 +276,24 @@ export default function SpecialtiesAdminPage() {
                     <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chuyên khoa</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá khám</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                     {loading ? (
-                       <tr><td colSpan={4} className="text-center py-10"><Loader2 className="mx-auto h-8 w-8 text-blue-600 animate-spin" /></td></tr>
+                       <tr><td colSpan={5} className="text-center py-10"><Loader2 className="mx-auto h-8 w-8 text-blue-600 animate-spin" /></td></tr>
                     ) : specialties.length === 0 ? (
-                       <tr><td colSpan={4} className="text-center py-10 text-gray-500">Không tìm thấy chuyên khoa nào.</td></tr>
+                       <tr><td colSpan={5} className="text-center py-10 text-gray-500">Không tìm thấy chuyên khoa nào.</td></tr>
                     ) : (
                     specialties.map((sp) => (
                         <tr key={sp.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sp.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{sp.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {sp.price !== null && sp.price !== undefined ? `${sp.price.toLocaleString('vi-VN')} VNĐ` : 'Chưa cập nhật'}
+                        </td>
                         <td className="px-6 py-4">
                             <img src={`${API_URL}${sp.image}`} alt={sp.name} className="w-24 h-14 object-cover rounded-md border" />
                         </td>

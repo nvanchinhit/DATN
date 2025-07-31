@@ -317,10 +317,6 @@ export default function CompleteProfilePage() {
       return errors.certificates.find(err => err.id === id);
   }
 
-  // --- LOGIC RENDER ---
-  if (isLoading) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-gray-600">Đang tải dữ liệu hồ sơ...</div>;
-  if (!form) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-red-600">Không thể tải hồ sơ. Vui lòng đăng nhập lại.</div>;
-
   // State để quản lý việc chuyển hướng
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
@@ -333,6 +329,10 @@ export default function CompleteProfilePage() {
       }, 2000); // Chờ 2 giây rồi chuyển hướng
     }
   }, [form?.account_status, shouldRedirect, router]);
+
+  // --- LOGIC RENDER ---
+  if (isLoading) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-gray-600">Đang tải dữ liệu hồ sơ...</div>;
+  if (!form) return <div className="min-h-screen flex justify-center items-center text-lg font-semibold text-red-600">Không thể tải hồ sơ. Vui lòng đăng nhập lại.</div>;
 
   if (form.account_status === 'pending') return <PendingApprovalScreen />;
   if (form.account_status === 'active') {

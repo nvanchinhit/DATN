@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: localhost:3306
--- Thời gian đã tạo: Th7 28, 2025 lúc 01:53 AM
+-- Thời gian đã tạo: Th7 31, 2025 lúc 03:12 PM
 -- Phiên bản máy phục vụ: 8.0.30
 -- Phiên bản PHP: 8.1.10
 
@@ -93,7 +93,8 @@ INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `cu
 (53, 'Hà Thị Dung', 22, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'mệt mỏi', 'Chưa thanh toán', 705, 'Đã hủy', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (55, 'Hà Thị Dung', 45, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'kopk', 'Chưa thanh toán', 706, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'ko', 'ko sao', NULL, 1),
 (56, 'Hà Thị Dung', 21, 'Nam', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, '', 'Chưa thanh toán', 705, 'Đang khám', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(57, 'Hà Thị Trang', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0342907002', 15, 15, 'đau', 'Chưa thanh toán', 708, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'ăn uống đầy đủ', 'do thiếu chất', NULL, 1);
+(58, 'Hà Thị Trang', 21, 'Nữ', 'hathidung1502@gmail.com', '0987123489', 15, 15, '', 'Chưa thanh toán', 709, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'ăn uống ngủ nghỉ đúng h', NULL, '2025-07-31', 1),
+(59, 'Hà Thị zun', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0989745832', 15, 15, '', 'Chưa thanh toán', 724, 'Đã khám xong', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -295,7 +296,17 @@ INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `work_shift_id`, `slot_date`,
 (716, 15, 80, '2025-07-28', '14:15:00', '14:45:00', 'Available', 1),
 (717, 15, 80, '2025-07-28', '15:00:00', '15:30:00', 'Available', 1),
 (718, 15, 80, '2025-07-28', '15:45:00', '16:15:00', 'Available', 1),
-(719, 15, 80, '2025-07-28', '16:30:00', '17:00:00', 'Available', 1);
+(719, 15, 80, '2025-07-28', '16:30:00', '17:00:00', 'Available', 1),
+(720, 15, 81, '2025-07-30', '13:30:00', '14:00:00', 'Available', 0),
+(721, 15, 81, '2025-07-30', '14:15:00', '14:45:00', 'Available', 0),
+(722, 15, 81, '2025-07-30', '15:00:00', '15:30:00', 'Available', 0),
+(723, 15, 81, '2025-07-30', '15:45:00', '16:15:00', 'Available', 0),
+(724, 15, 81, '2025-07-30', '16:30:00', '17:00:00', 'Available', 1),
+(725, 15, 82, '2025-07-31', '13:30:00', '14:00:00', 'Available', 1),
+(726, 15, 82, '2025-07-31', '14:15:00', '14:45:00', 'Available', 1),
+(727, 15, 82, '2025-07-31', '15:00:00', '15:30:00', 'Available', 1),
+(728, 15, 82, '2025-07-31', '15:45:00', '16:15:00', 'Available', 1),
+(729, 15, 82, '2025-07-31', '16:30:00', '17:00:00', 'Available', 1);
 
 -- --------------------------------------------------------
 
@@ -336,7 +347,9 @@ INSERT INTO `doctor_work_shifts` (`id`, `doctor_id`, `work_date`, `shift_name`, 
 (77, 22, '2025-07-26', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-26 02:41:16', '2025-07-26 02:41:16'),
 (78, 15, '2025-07-27', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-27 09:19:24', '2025-07-27 09:19:24'),
 (79, 15, '2025-07-28', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-07-28 01:21:54', '2025-07-28 01:21:54'),
-(80, 15, '2025-07-28', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-28 01:21:55', '2025-07-28 01:21:55');
+(80, 15, '2025-07-28', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-28 01:21:55', '2025-07-28 01:21:55'),
+(81, 15, '2025-07-30', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-30 13:18:58', '2025-07-30 13:18:58'),
+(82, 15, '2025-07-31', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-31 14:28:07', '2025-07-31 14:28:07');
 
 -- --------------------------------------------------------
 
@@ -363,7 +376,8 @@ INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id
 (2, 2, 2, 2, 'Viêm da nhẹ', 'Bôi thuốc và tránh tiếp xúc hóa chất', 'Tái khám sau 1 tuần', '2025-06-07 14:02:51'),
 (5, 35, 15, 3, 'jmm', 'gm', 'mgm', '2025-07-02 10:34:56'),
 (6, 44, 15, 15, 'bình thương', 'không', 'không', '2025-07-23 16:14:14'),
-(7, 50, 15, 15, 'ko có gì đáng ngại', 'không', 'ko', '2025-07-24 13:48:14');
+(7, 50, 15, 15, 'ko có gì đáng ngại', 'không', 'ko', '2025-07-24 13:48:14'),
+(9, 58, 15, 15, 'mọi thứ bthg', NULL, NULL, '2025-07-28 09:09:18');
 
 -- --------------------------------------------------------
 
@@ -521,7 +535,8 @@ CREATE TABLE `ratings` (
 
 INSERT INTO `ratings` (`id`, `customer_id`, `rating`, `comment`, `created_at`, `doctor_id`, `appointment_id`) VALUES
 (12, 15, 5, 'tuyệt', '2025-07-27 21:58:53', 15, 55),
-(14, 15, 4, 'bsi tận tâm', '2025-07-27 23:58:10', 15, 44);
+(14, 15, 4, 'bsi tận tâm', '2025-07-27 23:58:10', 15, 44),
+(15, 15, 4, 'hài lòng', '2025-07-28 09:11:19', 15, 58);
 
 -- --------------------------------------------------------
 
@@ -552,24 +567,26 @@ INSERT INTO `role` (`id`, `name`) VALUES
 CREATE TABLE `specializations` (
   `id` int NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL
+  `image` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `price` decimal(10,0) DEFAULT '0' COMMENT 'Giá khám cho chuyên khoa'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `specializations`
 --
 
-INSERT INTO `specializations` (`id`, `name`, `image`) VALUES
-(1, 'Nội khoa', '/uploads/1750666911605-cÃ´ng ty tÃ i chÃ­nh.png'),
-(2, 'Da liễu', '/uploads/1750609299162-screenshot_1749730713.png'),
-(3, 'Tai mũi họng', '/uploads/1750609326029-screenshot_1749730713.png'),
-(4, 'Khoa tim mạch', '/uploads/1750609612105-z6609834095121_c248e82fc8056b10772f73afbfb4e383.jpg'),
-(5, 'Khoa thần kinh', '/uploads/1750640552483-z6584497856600_8fe061a3a4c6e0b9011a5a8abe90e204.jpg'),
-(6, 'Khoa xương khớp', '/uploads/1750641125578-screenshot_1749733441.png'),
-(7, 'Tai mũi họng', '/uploads/1750667705054-screenshot_1749733441.png'),
-(8, 'Mắt', '/uploads/1750667714069-cÃ´ng ty tÃ i chÃ­nh.png'),
-(9, 'Khoa tiêu hóa', NULL),
-(10, 'Khoa hô hấp', NULL);
+INSERT INTO `specializations` (`id`, `name`, `image`, `price`) VALUES
+(1, 'Nội khoa', '/uploads/1750666911605-cÃ´ng ty tÃ i chÃ­nh.png', 200000),
+(2, 'Da liễu', '/uploads/1750609299162-screenshot_1749730713.png', 250000),
+(3, 'Tai mũi họng', '/uploads/1750609326029-screenshot_1749730713.png', 300000),
+(4, 'Khoa tim mạch', '/uploads/1750609612105-z6609834095121_c248e82fc8056b10772f73afbfb4e383.jpg', 350000),
+(5, 'Khoa thần kinh', '/uploads/1750640552483-z6584497856600_8fe061a3a4c6e0b9011a5a8abe90e204.jpg', 400000),
+(6, 'Khoa xương khớp', '/uploads/1750641125578-screenshot_1749733441.png', 300000),
+(7, 'Tai mũi họng', '/uploads/1750667705054-screenshot_1749733441.png', 300000),
+(8, 'Mắt', '/uploads/1750667714069-cÃ´ng ty tÃ i chÃ­nh.png', 280000),
+(9, 'Khoa tiêu hóa', NULL, 250000),
+(10, 'Khoa hô hấp', NULL, 220000),
+(13, 'não', '/uploads/1753973999471-Dá»± Ã¡n TN.drawio.png', 0);
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -711,7 +728,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT cho bảng `customers`
@@ -729,19 +746,19 @@ ALTER TABLE `doctors`
 -- AUTO_INCREMENT cho bảng `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=720;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=730;
 
 --
 -- AUTO_INCREMENT cho bảng `doctor_work_shifts`
 --
 ALTER TABLE `doctor_work_shifts`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=83;
 
 --
 -- AUTO_INCREMENT cho bảng `medical_records`
 --
 ALTER TABLE `medical_records`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
@@ -783,7 +800,7 @@ ALTER TABLE `prescription_items`
 -- AUTO_INCREMENT cho bảng `ratings`
 --
 ALTER TABLE `ratings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT cho bảng `role`
@@ -795,7 +812,7 @@ ALTER TABLE `role`
 -- AUTO_INCREMENT cho bảng `specializations`
 --
 ALTER TABLE `specializations`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- Các ràng buộc cho các bảng đã đổ

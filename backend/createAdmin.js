@@ -5,8 +5,8 @@ const bcrypt = require('bcryptjs');
 const readline = require('readline');
 
 // --- Cấu hình ---
-const ADMIN_EMAIL = 'le6838773@gmail.com';
-const ADMIN_NAME = 'Admin1';
+const ADMIN_EMAIL = 'dunghtpd09940@gmail.com';
+const ADMIN_NAME = 'Admin';
 const ADMIN_PHONE = '0342907002';
 
 const db = mysql.createConnection({

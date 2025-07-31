@@ -32,9 +32,17 @@ const DoctorCard = ({ doctor, onSelect, onBook }: { doctor: Doctor, onSelect: (d
         <p className="text-sm text-gray-600 mb-4 flex-grow line-clamp-3">
           {doctor.introduction || 'Bác sĩ chưa cập nhật thông tin giới thiệu.'}
         </p>
+        {doctor.price && doctor.price > 0 && (
+          <div className="mb-4">
+            <span className="text-lg font-bold text-green-600">
+              {doctor.price.toLocaleString('vi-VN')} VNĐ
+            </span>
+            <span className="text-sm text-gray-500 ml-1">/lần khám</span>
+          </div>
+        )}
         <div className="mt-auto flex gap-3">
           <button onClick={() => onSelect(doctor)} className="flex-1 text-center bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-200 transition">Xem hồ sơ</button>
-          <button onClick={() => onBook(doctor.id, doctor.specialty_name)} className="flex-1 text-center bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">Đặt lịch <ArrowRight size={16}/></button>
+          <button onClick={() => onBook(doctor.id, doctor.specialty_name || '')} className="flex-1 text-center bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">Đặt lịch <ArrowRight size={16}/></button>
         </div>
       </div>
     </div>
@@ -193,7 +201,7 @@ export default function DoctorsListPage() {
         )}
       </main>
 
-      {selectedDoctor && <DoctorDetailsModal doctor={selectedDoctor} specialtyName={selectedDoctor.specialty_name} onClose={() => setSelectedDoctor(null)} />}
+      {selectedDoctor && <DoctorDetailsModal doctor={selectedDoctor} specialtyName={selectedDoctor.specialty_name || ''} onClose={() => setSelectedDoctor(null)} />}
     </div>
   );
 }

@@ -10,10 +10,11 @@ interface Specialization {
   id: number;
   name: string;
   image: string;
+  price: number;
 }
 
 // === Component: Thẻ Chuyên khoa (Card) ===
-function SpecialtyCard({ name, image, onClick }: Specialization & { onClick: () => void }) {
+function SpecialtyCard({ name, image, price, onClick }: Specialization & { onClick: () => void }) {
   const imageUrl = image && image.startsWith('http') ? image : `${API_URL}${image}`;
   
   return (
@@ -40,6 +41,14 @@ function SpecialtyCard({ name, image, onClick }: Specialization & { onClick: () 
         <p className="text-sm text-gray-500 mb-4 flex-grow">
           Tìm kiếm các bác sĩ và chuyên gia hàng đầu trong lĩnh vực {name.toLowerCase()}.
         </p>
+        {price > 0 && (
+          <div className="mb-3">
+            <span className="text-lg font-bold text-green-600">
+              {Number(price).toLocaleString('vi-VN')} VND
+            </span>
+            <span className="text-sm text-gray-500 ml-1">/lần khám</span>
+          </div>
+        )}
         <div className="mt-auto text-blue-600 font-semibold text-sm flex items-center group-hover:text-blue-700">
           Xem bác sĩ
           <ArrowRight className="ml-1.5 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
