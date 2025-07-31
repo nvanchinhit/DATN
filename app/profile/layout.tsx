@@ -56,19 +56,28 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
     const fetchUserInfo = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/users/profile`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!res.ok) {
-           if (res.status === 401 || res.status === 403) { alert("Phiên đăng nhập đã hết hạn."); logout(); }
-           throw new Error('Không thể tải dữ liệu người dùng.');
+        
+        if (user.role_id === 1) { // Admin role
+          setUserInfo({
+            name: user.name,
+            avatar: user.avatar || null, // Admin có thể không có avatar trong local storage
+            role_id: user.role_id
+          });
+        } else { // Customer or Doctor role
+          const res = await fetch(`${API_URL}/api/users/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (!res.ok) {
+             if (res.status === 401 || res.status === 403) { alert("Phiên đăng nhập đã hết hạn."); logout(); }
+             throw new Error('Không thể tải dữ liệu người dùng.');
+          }
+          const result = await res.json();
+          setUserInfo({ 
+            name: result.data.name, 
+            avatar: result.data.avatar,
+            role_id: result.data.role_id || user.role_id
+          });
         }
-        const result = await res.json();
-        setUserInfo({ 
-          name: result.data.name, 
-          avatar: result.data.avatar,
-          role_id: result.data.role_id || user.role_id
-        });
       } catch (err) {
         console.error(err);
       } finally {

@@ -517,3 +517,52 @@ exports.getAllDoctorsForAdmin = (req, res) => {
         res.json(doctorsList);
     });
 };
+
+// Đổi mật khẩu cho bác sĩ đã đăng nhập
+exports.changePassword = (req, res) => {
+  const doctorId = req.user.id;
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mật khẩu hiện tại và mật khẩu mới.' });
+  }
+
+  const sqlSelect = 'SELECT password FROM doctors WHERE id = ?';
+  db.query(sqlSelect, [doctorId], (err, results) => {
+    if (err) {
+      console.error("❌ Lỗi khi lấy mật khẩu cũ:", err);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi lấy mật khẩu.' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bác sĩ.' });
+    }
+
+    const hashedPasswordInDb = results[0].password;
+
+    bcrypt.compare(current_password, hashedPasswordInDb, (compareErr, isMatch) => {
+      if (compareErr) {
+        console.error("❌ Lỗi khi so sánh mật khẩu:", compareErr);
+        return res.status(500).json({ success: false, message: 'Lỗi server khi xác thực.' });
+      }
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác.' });
+      }
+
+      bcrypt.hash(new_password, 10, (hashErr, newHashedPassword) => {
+        if (hashErr) {
+          console.error("❌ Lỗi khi mã hóa mật khẩu mới:", hashErr);
+          return res.status(500).json({ success: false, message: 'Lỗi server khi bảo mật mật khẩu.' });
+        }
+
+        const sqlUpdate = 'UPDATE doctors SET password = ? WHERE id = ?';
+        db.query(sqlUpdate, [newHashedPassword, doctorId], (updateErr) => {
+          if (updateErr) {
+            console.error("❌ Lỗi khi cập nhật mật khẩu mới:", updateErr);
+            return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật mật khẩu.' });
+          }
+          res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });
+        });
+      });
+    });
+  });
+};
