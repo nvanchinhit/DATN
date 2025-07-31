@@ -3,7 +3,22 @@
 import { useEffect, useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/page';
-import { User, Mail, Phone, Calendar, Save, Camera, ShieldCheck, X } from 'lucide-react';
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Save, 
+  Camera, 
+  ShieldCheck, 
+  X,
+  Crown,
+  Stethoscope,
+  UserCheck,
+  Edit3,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -16,13 +31,55 @@ interface Customer {
   birthday: string | null;
   avatar: string | null;
   address: string | null;
+  role_id: number;
 }
 
+const getRoleInfo = (roleId: number) => {
+  switch (roleId) {
+    case 1:
+      return { name: 'Quản trị viên', icon: Crown, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' };
+    case 2:
+      return { name: 'Khách hàng', icon: UserCheck, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
+    case 3:
+      return { name: 'Bác sĩ', icon: Stethoscope, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' };
+    default:
+      return { name: 'Người dùng', icon: User, color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' };
+  }
+};
+
 // Component cho mỗi dòng thông tin, giúp code gọn hơn
-const ProfileField = ({ label, children }: { label: string, children: React.ReactNode }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-2 md:gap-4 py-4 border-b border-gray-100">
-    <label className="text-sm font-medium text-gray-500">{label}</label>
-    <div className="md:col-span-2">{children}</div>
+const ProfileField = ({ 
+  label, 
+  children, 
+  icon: Icon,
+  isVerified = false,
+  isRequired = false 
+}: { 
+  label: string, 
+  children: React.ReactNode, 
+  icon?: any,
+  isVerified?: boolean,
+  isRequired?: boolean 
+}) => (
+  <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:border-blue-200 transition-colors">
+    {Icon && (
+      <div className="flex-shrink-0 w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+        <Icon size={20} className="text-blue-600" />
+      </div>
+    )}
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 mb-2">
+        <label className="text-sm font-semibold text-gray-700">{label}</label>
+        {isRequired && <span className="text-red-500">*</span>}
+        {isVerified && (
+          <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+            <CheckCircle size={12} />
+            Đã xác thực
+          </span>
+        )}
+      </div>
+      <div className="text-gray-900">{children}</div>
+    </div>
   </div>
 );
 
@@ -36,6 +93,8 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,7 +136,6 @@ export default function ProfilePage() {
     if (!profileData) return;
 
     const dataToUpdate = new FormData();
-    // Chuyển đổi Partial<Customer> thành Customer để so sánh
     const originalProfile = profileData as Customer;
 
     Object.keys(formData).forEach(key => {
@@ -100,14 +158,17 @@ export default function ProfilePage() {
     }
 
     try {
+      setIsSubmitting(true);
       const res = await fetch(`${API_URL}/api/users/profile`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }, body: dataToUpdate });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Cập nhật thất bại.');
       alert('Cập nhật thành công!');
-      window.dispatchEvent(new Event("userChanged")); // Bắn sự kiện để Header cập nhật
+      window.dispatchEvent(new Event("userChanged"));
       window.location.reload();
     } catch (err: any) {
       alert(`Lỗi: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -120,119 +181,202 @@ export default function ProfilePage() {
     return `${day}/${month}/${year}`;
   };
   
-  if (pageLoading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div></div>;
-  if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
-  if (!profileData) return <p className="text-center py-10">Không thể hiển thị thông tin người dùng.</p>;
+  if (pageLoading) return (
+    <div className="flex justify-center items-center h-64">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Đang tải thông tin...</p>
+      </div>
+    </div>
+  );
+  
+  if (error) return (
+    <div className="text-center py-10">
+      <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+      <p className="text-red-500 text-lg">{error}</p>
+    </div>
+  );
+  
+  if (!profileData) return (
+    <div className="text-center py-10">
+      <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+      <p className="text-gray-500 text-lg">Không thể hiển thị thông tin người dùng.</p>
+    </div>
+  );
 
   const displayAvatar = avatarPreview || (profileData.avatar ? `${API_URL}${profileData.avatar}` : 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg');
+  const roleInfo = getRoleInfo(profileData.role_id);
+  const RoleIcon = roleInfo.icon;
 
   return (
-    <div className="bg-gray-50/50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Hồ Sơ Của Tôi</h1>
-          <p className="text-gray-500 mt-1">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn.</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Hồ Sơ Cá Nhân</h1>
+          <p className="text-gray-600 mt-2">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn</p>
+        </div>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Edit3 size={16} />
+          {isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa'}
+        </button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Profile Overview Card */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
+          <div className="flex flex-col lg:flex-row items-center gap-6">
+            {/* Avatar Section */}
+            <div className="relative">
+              <img 
+                src={displayAvatar} 
+                alt="Avatar" 
+                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }}
+              />
+              {isEditing && (
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white hover:bg-blue-700 transition shadow-lg"
+                  aria-label="Thay đổi ảnh đại diện"
+                >
+                  <Camera size={16} />
+                </button>
+              )}
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" />
+            </div>
+            
+            {/* User Info */}
+            <div className="text-center lg:text-left flex-1">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{profileData.name}</h2>
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-3">
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${roleInfo.bgColor} ${roleInfo.color} ${roleInfo.borderColor} border`}>
+                  <RoleIcon size={16} />
+                  {roleInfo.name}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-600 border border-green-200">
+                  <CheckCircle size={16} />
+                  Tài khoản hoạt động
+                </div>
+              </div>
+              <p className="text-gray-600">{profileData.email}</p>
+            </div>
+          </div>
         </div>
         
-        <form className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start" onSubmit={handleSubmit}>
-          
-          {/* --- Cột trái: Avatar & Tên --- */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md text-center">
-            <div className="relative w-32 h-32 mx-auto">
-                <img 
-                    src={displayAvatar} 
-                    alt="Avatar" 
-                    className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg"
-                    onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }}
-                />
-                <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center border-2 border-white hover:bg-blue-700 transition"
-                    aria-label="Thay đổi ảnh đại diện"
-                >
-                    <Camera size={16} />
-                </button>
-                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" />
-            </div>
-            <h2 className="text-xl font-bold mt-4 text-gray-800">{profileData.name}</h2>
-            <p className="text-sm text-gray-500">{profileData.email}</p>
-            <p className="text-xs text-gray-400 mt-4">Dung lượng tối đa 1MB. Định dạng: .JPEG, .PNG</p>
-          </div>
-          
-          {/* --- Cột phải: Thông tin chi tiết --- */}
-          <div className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-xl shadow-md">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Thông tin chi tiết</h3>
-            
-            <ProfileField label="Họ và Tên">
+        {/* Form Fields */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ProfileField label="Họ và Tên" icon={User} isRequired>
+            {isEditing ? (
               <input 
-                id="name" 
                 name="name" 
                 value={formData.name || ''} 
                 onChange={handleChange} 
-                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" 
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" 
                 placeholder="Nhập họ và tên"
               />
-            </ProfileField>
+            ) : (
+              <p className="text-lg font-medium">{profileData.name}</p>
+            )}
+          </ProfileField>
 
-            <ProfileField label="Email">
-                <div className="flex items-center gap-4">
-                    <p className="font-medium text-gray-800 flex-grow">{formData.email || 'Chưa thiết lập'}</p>
-                    <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full flex items-center gap-1"><ShieldCheck size={14}/> Đã xác thực</span>
-                </div>
-            </ProfileField>
-
-            <ProfileField label="Số điện thoại">
-                <input 
-                    type="tel" 
-                    name="phone" 
-                    value={formData.phone || ''} 
-                    onChange={handleChange} 
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition" 
-                    placeholder="Nhập số điện thoại"
-                />
-            </ProfileField>
-
-             <ProfileField label="Giới tính">
-                <div className="flex gap-6 items-center">
-                    {['Nam', 'Nữ', 'Khác'].map(option => (
-                        <label key={option} className="flex items-center gap-2 cursor-pointer">
-                            <input 
-                                type="radio" 
-                                name="gender" 
-                                value={option} 
-                                checked={formData.gender === option} 
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(p => ({...p, gender: e.target.value as any}))} 
-                                className="form-radio text-blue-600 h-4 w-4 focus:ring-blue-500"
-                            />
-                            {option}
-                        </label>
-                    ))}
-                </div>
-            </ProfileField>
-
-            <ProfileField label="Ngày sinh">
-                <input 
-                    type="date" 
-                    name="birthday" 
-                    value={formData.birthday || ''} 
-                    onChange={handleChange} 
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
-                />
-            </ProfileField>
-
-            <div className="mt-8 flex justify-end">
-              <button 
-                type="submit" 
-                className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
-              >
-                <Save size={18} />
-                Lưu Thay Đổi
-              </button>
+          <ProfileField label="Email" icon={Mail} isVerified>
+            <div className="flex items-center gap-3">
+              <p className="text-lg font-medium">{profileData.email}</p>
+              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                <ShieldCheck size={12} />
+                Đã xác thực
+              </span>
             </div>
+          </ProfileField>
+
+          <ProfileField label="Số điện thoại" icon={Phone}>
+            {isEditing ? (
+              <input 
+                type="tel" 
+                name="phone" 
+                value={formData.phone || ''} 
+                onChange={handleChange} 
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" 
+                placeholder="Nhập số điện thoại"
+              />
+            ) : (
+              <p className="text-lg">{profileData.phone || 'Chưa thiết lập'}</p>
+            )}
+          </ProfileField>
+
+          <ProfileField label="Giới tính" icon={User}>
+            {isEditing ? (
+              <div className="flex gap-6">
+                {['Nam', 'Nữ', 'Khác'].map(option => (
+                  <label key={option} className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="gender" 
+                      value={option} 
+                      checked={formData.gender === option} 
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(p => ({...p, gender: e.target.value as any}))} 
+                      className="form-radio text-blue-600 h-4 w-4 focus:ring-blue-500"
+                    />
+                    <span className="text-lg">{option}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-lg">{profileData.gender || 'Chưa thiết lập'}</p>
+            )}
+          </ProfileField>
+
+          <ProfileField label="Ngày sinh" icon={Calendar}>
+            {isEditing ? (
+              <input 
+                type="date" 
+                name="birthday" 
+                value={formData.birthday || ''} 
+                onChange={handleChange} 
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              />
+            ) : (
+              <p className="text-lg">{formatDateForDisplay(profileData.birthday)}</p>
+            )}
+          </ProfileField>
+        </div>
+
+        {/* Submit Button */}
+        {isEditing && (
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Hủy
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Lưu thay đổi
+                </>
+              )}
+            </button>
           </div>
-        </form>
-      </div>
+        )}
+      </form>
     </div>
   );
 }

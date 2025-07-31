@@ -8,6 +8,7 @@ const CheckoutPage = () => {
   const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 phút
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isQrLoading, setIsQrLoading] = useState(true);
+  const [showQR, setShowQR] = useState(false);
   const [bankInfo, setBankInfo] = useState<any>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, success, failed
@@ -31,6 +32,15 @@ const CheckoutPage = () => {
 
   // Lấy thông tin ngân hàng từ API
   const loadBankInfo = async () => {
+    // Dự phòng mặc định
+    const fallbackBankInfo = {
+      BANK_ID: '970416',
+      ACCOUNT_NO: '16087671',
+      ACCOUNT_NAME: 'NGUYEN VAN CHINH',
+      TEMPLATE: 'compact2',
+      TOKEN_AUTO: null
+    };
+
     try {
       const response = await fetch('http://localhost:5000/api/payment/settings', {
         method: 'GET',
@@ -43,42 +53,21 @@ const CheckoutPage = () => {
         const data = await response.json();
         if (data.success && data.data) {
           setBankInfo({
-            BANK_ID: '970416', // Có thể lấy từ database nếu cần
+            BANK_ID: '970416',
             ACCOUNT_NO: data.data.account_number,
             ACCOUNT_NAME: data.data.account_holder,
             TEMPLATE: 'compact2',
             TOKEN_AUTO: data.data.token_auto
           });
         } else {
-          // Fallback data nếu API không trả về dữ liệu
-          setBankInfo({
-            BANK_ID: '970416',
-            ACCOUNT_NO: '1234567890',
-            ACCOUNT_NAME: 'NGUYEN VAN A',
-            TEMPLATE: 'compact2',
-            TOKEN_AUTO: null
-          });
+          setBankInfo(fallbackBankInfo);
         }
       } else {
-        // Fallback data nếu API lỗi
-        setBankInfo({
-          BANK_ID: '970416',
-          ACCOUNT_NO: '1234567890',
-          ACCOUNT_NAME: 'NGUYEN VAN A',
-          TEMPLATE: 'compact2',
-          TOKEN_AUTO: null
-        });
+        setBankInfo(fallbackBankInfo);
       }
     } catch (error) {
       console.error('Error loading bank info:', error);
-      // Fallback data nếu có lỗi network
-      setBankInfo({
-        BANK_ID: '970416',
-        ACCOUNT_NO: '1234567890',
-        ACCOUNT_NAME: 'NGUYEN VAN A',
-        TEMPLATE: 'compact2',
-        TOKEN_AUTO: null
-      });
+      setBankInfo(fallbackBankInfo);
     }
   };
 
@@ -212,47 +201,78 @@ const CheckoutPage = () => {
               </div>
             ) : (
               <>
-                <div className="flex flex-col sm:flex-row gap-6 items-center">
-                    <div className="w-full max-w-xs mx-auto sm:mx-0 aspect-square p-3 bg-white border-4 border-blue-500 rounded-lg flex items-center justify-center">
-                        {qrCodeUrl ? (
-                          <>
-                            {isQrLoading && <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>}
-                            <img 
-                                src={qrCodeUrl} 
-                                alt="Mã QR thanh toán" 
-                                className={`w-full h-full object-contain transition-opacity duration-300 ${isQrLoading ? 'opacity-0' : 'opacity-100'}`}
-                                onLoad={() => setIsQrLoading(false)}
-                                onError={() => { setIsQrLoading(false); console.error("Lỗi tải ảnh QR."); }}
-                                style={{ display: isQrLoading ? 'none' : 'block' }}
-                            />
-                          </>
-                        ) : (
-                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                        )}
-                    </div>
-
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-gray-700 mb-3">Hướng dẫn:</h3>
-                        <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-                            <li>Mở ứng dụng Ngân hàng / Ví điện tử.</li>
-                            <li>Chọn tính năng quét mã QR (QR Pay).</li>
-                            <li>Quét mã và xác nhận giao dịch.</li>
-                        </ol>
-                        
-                        <div className="mt-4">
-                          <button
-                            onClick={checkPaymentHistory}
-                            disabled={isCheckingPayment}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
-                            {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
-                          </button>
+                {/* Thông tin chuyển khoản thủ công */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <h3 className="font-semibold text-gray-700 mb-3 text-center">Thông tin chuyển khoản</h3>
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Ngân hàng:</span>
+                            <span className="font-medium">Á Châu Bank (ACB)</span>
                         </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Số tài khoản:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono font-medium">{bankInfo?.ACCOUNT_NO}</span>
+                                <button 
+                                    onClick={() => navigator.clipboard.writeText(bankInfo?.ACCOUNT_NO || '')}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Tên tài khoản:</span>
+                            <span className="font-medium">{bankInfo?.ACCOUNT_NAME}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Số tiền:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono font-medium">{formatVND(service.price)}</span>
+                                <button 
+                                    onClick={() => navigator.clipboard.writeText(service.price.toString())}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">Nội dung:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono font-medium text-xs">{transaction.id}</span>
+                                <button 
+                                    onClick={() => navigator.clipboard.writeText(transaction.id)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-xs text-yellow-700 text-center">
+                            💡 <strong>Lưu ý:</strong> Vui lòng chuyển khoản đúng số tiền và nội dung để hệ thống có thể xác nhận thanh toán tự động.
+                        </p>
                     </div>
                 </div>
 
-                <div className="mt-8 text-center bg-blue-50 p-4 rounded-lg">
+                {/* Nút tạo QR */}
+                <div className="text-center mb-6">
+                    <button
+                        onClick={() => setShowQR(!showQR)}
+                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mx-auto"
+                    >
+                        <ScanLine className="h-5 w-5" />
+                        {showQR ? 'Ẩn mã QR' : 'Tạo mã QR'}
+                    </button>
+                </div>
+
+
+
+
+
+                <div className="text-center bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center justify-center gap-2 text-yellow-600">
                         <Clock size={20} />
                         <p className="font-medium">Giao dịch sẽ hết hạn sau:</p>
@@ -320,6 +340,69 @@ const CheckoutPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal QR Code */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">Mã QR Thanh toán</h3>
+              <button
+                onClick={() => setShowQR(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-80 h-80 mx-auto p-4 bg-white border-4 border-blue-500 rounded-lg flex items-center justify-center mb-4">
+                {qrCodeUrl ? (
+                  <>
+                    {isQrLoading && <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>}
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="Mã QR thanh toán" 
+                      className={`w-full h-full object-contain transition-opacity duration-300 ${isQrLoading ? 'opacity-0' : 'opacity-100'}`}
+                      onLoad={() => setIsQrLoading(false)}
+                      onError={() => { setIsQrLoading(false); console.error("Lỗi tải ảnh QR."); }}
+                      style={{ display: isQrLoading ? 'none' : 'block' }}
+                    />
+                  </>
+                ) : (
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                )}
+              </div>
+              
+              <div className="text-left">
+                <h4 className="font-semibold text-gray-700 mb-3">Hướng dẫn:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
+                  <li>Mở ứng dụng Ngân hàng / Ví điện tử.</li>
+                  <li>Chọn tính năng quét mã QR (QR Pay).</li>
+                  <li>Quét mã và xác nhận giao dịch.</li>
+                </ol>
+              </div>
+              
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowQR(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={checkPaymentHistory}
+                  disabled={isCheckingPayment}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
+                  {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
