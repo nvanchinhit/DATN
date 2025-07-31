@@ -21,7 +21,7 @@ const getImageUrl = (fileName: string | null | undefined): string => {
 // --- Interfaces ---
 // <<<<<<< SỬA ĐỔI 1: Cập nhật Interface >>>>>>>
 interface Specialization { id: number; name: string; }
-interface DoctorInfo { id: number; name: string; img: string; price?: number; }
+interface DoctorInfo { id: number; name: string; img: string; price: number; }
 interface SlotInfo { time_slot_id: number; doctor: DoctorInfo; }
 
 // Interface này phải khớp với dữ liệu mới từ API
@@ -178,6 +178,7 @@ function SpecialtySchedulePage() {
   const handleBooking = (slot: SlotInfo) => {
     if (!specialty || !selectedTimeGroup) return;
     const dateStr = formatDateForApi(selectedDate);
+    
     const bookingData = {
       doctorId: slot.doctor.id,
       doctorName: slot.doctor.name,
@@ -185,8 +186,9 @@ function SpecialtySchedulePage() {
       date: dateStr,
       time: { id: slot.time_slot_id, start: selectedTimeGroup.time.split(' - ')[0], end: selectedTimeGroup.time.split(' - ')[1] },
       time_slot_id: slot.time_slot_id,
-      price: typeof slot.doctor.price === 'number' ? slot.doctor.price : 0
+      price: Number(slot.doctor.price) || 0 // Chuyển đổi sang number và fallback về 0 nếu NaN
     };
+    
     const encoded = encodeURIComponent(JSON.stringify(bookingData));
     router.push(`/checkout?data=${encoded}`);
   };

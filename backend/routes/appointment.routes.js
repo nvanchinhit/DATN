@@ -86,7 +86,30 @@ function sendConfirmationEmail({ name, email, doctor, date, start, end, reason, 
 
 router.post('/', authMiddleware, (req, res) => {
   const customer_id = req.user.id;
-  const { doctor_id, time_slot_id, name, age, gender, email, phone, reason, address } = req.body;
+  const { 
+    doctor_id, 
+    time_slot_id, 
+    name, 
+    age, 
+    gender, 
+    email, 
+    phone, 
+    reason, 
+    address,
+    payment_status = 'Chưa thanh toán',
+    payment_method = 'cash',
+    transaction_id = null,
+    paid_amount = 0,
+    payment_date = null
+  } = req.body;
+
+  console.log('📝 Creating appointment with payment info:', {
+    payment_status,
+    payment_method,
+    transaction_id,
+    paid_amount,
+    payment_date
+  });
 
   if (!doctor_id || !time_slot_id || !name || !age || !phone || !email) {
     return res.status(400).json({ message: 'Vui lòng điền đầy đủ các thông tin bắt buộc.' });
@@ -103,9 +126,15 @@ router.post('/', authMiddleware, (req, res) => {
     }
 
     const insertSql = `
-      INSERT INTO appointments (customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address, status, doctor_confirmation)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Chưa xác nhận', 'Chưa xác nhận')`;
-    const values = [customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address];
+      INSERT INTO appointments (
+        customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address, 
+        status, doctor_confirmation, payment_status, payment_method, transaction_id, paid_amount, payment_date
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Chưa xác nhận', 'Chưa xác nhận', ?, ?, ?, ?, ?)`;
+    const values = [
+      customer_id, doctor_id, time_slot_id, name, age, gender, email, phone, reason, address,
+      payment_status, payment_method, transaction_id, paid_amount, payment_date
+    ];
 
     db.query(insertSql, values, (err, result) => {
       if (err) {
@@ -138,21 +167,25 @@ router.post('/', authMiddleware, (req, res) => {
 
         const appointmentInfo = emailRows[0];
         
-        // Gửi email thông báo đặt lịch thành công
-        sendBookingConfirmationEmail({
-          name: appointmentInfo.name,
-          email: appointmentInfo.email,
-          doctor: appointmentInfo.doctor_name,
-          date: appointmentInfo.slot_date,
-          start: appointmentInfo.start_time,
-          end: appointmentInfo.end_time,
-          reason: appointmentInfo.reason || 'Không cung cấp',
-          payment: 'Chưa thanh toán'
-        });
+                 // Gửi email thông báo đặt lịch thành công
+         sendBookingConfirmationEmail({
+           name: appointmentInfo.name,
+           email: appointmentInfo.email,
+           doctor: appointmentInfo.doctor_name,
+           date: appointmentInfo.slot_date,
+           start: appointmentInfo.start_time,
+           end: appointmentInfo.end_time,
+           reason: appointmentInfo.reason || 'Không cung cấp',
+           payment: payment_status // Sử dụng trạng thái thanh toán thực tế
+         });
 
         res.status(201).json({ 
           message: 'Đặt lịch thành công! Email xác nhận đã được gửi.', 
-          appointmentId: result.insertId 
+          appointmentId: result.insertId,
+          paymentStatus: payment_status,
+          paymentMethod: payment_method,
+          transactionId: transaction_id,
+          paidAmount: paid_amount
         });
       });
     });
@@ -202,26 +235,31 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
  */
 router.get('/my-appointments', authMiddleware, (req, res) => {
   const customerId = req.user.id;
-  const sql = `
-    SELECT 
-      a.id,
-      a.status,
-      a.reason,
-      a.doctor_id,
-      d.name AS doctor_name, -- <<< SỬA LỖI TẠI ĐÂY: Đổi "d.full_name" thành "d.name"
-      d.img AS doctor_img,
-      spec.name AS specialization_name,
-      ts.slot_date,
-      ts.start_time,
-      r.rating,
-      r.comment
-    FROM appointments a
-    JOIN doctors d ON a.doctor_id = d.id
-    JOIN specializations spec ON d.specialization_id = spec.id
-    JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
-    LEFT JOIN ratings r ON a.id = r.appointment_id
-    WHERE a.customer_id = ?
-    ORDER BY ts.slot_date DESC, ts.start_time DESC`;
+     const sql = `
+     SELECT 
+       a.id,
+       a.status,
+       a.reason,
+       a.doctor_id,
+       a.payment_status,
+       a.payment_method,
+       a.transaction_id,
+       a.paid_amount,
+       a.payment_date,
+       d.name AS doctor_name,
+       d.img AS doctor_img,
+       spec.name AS specialization_name,
+       ts.slot_date,
+       ts.start_time,
+       r.rating,
+       r.comment
+     FROM appointments a
+     JOIN doctors d ON a.doctor_id = d.id
+     JOIN specializations spec ON d.specialization_id = spec.id
+     JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+     LEFT JOIN ratings r ON a.id = r.appointment_id
+     WHERE a.customer_id = ?
+     ORDER BY ts.slot_date DESC, ts.start_time DESC`;
 
   db.query(sql, [customerId], (err, results) => {
     if (err) {

@@ -2,8 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { ScanLine, Clock, User, Mail, ShieldCheck, RefreshCw } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const CheckoutPage = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const data = searchParams.get('data');
+
   const [isClient, setIsClient] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 phút
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -12,23 +17,64 @@ const CheckoutPage = () => {
   const [bankInfo, setBankInfo] = useState<any>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, success, failed
+  const [showSuccessPage, setShowSuccessPage] = useState(false); // Hiển thị trang thành công
+  const [appointmentCreated, setAppointmentCreated] = useState(false); // Đã tạo appointment chưa
   
-  const service = {
+  // State để lưu dữ liệu từ checkout
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Lấy dữ liệu từ URL parameters
+  useEffect(() => {
+    if (data) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(data));
+        setPaymentData(decoded);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Lỗi khi parse dữ liệu thanh toán:", err);
+        alert("Dữ liệu thanh toán không hợp lệ.");
+        router.back();
+      }
+    } else {
+      alert("Không có dữ liệu thanh toán.");
+      router.back();
+    }
+  }, [data, router]);
+
+  // Dữ liệu service và user từ paymentData
+  const service = paymentData ? {
+    name: `Phí khám ${paymentData.specialty}`,
+    doctor: paymentData.doctorName,
+    doctorAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    date: `${paymentData.appointmentTime}, ${new Date(paymentData.appointmentDate + 'T00:00:00').toLocaleDateString('vi-VN')}`,
+    price: paymentData.amount,
+  } : {
     name: 'Phí khám Chuyên khoa Tim mạch',
     doctor: 'BS. Trần Văn Minh',
     doctorAvatar: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     date: '10:00 - 10:30, 29/10/2023',
-    price: 50000, // Thay đổi từ 500000 thành 50000 để test
+    price: 50000,
   };
-  const user = {
+
+  const user = paymentData ? {
+    name: paymentData.patientName,
+    email: paymentData.patientEmail,
+  } : {
     name: 'Nguyễn Văn A',
     email: 'nguyenvana@email.com',
   };
+
   const [transaction, setTransaction] = useState({
     id: '',
     discount: 0,
     total: service.price,
   });
+
+  // Cập nhật total khi service.price thay đổi
+  useEffect(() => {
+    setTransaction(prev => ({ ...prev, total: service.price }));
+  }, [service.price]);
 
   // Lấy thông tin ngân hàng từ API
   const loadBankInfo = async () => {
@@ -95,10 +141,27 @@ const CheckoutPage = () => {
         console.log('Payment check response:', data);
         
         if (data.success && data.hasPayment) {
+          console.log('✅ Payment confirmed! Setting status to success');
           setPaymentStatus('success');
-          console.log('Payment confirmed! Status updated to success');
+          
+          // Nếu thanh toán thành công và chưa tạo appointment
+          if (paymentData?.formData && !appointmentCreated) {
+            console.log('🔄 Creating appointment after successful payment...');
+            const appointmentResult = await createAppointment(paymentData.formData);
+            if (appointmentResult) {
+              console.log('✅ Appointment created successfully');
+              setAppointmentCreated(true);
+              // Hiển thị trang thành công sau 2 giây
+              setTimeout(() => {
+                console.log('🎉 Showing success page');
+                setShowSuccessPage(true);
+              }, 2000);
+            } else {
+              console.log('❌ Failed to create appointment');
+            }
+          }
         } else {
-          console.log('No payment found yet');
+          console.log('⏳ No payment found yet, current status:', paymentStatus);
         }
       } else {
         console.error('Error checking payment:', response.status);
@@ -110,19 +173,66 @@ const CheckoutPage = () => {
     }
   };
 
+  // Hàm tạo appointment sau khi thanh toán thành công
+  const createAppointment = async (formData: any) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Không có token để tạo appointment');
+      return false;
+    }
+
+    try {
+      // Thêm thông tin thanh toán vào formData
+      const appointmentData = {
+        ...formData,
+        payment_status: 'Đã thanh toán', // Đã thanh toán
+        payment_method: 'online', // Thanh toán online
+        transaction_id: transaction.id, // Mã giao dịch
+        paid_amount: service.price, // Số tiền đã thanh toán
+        payment_date: new Date().toISOString() // Ngày thanh toán
+      };
+
+      console.log('Creating appointment with payment info:', appointmentData);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Appointment created successfully with payment status:', result);
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error creating appointment:', errorData);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error creating appointment:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
+    if (!paymentData) return; // Chờ paymentData được load
+    
     setIsClient(true);
     loadBankInfo();
     
     const transactionId = `TDCARE${Date.now()}`;
-    setTransaction(prev => ({ ...prev, id: transactionId }));
+    setTransaction(prev => ({ ...prev, id: transactionId, total: service.price }));
 
     const intervalId = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [paymentData, service.price]);
 
   // Tạo QR code khi có thông tin ngân hàng
   useEffect(() => {
@@ -178,6 +288,93 @@ const CheckoutPage = () => {
 
   const statusDisplay = getStatusDisplay();
   const StatusIcon = statusDisplay.icon;
+
+  // Hiển thị loading nếu chưa có dữ liệu
+  if (isLoading || !paymentData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải thông tin thanh toán...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Hiển thị trang thành công sau khi thanh toán xong
+  if (showSuccessPage) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="w-10 h-10 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Thanh toán thành công!</h1>
+            <p className="text-gray-600 mb-6">Lịch hẹn của bạn đã được xác nhận và ghi nhận.</p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-semibold text-blue-800 mb-4">Thông tin lịch hẹn</h2>
+            <div className="space-y-3 text-left">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Bệnh nhân:</span>
+                <span className="font-medium">{user.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Bác sĩ:</span>
+                <span className="font-medium">{service.doctor}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Chuyên khoa:</span>
+                <span className="font-medium">{paymentData.specialty}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Ngày khám:</span>
+                <span className="font-medium">{new Date(paymentData.appointmentDate + 'T00:00:00').toLocaleDateString('vi-VN')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Giờ khám:</span>
+                <span className="font-medium">{paymentData.appointmentTime}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-gray-600 font-semibold">Số tiền đã thanh toán:</span>
+                <span className="font-bold text-green-600">{formatVND(service.price)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-700">
+                ✅ <strong>Xác nhận:</strong> Thanh toán đã được xác nhận và lịch hẹn đã được tạo thành công.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => router.push('/profile/appointment')}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Xem lịch hẹn của tôi
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Về trang chủ
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-500 mt-4">
+              <p>📧 Thông tin chi tiết đã được gửi đến email: <strong>{user.email}</strong></p>
+              <p>📱 Bạn cũng có thể xem lịch hẹn trong mục "Lịch hẹn của tôi" trong trang cá nhân.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-10">
@@ -268,16 +465,50 @@ const CheckoutPage = () => {
                     </button>
                 </div>
 
-
-
-
-
                 <div className="text-center bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center justify-center gap-2 text-yellow-600">
                         <Clock size={20} />
                         <p className="font-medium">Giao dịch sẽ hết hạn sau:</p>
                     </div>
                     <p className="text-3xl font-bold text-blue-600 mt-1">{formatTime(timeLeft)}</p>
+                    
+                    {/* Nút kiểm tra thanh toán thủ công */}
+                    <div className="mt-4">
+                        <button
+                            onClick={checkPaymentHistory}
+                            disabled={isCheckingPayment}
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
+                            {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
+                        </button>
+                        
+                        {/* Nút test để simulate thanh toán thành công */}
+                        <button
+                            onClick={async () => {
+                                console.log('🧪 Testing payment success...');
+                                setPaymentStatus('success');
+                                if (paymentData?.formData && !appointmentCreated) {
+                                    console.log('🔄 Creating appointment after test payment...');
+                                    const appointmentResult = await createAppointment(paymentData.formData);
+                                    if (appointmentResult) {
+                                        console.log('✅ Test appointment created successfully');
+                                        setAppointmentCreated(true);
+                                        setTimeout(() => {
+                                            setShowSuccessPage(true);
+                                        }, 2000);
+                                    }
+                                }
+                            }}
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mt-2 mx-auto"
+                        >
+                            🧪 Test Thanh toán thành công
+                        </button>
+                        
+                        <p className="text-xs text-gray-500 mt-2">
+                            💡 Hệ thống sẽ tự động kiểm tra mỗi 30 giây, hoặc bạn có thể bấm nút trên để kiểm tra thủ công
+                        </p>
+                    </div>
                 </div>
               </>
             )}
@@ -332,6 +563,18 @@ const CheckoutPage = () => {
                  <StatusIcon size={16} />
                  <p className="text-sm font-medium">Trạng thái: <span className="font-bold">{statusDisplay.text}</span></p>
               </div>
+              
+              {paymentStatus === 'success' && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-green-700 mb-2">
+                    <ShieldCheck size={16} />
+                    <span className="font-semibold">Thanh toán thành công!</span>
+                  </div>
+                  <p className="text-sm text-green-600">
+                    Đang tạo lịch hẹn... Vui lòng chờ trong giây lát.
+                  </p>
+                </div>
+              )}
               
               {transaction.id && (
                 <p className="text-xs text-center text-gray-400 mt-4">Mã giao dịch: {transaction.id}</p>

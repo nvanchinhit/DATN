@@ -148,7 +148,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (authLoading || !authUser || !token) return;
-
+    
     const fetchData = async () => {
       try {
         setPageLoading(true);
@@ -402,20 +402,20 @@ export default function ProfilePage() {
           <div className="flex flex-col lg:flex-row items-center gap-6">
             {/* Avatar Section */}
             <div className="relative">
-              <img 
-                src={displayAvatar} 
-                alt="Avatar" 
+                <img 
+                    src={displayAvatar} 
+                    alt="Avatar" 
                 className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }}
-              />
+                    onError={(e) => { e.currentTarget.src = 'https://jbagy.me/wp-content/uploads/2025/03/hinh-anh-cute-avatar-vo-tri-3.jpg'; }}
+                />
               {isEditing && (
                 <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current?.click()}
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
                   className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center border-4 border-white hover:bg-blue-700 transition shadow-lg"
-                  aria-label="Thay đổi ảnh đại diện"
+                    aria-label="Thay đổi ảnh đại diện"
                 >
-                  <Camera size={16} />
+                    <Camera size={16} />
                 </button>
               )}
               <input type="file" accept="image/*" ref={fileInputRef} onChange={(e) => handleFileChange(e, 'avatar')} className="hidden" />
@@ -439,8 +439,8 @@ export default function ProfilePage() {
               <p className="text-gray-600">{profileData.email}</p>
             </div>
           </div>
-        </div>
-        
+          </div>
+          
         {/* Form Fields */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ProfileField label="Họ và Tên" icon={User} isRequired>
@@ -455,7 +455,7 @@ export default function ProfilePage() {
             ) : (
               <p className="text-lg font-medium">{profileData.name}</p>
             )}
-          </ProfileField>
+            </ProfileField>
 
           <ProfileField label="Email" icon={Mail} isVerified>
             <div className="flex items-center gap-3">
@@ -464,41 +464,41 @@ export default function ProfilePage() {
                 <ShieldCheck size={12} />
                 Đã xác thực
               </span>
-            </div>
-          </ProfileField>
+                </div>
+            </ProfileField>
 
           <ProfileField label="Số điện thoại" icon={Phone}>
             {isEditing ? (
-              <input 
-                type="tel" 
-                name="phone" 
-                value={formData.phone || ''} 
-                onChange={handleChange} 
+                <input 
+                    type="tel" 
+                    name="phone" 
+                    value={formData.phone || ''} 
+                    onChange={handleChange} 
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" 
-                placeholder="Nhập số điện thoại"
-              />
+                    placeholder="Nhập số điện thoại"
+                />
             ) : (
               <p className="text-lg">{profileData.phone || 'Chưa thiết lập'}</p>
             )}
-          </ProfileField>
+            </ProfileField>
 
           {'gender' in profileData && (
             <ProfileField label="Giới tính" icon={User}>
               {isEditing ? (
                 <div className="flex gap-6">
-                  {['Nam', 'Nữ', 'Khác'].map(option => (
-                    <label key={option} className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="radio" 
-                        name="gender" 
-                        value={option} 
+                    {['Nam', 'Nữ', 'Khác'].map(option => (
+                        <label key={option} className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                                type="radio" 
+                                name="gender" 
+                                value={option} 
                         checked={(formData as Customer).gender === option} 
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(p => ({...p, gender: e.target.value as any}))} 
-                        className="form-radio text-blue-600 h-4 w-4 focus:ring-blue-500"
-                      />
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(p => ({...p, gender: e.target.value as any}))} 
+                                className="form-radio text-blue-600 h-4 w-4 focus:ring-blue-500"
+                            />
                       <span className="text-lg">{option}</span>
-                    </label>
-                  ))}
+                        </label>
+                    ))}
                 </div>
               ) : (
                 <p className="text-lg">{(profileData as Customer).gender || 'Chưa thiết lập'}</p>
@@ -510,10 +510,10 @@ export default function ProfilePage() {
             <ProfileField label="Ngày sinh" icon={Calendar}>
               {isEditing ? (
                 <input 
-                  type="date" 
-                  name="birthday" 
+                    type="date" 
+                    name="birthday" 
                   value={(formData as Customer).birthday || ''} 
-                  onChange={handleChange} 
+                    onChange={handleChange} 
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               ) : (
@@ -694,8 +694,8 @@ export default function ProfilePage() {
             >
               Hủy
             </button>
-            <button 
-              type="submit" 
+              <button 
+                type="submit" 
               disabled={isSubmitting}
               className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -706,14 +706,14 @@ export default function ProfilePage() {
                 </>
               ) : (
                 <>
-                  <Save size={18} />
+                <Save size={18} />
                   Lưu thay đổi
                 </>
               )}
-            </button>
+              </button>
           </div>
         )}
-      </form>
+        </form>
     </div>
   );
 }

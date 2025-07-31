@@ -481,6 +481,7 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
             d.id AS doctor_id,
             d.name AS doctor_name,
             d.img AS doctor_img,
+            d.price AS doctor_price, -- Thêm giá của bác sĩ
             s.price AS specialty_price,
             a.id AS appointment_id
         FROM doctor_time_slot dts
@@ -525,13 +526,16 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
             } else {
                 // Chỉ "có sẵn" khi chưa đặt VÀ bác sĩ đang bật
                 group.availableSlots++;
+                
+                const finalPrice = (slot.doctor_price && slot.doctor_price > 0) ? slot.doctor_price : slot.specialty_price;
+                
                 group.slots.push({
                     time_slot_id: slot.time_slot_id,
                     doctor: {
                         id: slot.doctor_id,
                         name: slot.doctor_name,
                         img: slot.doctor_img,
-                        price: slot.specialty_price
+                        price: finalPrice // Sử dụng giá cuối cùng đã được xác định
                     }
                 });
             }

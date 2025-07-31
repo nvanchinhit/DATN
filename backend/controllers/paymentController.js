@@ -193,26 +193,24 @@ class PaymentController {
 
   // POST - Check payment history từ API bên ngoài
   checkPaymentHistory(req, res) {
-    const { token, account_number, transaction_id, amount } = req.body;
+    const { token, account_number, transaction_id, amount, appointment_id } = req.body;
     
-    if (!token || !account_number) {
+    if (!token || !account_number || !transaction_id || !amount) {
       return res.status(400).json({
         success: false,
-        message: 'Thiếu thông tin token hoặc account_number'
+        message: 'Thiếu thông tin token, account_number, transaction_id hoặc amount'
       });
     }
 
-    console.log('Checking payment with:', { token, account_number, transaction_id, amount });
+    console.log('Checking payment with:', { token, account_number, transaction_id, amount, appointment_id });
 
-    // Gọi API bên ngoài từ backend
     const https = require('https');
     
-    // Token là một phần của URL path
     const options = {
       hostname: 'thueapibank.vn',
       port: 443,
       path: `/historyapiacbv2/${token}`,
-      method: 'GET', // Thay đổi thành GET
+      method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
@@ -224,55 +222,93 @@ class PaymentController {
       let data = '';
       
       console.log('API Response status:', apiRes.statusCode);
-      console.log('API Response headers:', apiRes.headers);
       
       apiRes.on('data', (chunk) => {
         data += chunk;
       });
       
       apiRes.on('end', () => {
-        console.log('Raw API response:', data.substring(0, 500)); // Log 500 ký tự đầu
+        console.log('Raw API response received.');
         
         try {
-          // Kiểm tra xem response có phải JSON không
           if (data.trim().startsWith('<')) {
             console.error('API returned HTML instead of JSON');
             return res.status(500).json({
               success: false,
-              message: 'API trả về HTML thay vì JSON. Có thể endpoint sai hoặc cần authentication.',
-              rawResponse: data.substring(0, 200)
+              message: 'API trả về HTML thay vì JSON. Có thể token sai hoặc hết hạn.',
             });
           }
           
           const responseData = JSON.parse(data);
-          console.log('Parsed API Response:', responseData);
           
-          // Kiểm tra giao dịch
-          const hasNewPayment = responseData.transactions?.some((txn) => {
+          // ================================================================
+          // <<< THAY ĐỔI LOGIC KIỂM TRA TẠI ĐÂY >>>
+          // ================================================================
+          
+          // 1. Sử dụng `find` để tìm giao dịch ĐẦU TIÊN thỏa mãn TẤT CẢ điều kiện
+          const transactions = responseData.transactions || []; // Đảm bảo transactions là một mảng
+          
+          const foundTransaction = transactions.find(txn => {
             const amountMatch = txn.amount === amount;
             const typeMatch = txn.type === 'IN';
+            // 2. Thêm điều kiện quan trọng: Nội dung chuyển khoản PHẢI chứa transaction_id
+            const descriptionMatch = txn.description && txn.description.includes(transaction_id);
             
-            console.log('Checking transaction:', {
-              txnAmount: txn.amount,
-              expectedAmount: amount,
-              txnDescription: txn.description,
-              txnType: txn.type,
-              amountMatch,
-              typeMatch
+            // Log chi tiết cho từng giao dịch để dễ debug
+            console.log(
+              `--> Checking TXN [${txn.description}]: Amount ok? ${amountMatch}, Type ok? ${typeMatch}, Content ok? ${descriptionMatch}`
+            );
+
+            return amountMatch && typeMatch && descriptionMatch;
+          });
+
+          // 3. Trả về kết quả dựa trên việc có tìm thấy `foundTransaction` hay không
+          if (foundTransaction) {
+            console.log('✅ VALID TRANSACTION FOUND:', foundTransaction);
+            
+            // Nếu có appointment_id, cập nhật trạng thái thanh toán trong database
+            if (appointment_id) {
+              const updateSql = `
+                UPDATE appointments 
+                SET payment_status = 'Đã thanh toán', 
+                    payment_method = 'online',
+                    transaction_id = ?,
+                    paid_amount = ?,
+                    payment_date = NOW()
+                WHERE id = ?
+              `;
+              
+              db.query(updateSql, [transaction_id, amount, appointment_id], (updateErr, updateResult) => {
+                if (updateErr) {
+                  console.error('❌ Error updating appointment payment status:', updateErr);
+                } else {
+                  console.log('✅ Appointment payment status updated successfully');
+                }
+              });
+            }
+            
+            // Trả về cấu trúc response mới mà frontend đang mong đợi
+            res.status(200).json({
+              success: true,
+              hasPayment: true,
+              transactionDetails: {
+                description: foundTransaction.description,
+                amount: foundTransaction.amount,
+                transactionDate: foundTransaction.transactionDate // hoặc tên trường ngày tháng tương ứng
+              },
+              message: 'Tìm thấy giao dịch thanh toán hợp lệ.'
             });
-            
-            return amountMatch && typeMatch;
-          });
-          
-          res.status(200).json({
-            success: true,
-            data: responseData,
-            hasPayment: hasNewPayment,
-            message: hasNewPayment ? 'Tìm thấy giao dịch thanh toán' : 'Chưa tìm thấy giao dịch'
-          });
+          } else {
+            console.log('⏳ No valid transaction found yet.');
+            res.status(200).json({
+              success: true,
+              hasPayment: false,
+              transactionDetails: null,
+              message: 'Chưa tìm thấy giao dịch hợp lệ.'
+            });
+          }
         } catch (error) {
           console.error('Error parsing API response:', error);
-          console.error('Raw response that caused error:', data);
           res.status(500).json({
             success: false,
             message: 'Lỗi khi xử lý response từ API',
@@ -292,8 +328,8 @@ class PaymentController {
       });
     });
 
-    apiReq.end(); // Không cần write data vì dùng GET
+    apiReq.end();
   }
 }
 
-module.exports = PaymentController; 
+module.exports = PaymentController;
