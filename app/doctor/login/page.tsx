@@ -4,9 +4,11 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/app/contexts/page';
 
 export default function DoctorLoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,8 +30,8 @@ export default function DoctorLoginPage() {
       if (!res.ok) {
         throw new Error(data.msg || 'Đăng nhập thất bại!');
       } else {
-        localStorage.setItem('doctorToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.doctor));
+        // Sử dụng AuthContext để lưu token thống nhất
+        login(data.token, data.doctor);
         
         // Chuyển hướng ngay lập tức
         const doctorStatus = data.doctor.account_status;

@@ -57,5 +57,19 @@ router.put(
 // Route lấy chi tiết bác sĩ (bao gồm giá tiền)
 router.get("/:id", doctorController.getDoctorById);
 
+// ================== ROUTES CHO BÁC SĨ ĐÃ ĐĂNG NHẬP ==================
+// Lấy profile của bác sĩ đã đăng nhập
+// router.get("/profile", authMiddleware.isDoctor, doctorController.getDoctorProfile);
+
+// Cập nhật profile của bác sĩ đã đăng nhập
+router.put("/profile", authMiddleware.isDoctor, upload.fields([
+  { name: "img", maxCount: 1 },
+  { name: 'degree_image', maxCount: 1 },
+  { name: 'certificate_files', maxCount: 10 }
+]), doctorController.updateDoctorProfile);
+
+// Đổi mật khẩu cho bác sĩ đã đăng nhập
+router.put("/change-password", authMiddleware.isDoctor, doctorController.changePassword);
+
 
 module.exports = router;

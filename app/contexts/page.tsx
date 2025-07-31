@@ -9,6 +9,8 @@ interface User {
   email: string;
   name: string;
   role_id: number;
+  avatar?: string | null; // Thêm thuộc tính avatar
+  img?: string | null; // Có thể có img nếu là bác sĩ
 }
 
 interface AuthContextType {

@@ -117,37 +117,56 @@ export default function ChangePasswordPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Validate toàn bộ form trước khi submit
-    const finalErrors = validate();
-    setErrors(finalErrors);
-
-    // Nếu có lỗi, đánh dấu tất cả các trường là đã "chạm" để hiển thị lỗi
-    if (Object.keys(finalErrors).length > 0) {
-        setTouched({
-            currentPassword: true,
-            newPassword: true,
-            confirmPassword: true,
-        });
-        return;
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
 
     setIsSubmitting(true);
+    setSuccess('');
+    setErrors({});
+
     try {
-      // ... (Phần gọi API không thay đổi)
-      const res = await fetch(`${API_URL}/api/users/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ current_password: formData.currentPassword, new_password: formData.newPassword }),
+      // Lấy thông tin user từ localStorage để xác định role
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Chọn API dựa trên role
+      let apiUrl = '';
+      if (user.role_id === 3) { // Doctor
+        apiUrl = `${API_URL}/api/doctors/change-password`;
+      } else { // Customer hoặc Admin
+        apiUrl = `${API_URL}/api/users/change-password`;
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          current_password: formData.currentPassword,
+          new_password: formData.newPassword
+        })
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Đổi mật khẩu thất bại.');
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Đổi mật khẩu thất bại');
+      }
 
       setSuccess('Đổi mật khẩu thành công!');
-      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTouched({}); // Reset touched state sau khi thành công
-      setErrors({});
-    } catch (err: any) {
-      setErrors({ api: err.message });
+      setFormData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setTouched({});
+      
+    } catch (error: any) {
+      setErrors({ api: error.message });
     } finally {
       setIsSubmitting(false);
     }
