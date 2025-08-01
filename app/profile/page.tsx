@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [formData, setFormData] = useState<any>({}); // Use any for simplicity due to complex union types
+  const [formData, setFormData] = useState<Partial<ProfileData>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -154,17 +154,22 @@ export default function ProfilePage() {
         setPageLoading(true);
         setError(null);
         
-        const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-        
-        let fetchedData: any; // Use any to simplify type handling for fetched data
+        let fetchedData: any;
 
-        if (localUser.role_id === 1) { // Admin
-          fetchedData = { ...localUser, name: localUser.name || 'Admin', email: localUser.email || '', role_id: 1 };
-        } else if (localUser.role_id === 3) {
-          const res = await fetch(`${API_URL}/api/doctors/${localUser.id}`);
+        if (authUser.role_id === 1) { // Admin
+          fetchedData = { 
+            ...authUser, 
+            name: authUser.name || 'Admin', 
+            email: authUser.email || '', 
+            role_id: 1 
+          };
+        } else if (authUser.role_id === 3) { // Doctor
+          const res = await fetch(`${API_URL}/api/doctors/${authUser.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
           if (!res.ok) throw new Error('Không thể tải thông tin bác sĩ');
           const result = await res.json();
-          fetchedData = result; // API bác sĩ trả về object trực tiếp
+          fetchedData = result;
         } else { // Customer
           const res = await fetch(`${API_URL}/api/users/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -174,7 +179,7 @@ export default function ProfilePage() {
           fetchedData = result.data;
         }
 
-        setProfileData(fetchedData as ProfileData); // Cast to ProfileData for setProfileData
+        setProfileData(fetchedData as ProfileData);
         setFormData({ 
           ...fetchedData,
           birthday: fetchedData.birthday ? fetchedData.birthday.split('T')[0] : null,
@@ -458,14 +463,8 @@ export default function ProfilePage() {
             </ProfileField>
 
           <ProfileField label="Email" icon={Mail} isVerified>
-            <div className="flex items-center gap-3">
-              <p className="text-lg font-medium">{profileData.email}</p>
-              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                <ShieldCheck size={12} />
-                Đã xác thực
-              </span>
-                </div>
-            </ProfileField>
+            <span className="text-lg font-medium">{profileData.email}</span>
+          </ProfileField>
 
           <ProfileField label="Số điện thoại" icon={Phone}>
             {isEditing ? (

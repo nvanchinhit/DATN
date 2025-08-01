@@ -34,7 +34,7 @@ const getRoleInfo = (roleId: number) => {
     case 3:
       return { name: 'Bác sĩ', color: 'text-green-600', bgColor: 'bg-green-50' };
     default:
-      return { name: 'Người dùng', color: 'text-gray-600', bgColor: 'bg-gray-50' };
+      return { name: 'Khách hàng', color: 'text-blue-600', bgColor: 'bg-blue-50' };
   }
 };
 

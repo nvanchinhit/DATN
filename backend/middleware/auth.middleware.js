@@ -13,7 +13,8 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Gắn thông tin người dùng (id, role_id,...) vào request
+    req.user = decoded;
+    console.log('🔐 Token verified, user:', req.user); // Thêm log này
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
@@ -53,9 +54,12 @@ module.exports.isAdmin = (req, res, next) => {
  * - Phải được dùng SAU middleware `verifyToken`.
  */
 module.exports.isDoctor = (req, res, next) => {
+  console.log('🔍 isDoctor middleware - User role:', req.user?.role_id); // Thêm log này
   if (req.user && req.user.role_id === 3) {
+    console.log('✅ Doctor access granted'); // Thêm log này
     next();
   } else {
+    console.log('❌ Doctor access denied - role_id:', req.user?.role_id); // Thêm log này
     return res.status(403).json({ success: false, message: 'Từ chối truy cập: Yêu cầu quyền Bác sĩ.' });
   }
 };

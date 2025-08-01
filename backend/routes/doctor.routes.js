@@ -7,6 +7,7 @@ const fs = require("fs");
 const multer = require("multer");
 
 const authMiddleware = require('../middleware/auth.middleware');
+const { isDoctor } = require('../middleware/auth.middleware'); // Import riêng isDoctor
 const doctorController = require("../controllers/doctorController");
 
 // ================== CẤU HÌNH MULTER TRỰC TIẾP ==================
@@ -31,45 +32,40 @@ router.patch("/:id/approve", doctorController.approveDoctor);
 router.get("/top", doctorController.getTopDoctors);
 router.get('/all-for-admin', doctorController.getAllDoctorsForAdmin);
 
-
-// ✅ === ROUTE UPDATE DUY NHẤT === ✅
-// Dùng cho form "Hoàn thiện hồ sơ"
-router.put(
-  "/:id",
-  // Cấu hình multer để nhận đúng các trường từ frontend
-  upload.fields([
-    { name: "img", maxCount: 1 },
-    { name: 'degree_image', maxCount: 1 },
-    { name: 'certificate_files', maxCount: 10 } // <<< NHẬN NHIỀU FILE
-  ]),
-  doctorController.updateDoctor // Dùng controller đã sửa
-);
-router.put(
-  "/:id/profile", // <<< ĐƯỜNG DẪN MỚI
-  upload.fields([
-    { name: "img", maxCount: 1 },
-    { name: 'degree_image', maxCount: 1 },
-    { name: 'certificate_files', maxCount: 10 }
-  ]),
-  doctorController.updateDoctorProfile // <<< GỌI ĐÚNG HÀM CONTROLLER ĐÃ SỬA LỖI
-);
-
-// Route lấy chi tiết bác sĩ (bao gồm giá tiền)
-router.get("/:id", doctorController.getDoctorById);
-
 // ================== ROUTES CHO BÁC SĨ ĐÃ ĐĂNG NHẬP ==================
-// Lấy profile của bác sĩ đã đăng nhập
-// router.get("/profile", authMiddleware.isDoctor, doctorController.getDoctorProfile);
+// Đổi mật khẩu cho bác sĩ đã đăng nhập - ĐẶT TRƯỚC CÁC ROUTE CÓ PARAMETER
+router.put("/change-password", authMiddleware, isDoctor, doctorController.changePassword);
 
 // Cập nhật profile của bác sĩ đã đăng nhập
-router.put("/profile", authMiddleware.isDoctor, upload.fields([
+router.put("/profile", authMiddleware, isDoctor, upload.fields([
   { name: "img", maxCount: 1 },
   { name: 'degree_image', maxCount: 1 },
   { name: 'certificate_files', maxCount: 10 }
 ]), doctorController.updateDoctorProfile);
 
-// Đổi mật khẩu cho bác sĩ đã đăng nhập
-router.put("/change-password", authMiddleware.isDoctor, doctorController.changePassword);
+// ✅ === ROUTE UPDATE DUY NHẤT === ✅
+// Dùng cho form "Hoàn thiện hồ sơ"
+router.put(
+  "/:id",
+  upload.fields([
+    { name: "img", maxCount: 1 },
+    { name: 'degree_image', maxCount: 1 },
+    { name: 'certificate_files', maxCount: 10 }
+  ]),
+  doctorController.updateDoctor
+);
 
+router.put(
+  "/:id/profile",
+  upload.fields([
+    { name: "img", maxCount: 1 },
+    { name: 'degree_image', maxCount: 1 },
+    { name: 'certificate_files', maxCount: 10 }
+  ]),
+  doctorController.updateDoctorProfile
+);
+
+// Route lấy chi tiết bác sĩ (bao gồm giá tiền) - ĐẶT CUỐI CÙNG
+router.get("/:id", doctorController.getDoctorById);
 
 module.exports = router;

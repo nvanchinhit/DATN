@@ -49,21 +49,10 @@ const TopSpecialties = () => {
               <h3 className="text-xl font-bold text-gray-900 mb-2 transition-colors duration-300 group-hover:text-white">
                 {specialty.name}
               </h3>
-              {specialty.price > 0 && (
-                <p className="text-lg font-bold text-green-600 mb-2 transition-colors duration-300 group-hover:text-green-300">
-                  {Number(specialty.price).toLocaleString('vi-VN')} VND
-                </p>
-              )}
+              
               <p className="text-gray-600 mb-4 text-sm transition-colors duration-300 group-hover:text-blue-100">
                 Chăm sóc sức khỏe {specialty.name?.toLowerCase()}
               </p>
-              <a
-                href={`/chuyen-khoa/${specialty.id}`}
-                className="inline-flex items-center text-blue-600 font-semibold transition-colors duration-300 group-hover:text-white"
-              >
-                Xem chi tiết
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
             </div>
           ))}
         </div>

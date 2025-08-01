@@ -521,10 +521,16 @@ exports.getAllDoctorsForAdmin = (req, res) => {
 
 // Đổi mật khẩu cho bác sĩ đã đăng nhập
 exports.changePassword = (req, res) => {
+  console.log('🔐 Doctor change password request received');
+  console.log('User ID:', req.user.id);
+  console.log('User role:', req.user.role_id);
+  console.log('Request body:', req.body);
+  
   const doctorId = req.user.id;
   const { current_password, new_password } = req.body;
 
   if (!current_password || !new_password) {
+    console.log('❌ Missing password fields');
     return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mật khẩu hiện tại và mật khẩu mới.' });
   }
 
@@ -535,6 +541,7 @@ exports.changePassword = (req, res) => {
       return res.status(500).json({ success: false, message: 'Lỗi server khi lấy mật khẩu.' });
     }
     if (results.length === 0) {
+      console.log('❌ Doctor not found with ID:', doctorId);
       return res.status(404).json({ success: false, message: 'Không tìm thấy bác sĩ.' });
     }
 
@@ -546,6 +553,7 @@ exports.changePassword = (req, res) => {
         return res.status(500).json({ success: false, message: 'Lỗi server khi xác thực.' });
       }
       if (!isMatch) {
+        console.log('❌ Current password does not match');
         return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác.' });
       }
 
@@ -561,6 +569,7 @@ exports.changePassword = (req, res) => {
             console.error("❌ Lỗi khi cập nhật mật khẩu mới:", updateErr);
             return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật mật khẩu.' });
           }
+          console.log('✅ Password changed successfully for doctor ID:', doctorId);
           res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });
         });
       });

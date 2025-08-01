@@ -24,6 +24,7 @@ const upload = multer({ storage: storage });
 // <--- BƯỚC 2: THÊM authMiddleware VÀO GIỮA ROUTE VÀ CONTROLLER
 router.get('/profile', authMiddleware, userController.getProfile);
 router.put('/profile', authMiddleware, upload.single('avatar'), userController.updateProfile);
-router.post('/change-password', authMiddleware, userController.changePassword);
+// Thay đổi từ POST sang PUT
+router.put('/change-password', authMiddleware, userController.changePassword);
 
 module.exports = router;
