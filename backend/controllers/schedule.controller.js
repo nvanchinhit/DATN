@@ -3,8 +3,10 @@
 const db = require('../config/db.config');
 
 // Các tham số cấu hình cho việc chia slot
-const SLOT_DURATION_MINUTES = 30; // Mỗi ca khám kéo dài 30 phút
+const SLOT_DURATION_MINUTES = 15; // Mỗi ca khám kéo dài 1515 phút
 const BREAK_IN_MINUTES = 15;      // Thời gian nghỉ giữa các ca là 15 phút
+
+// file: backend/controllers/schedule.controller.js
 
 /**
  * Thuật toán chia một ca làm việc lớn (ví dụ: sáng 7h-12h) thành các khung giờ khám nhỏ.
@@ -14,6 +16,9 @@ const BREAK_IN_MINUTES = 15;      // Thời gian nghỉ giữa các ca là 15 ph
 const generateTimeSlots = (shift) => {
     const slots = [];
     const { id: work_shift_id, doctor_id, work_date, start_time, end_time } = shift;
+    
+    // Cấu hình thời gian của mỗi slot
+    const SLOT_DURATION_MINUTES = 60; 
     
     // Chuyển đổi thời gian string thành đối tượng Date để tính toán
     let currentTime = new Date(`${work_date}T${start_time}`);
@@ -36,12 +41,15 @@ const generateTimeSlots = (shift) => {
             1            // Mặc định bác sĩ luôn BẬT (active) các slot khi mới tạo
         ]);
         
-        // Cập nhật currentTime cho vòng lặp tiếp theo, cộng thêm cả thời gian khám và thời gian nghỉ
-        currentTime = new Date(slotEndTime.getTime() + BREAK_IN_MINUTES * 60000);
+        // =============================================================
+        // ✅ SỬA LỖI TẠI ĐÂY:
+        // Cập nhật currentTime bằng chính thời gian kết thúc của slot vừa tạo
+        // để slot tiếp theo bắt đầu ngay lập tức, không có thời gian nghỉ.
+        currentTime = slotEndTime;
+        // =============================================================
     }
     return slots;
 };
-
 /**
  * 1. Controller để tạo một ca làm việc (work shift) và tự động tạo các khung giờ (time slots) con.
  */

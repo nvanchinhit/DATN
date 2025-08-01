@@ -138,76 +138,77 @@ exports.approveDoctor = (req, res) => {
   });
 };
 
-// ✅ Lấy thông tin bác sĩ theo ID (CÓ HỖ TRỢ NHIỀU ẢNH chứng chỉ & bằng cấp)
+// ✅ Lấy thông tin bác sĩ theo ID (ĐÃ SỬA LỖI VÀ TĂNG TÍNH AN TOÀN)
 exports.getDoctorById = (req, res) => {
   const doctorId = req.params.id;
   const sql = `
     SELECT 
-      d.id,
-      d.name,
-      d.phone,
-      d.email,
-      d.img,
-      d.introduction,
-      d.experience,
-      d.university,
-      d.gpa,
-      d.graduation_date,
-      d.degree_type,
-      d.certificate_image,
-      d.certificate_source,
-      d.degree_image,
-      d.account_status,
-      d.role_id,
-      d.specialization_id,
-      d.room_number,
-      d.price,
+      d.id, d.name, d.phone, d.email, d.img, d.introduction, d.experience,
+      d.university, d.gpa, d.graduation_date, d.degree_type,
+      d.certificate_image, d.certificate_source, d.degree_image,
+      d.account_status, d.role_id, d.specialization_id,
+      d.room_number, d.price,
       s.name AS specialization_name,
       s.price AS specialty_price
     FROM doctors d
     LEFT JOIN specializations s ON d.specialization_id = s.id
     WHERE d.id = ?
   `;
+
   db.query(sql, [doctorId], (err, rows) => {
-    if (err) return res.status(500).json({ msg: "Lỗi truy vấn!" });
-    if (rows.length === 0)
+    // Luôn kiểm tra lỗi truy vấn trước tiên
+    if (err) {
+      console.error(`[DB ERROR] Lỗi khi truy vấn bác sĩ ID ${doctorId}:`, err);
+      return res.status(500).json({ msg: "Lỗi máy chủ khi truy vấn dữ liệu." });
+    }
+
+    if (rows.length === 0) {
       return res.status(404).json({ msg: "Không tìm thấy bác sĩ!" });
+    }
 
-    const doctor = rows[0];
+    // ================== KHỐI TRY...CATCH BẢO VỆ ==================
+    try {
+      const doctor = rows[0];
 
-    // ✅ Chuyển TEXT => MẢNG cho ảnh chứng chỉ & bằng cấp
-    const Certificates = doctor.certificate_image
-  ? doctor.certificate_image.split('|').map((filename, index) => ({
-      id: index + 1,
-      filename,
-      source:
-        doctor.certificate_source?.split('|')[index] || '', // lấy đúng nơi cấp tương ứng
-    }))
-  : [];
+      // Xử lý an toàn: Nếu certificate_image là null/undefined, kết quả sẽ là mảng rỗng.
+      const Certificates = (doctor.certificate_image || '')
+        .split('|')
+        .filter(filename => filename) // Lọc ra các chuỗi rỗng nếu có (ví dụ: "img1.jpg||img2.jpg")
+        .map((filename, index) => ({
+          id: index + 1,
+          filename,
+          source: (doctor.certificate_source || '').split('|')[index] || '',
+        }));
 
+      // Xử lý an toàn cho bằng cấp
+      const Degrees = (doctor.degree_image || '')
+        .split('|')
+        .filter(filename => filename)
+        .map((filename, index) => ({
+          id: index + 1,
+          filename,
+          gpa: doctor.gpa ?? '',
+          university: doctor.university ?? '',
+          graduation_date: doctor.graduation_date ?? '',
+          degree_type: doctor.degree_type ?? '',
+        }));
 
-    const Degrees = doctor.degree_image
-  ? doctor.degree_image.split('|').map((filename, index) => ({
-      id: index + 1,
-      filename,
-      gpa: doctor.gpa ?? '',
-      university: doctor.university ?? '',
-      graduation_date: doctor.graduation_date ?? '',
-      degree_type: doctor.degree_type ?? '',
-    }))
-  : [];
+      // Gửi phản hồi về client
+      res.json({
+        ...doctor,
+        specialty_price: doctor.specialty_price,
+        Certificates,
+        Degrees,
+      });
 
-
-    // ✅ Gửi phản hồi về client
-    res.json({
-      ...doctor,
-      specialty_price: doctor.specialty_price, // Thêm giá khám theo chuyên khoa
-      Certificates,
-      Degrees,
-    });
+    } catch (processError) {
+      // Bắt bất kỳ lỗi nào xảy ra trong quá trình xử lý dữ liệu (ví dụ: .split on null)
+      console.error(`[PROCESSING ERROR] Lỗi khi xử lý dữ liệu cho bác sĩ ID ${doctorId}:`, processError);
+      return res.status(500).json({ msg: "Lỗi máy chủ khi xử lý thông tin bác sĩ." });
+    }
+    // =============================================================
   });
 };
-
 
 // Cập nhật hồ sơ bác sĩ
 exports.updateDoctor = async (req, res) => {
