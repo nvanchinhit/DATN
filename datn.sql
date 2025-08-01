@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: localhost:3306
--- Thời gian đã tạo: Th8 01, 2025 lúc 05:58 AM
+-- Thời gian đã tạo: Th8 01, 2025 lúc 06:44 AM
 -- Phiên bản máy phục vụ: 8.0.30
 -- Phiên bản PHP: 8.1.10
 
@@ -89,7 +89,8 @@ INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `cu
 (43, 'Le van a', 22, 'Nam', 'huyensoaicavip@gmail.com', '0988842674', 3, 15, 'fsdfddf', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, ' 04 yet keu', 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (61, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'stessg', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 715, 'Đã xác nhận', 0, 'tẻt', 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (62, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ykkk', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 752, 'Từ chối', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(63, 'Hà Thị Dung', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'mệt', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 716, 'Đã xác nhận', 0, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0);
+(63, 'Hà Thị Dung', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'mệt', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 716, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'nghỉ ngơi đầy đủ', NULL, NULL, 1),
+(64, 'Hà Thị Trang', 22, 'Nữ', 'hathidung1502@gmail.com', '0342907002', 15, 15, 'đau đầu', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 725, 'Đã khám xong', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -398,6 +399,13 @@ CREATE TABLE `medical_records` (
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Đang đổ dữ liệu cho bảng `medical_records`
+--
+
+INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id`, `diagnosis`, `treatment`, `notes`, `created_at`) VALUES
+(9, 63, 15, 15, 'bthg', NULL, NULL, '2025-08-01 13:09:38');
+
 -- --------------------------------------------------------
 
 --
@@ -557,7 +565,8 @@ INSERT INTO `ratings` (`id`, `customer_id`, `rating`, `comment`, `created_at`, `
 (2, 2, 4, 'Chất lượng ổn.', '2025-06-07 14:02:51', NULL, NULL),
 (5, 15, 4, 'bs nhiệt tình', '2025-07-23 23:23:48', 19, NULL),
 (10, 15, 2, 'kkkkkkkk', '2025-07-23 23:40:23', 15, 44),
-(11, 15, 4, 'tốt', '2025-07-24 14:00:09', 15, 50);
+(11, 15, 4, 'tốt', '2025-07-24 14:00:09', 15, 50),
+(12, 15, 5, 'Bs tận tâm', '2025-08-01 13:07:40', 15, 63);
 
 -- --------------------------------------------------------
 
@@ -750,7 +759,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT cho bảng `customers`
@@ -780,7 +789,7 @@ ALTER TABLE `doctor_work_shifts`
 -- AUTO_INCREMENT cho bảng `medical_records`
 --
 ALTER TABLE `medical_records`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
@@ -822,7 +831,7 @@ ALTER TABLE `prescription_items`
 -- AUTO_INCREMENT cho bảng `ratings`
 --
 ALTER TABLE `ratings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT cho bảng `role`

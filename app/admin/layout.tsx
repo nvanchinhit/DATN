@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Stethoscope, Building, ClipboardList, CalendarClock,
-  Users, BarChart2, X, Menu, LogOut, User as UserIcon, Bell, Settings, Loader2, CreditCard
+  Users, BarChart2, X, Menu, LogOut, User as UserIcon, Bell, Settings, Loader2, CreditCard, FileText
 } from 'lucide-react';
 
 // Interface User
@@ -19,7 +19,7 @@ interface User {
 // Cấu trúc menu không đổi
 const adminMenuGroups = [
   { group: 'Tổng quan', items: [{ label: 'Bảng điều khiển', path: '/admin', icon: LayoutDashboard }, { label: 'Doanh thu', path: '/admin/revenues', icon: BarChart2 }] },
-  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/schedules', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope },  { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }, { label: 'Thanh toán', path: '/admin/payment', icon: CreditCard }] },
+  { group: 'Quản lý', items: [{ label: 'Lịch hẹn', path: '/admin/schedules', icon: CalendarClock }, { label: 'Bác sĩ', path: '/admin/doctors', icon: Stethoscope },  { label: 'Chuyên khoa', path: '/admin/specialties', icon: ClipboardList }, { label: 'Người dùng', path: '/admin/accounts', icon: Users }, { label: 'Thanh toán', path: '/admin/payment', icon: CreditCard }, { label: 'Hồ sơ bệnh án', path: '/admin/medical-records', icon: FileText }] },
 ];
 
 

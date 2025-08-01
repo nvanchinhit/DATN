@@ -21,6 +21,10 @@ router.get('/booking-ratio-monthly', adminController.getBookingRatioByMonth)
 // routes/admin.routes.js
 router.get('/pie-stats', adminController.getPieStats)
 
-
+// MEDICAL RECORDS - HỒ SƠ BỆNH ÁN
+router.get('/medical-records', adminController.getAllMedicalRecords);
+router.get('/medical-records/:id', adminController.getMedicalRecordById);
+router.get('/medical-records-by-doctors', adminController.getMedicalRecordsByDoctors);
+router.get('/doctors', adminController.getDoctors);
 
 module.exports = router;

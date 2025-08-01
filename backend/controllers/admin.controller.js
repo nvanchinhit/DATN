@@ -221,3 +221,292 @@ exports.getPieStats = async (req, res) => {
     res.status(500).json({ error: "Server error" })
   }
 }
+
+// [9] Lấy tất cả hồ sơ bệnh án của tất cả bệnh nhân
+exports.getAllMedicalRecords = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '', status = '', doctor_id = '' } = req.query;
+    const offset = (page - 1) * limit;
+
+    let conditions = [];
+    let values = [];
+
+    // Chỉ lấy những hồ sơ bệnh án đã được bác sĩ tạo
+    conditions.push("mr.id IS NOT NULL");
+
+    // Tìm kiếm theo tên bệnh nhân
+    if (search) {
+      conditions.push("(a.name LIKE ? OR c.name LIKE ?)");
+      values.push(`%${search}%`, `%${search}%`);
+    }
+
+    // Lọc theo trạng thái khám
+    if (status) {
+      conditions.push("a.status = ?");
+      values.push(status);
+    }
+
+    // Lọc theo bác sĩ
+    if (doctor_id) {
+      conditions.push("a.doctor_id = ?");
+      values.push(doctor_id);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Query để lấy tổng số records
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM appointments a
+      LEFT JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN doctors d ON a.doctor_id = d.id
+      LEFT JOIN specializations s ON d.specialization_id = s.id
+      LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      INNER JOIN medical_records mr ON a.id = mr.appointment_id
+      ${whereClause}
+    `;
+
+    const [countResult] = await db.promise().query(countSql, values);
+    const totalRecords = countResult[0].total;
+
+    // Query chính để lấy dữ liệu
+    const sql = `
+      SELECT 
+        a.id AS appointment_id,
+        a.name AS patient_name,
+        a.age,
+        a.gender,
+        a.email AS patient_email,
+        a.phone,
+        a.reason,
+        a.doctor_id,
+        a.status,
+        a.address,
+        a.doctor_confirmation,
+        a.doctor_note,
+        a.diagnosis,
+        a.follow_up_date,
+        a.is_examined,
+        a.time_slot_id,
+        c.name AS customer_name,
+        c.id AS customer_id,
+        d.name AS doctor_name,
+        s.name AS specialization_name,
+        dts.start_time,
+        dts.end_time,
+        dts.slot_date,
+        mr.id AS medical_record_id,
+        mr.treatment,
+        mr.notes AS medical_notes,
+        mr.created_at AS medical_record_created_at
+      FROM appointments a
+      LEFT JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN doctors d ON a.doctor_id = d.id
+      LEFT JOIN specializations s ON d.specialization_id = s.id
+      LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      INNER JOIN medical_records mr ON a.id = mr.appointment_id
+      ${whereClause}
+      ORDER BY mr.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [records] = await db.promise().query(sql, [...values, parseInt(limit), offset]);
+
+    res.json({
+      records,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        limit: parseInt(limit)
+      }
+    });
+  } catch (err) {
+    console.error("❌ Lỗi getAllMedicalRecords:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// [10] Lấy chi tiết hồ sơ bệnh án theo ID
+exports.getMedicalRecordById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const sql = `
+      SELECT 
+        a.id AS appointment_id,
+        a.name AS patient_name,
+        a.age,
+        a.gender,
+        a.email AS patient_email,
+        a.phone,
+        a.reason,
+        a.doctor_id,
+        a.status,
+        a.address,
+        a.doctor_confirmation,
+        a.doctor_note,
+        a.diagnosis,
+        a.follow_up_date,
+        a.is_examined,
+        a.time_slot_id,
+        c.name AS customer_name,
+        c.id AS customer_id,
+        c.birthday,
+        c.avatar,
+        d.name AS doctor_name,
+        d.phone AS doctor_phone,
+        d.email AS doctor_email,
+        s.name AS specialization_name,
+        dts.start_time,
+        dts.end_time,
+        dts.slot_date,
+        mr.id AS medical_record_id,
+        mr.treatment,
+        mr.notes AS medical_notes,
+        mr.created_at AS medical_record_created_at
+      FROM appointments a
+      LEFT JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN doctors d ON a.doctor_id = d.id
+      LEFT JOIN specializations s ON d.specialization_id = s.id
+      LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      LEFT JOIN medical_records mr ON a.id = mr.appointment_id
+      WHERE a.id = ?
+    `;
+
+    const [records] = await db.promise().query(sql, [id]);
+
+    if (records.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy hồ sơ bệnh án' });
+    }
+
+    res.json(records[0]);
+  } catch (err) {
+    console.error("❌ Lỗi getMedicalRecordById:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// [11] Lấy danh sách bác sĩ cho filter
+exports.getDoctors = async (req, res) => {
+  try {
+    const [doctors] = await db.promise().query(`
+      SELECT id, name, specialization_id
+      FROM doctors 
+      WHERE account_status = 'active'
+      ORDER BY name ASC
+    `);
+    res.json(doctors);
+  } catch (err) {
+    console.error("❌ Lỗi getDoctors:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// [12] Lấy tất cả hồ sơ bệnh án của các bác sĩ đã tạo
+exports.getMedicalRecordsByDoctors = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, doctor_id = '', search = '', status = '' } = req.query;
+    const offset = (page - 1) * limit;
+
+    let conditions = [];
+    let values = [];
+
+    // Chỉ lấy những hồ sơ bệnh án đã được bác sĩ tạo
+    conditions.push("mr.id IS NOT NULL");
+
+    // Lọc theo bác sĩ cụ thể
+    if (doctor_id) {
+      conditions.push("mr.doctor_id = ?");
+      values.push(doctor_id);
+    }
+
+    // Tìm kiếm theo tên bệnh nhân
+    if (search) {
+      conditions.push("(a.name LIKE ? OR c.name LIKE ?)");
+      values.push(`%${search}%`, `%${search}%`);
+    }
+
+    // Lọc theo trạng thái khám
+    if (status) {
+      conditions.push("a.status = ?");
+      values.push(status);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Query để lấy tổng số records
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM medical_records mr
+      LEFT JOIN appointments a ON mr.appointment_id = a.id
+      LEFT JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN doctors d ON mr.doctor_id = d.id
+      LEFT JOIN specializations s ON d.specialization_id = s.id
+      LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      ${whereClause}
+    `;
+
+    const [countResult] = await db.promise().query(countSql, values);
+    const totalRecords = countResult[0].total;
+
+    // Query chính để lấy dữ liệu
+    const sql = `
+      SELECT 
+        mr.id AS medical_record_id,
+        mr.appointment_id,
+        mr.doctor_id,
+        mr.customer_id,
+        mr.diagnosis,
+        mr.treatment,
+        mr.notes AS medical_notes,
+        mr.created_at AS medical_record_created_at,
+        a.name AS patient_name,
+        a.age,
+        a.gender,
+        a.email AS patient_email,
+        a.phone,
+        a.reason,
+        a.status,
+        a.address,
+        a.doctor_confirmation,
+        a.doctor_note,
+        a.diagnosis AS appointment_diagnosis,
+        a.follow_up_date,
+        a.is_examined,
+        a.time_slot_id,
+        c.name AS customer_name,
+        d.name AS doctor_name,
+        d.phone AS doctor_phone,
+        d.email AS doctor_email,
+        s.name AS specialization_name,
+        dts.start_time,
+        dts.end_time,
+        dts.slot_date
+      FROM medical_records mr
+      LEFT JOIN appointments a ON mr.appointment_id = a.id
+      LEFT JOIN customers c ON a.customer_id = c.id
+      LEFT JOIN doctors d ON mr.doctor_id = d.id
+      LEFT JOIN specializations s ON d.specialization_id = s.id
+      LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      ${whereClause}
+      ORDER BY mr.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [records] = await db.promise().query(sql, [...values, parseInt(limit), offset]);
+
+    res.json({
+      records,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        limit: parseInt(limit)
+      }
+    });
+  } catch (err) {
+    console.error("❌ Lỗi getMedicalRecordsByDoctors:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
