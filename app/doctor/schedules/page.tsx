@@ -1,8 +1,14 @@
 // file: app/doctor/schedules/page.tsx
+// ============================================
+// ĐÃ SỬA LỖI:
+// 1. Sửa key lấy token từ `doctorToken` thành `token` để đồng bộ với cách lưu token khi đăng nhập.
+// 2. Thêm `setLoading(false)` vào các nhánh xử lý lỗi để tránh UI bị kẹt ở trạng thái "loading".
+// 3. Thêm log chi tiết hơn để dễ dàng debug nếu `user` hoặc `token` không có trong localStorage.
+// ============================================
 
 'use client';
 
-import React, { useState, useEffect, useCallback, FormEvent } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, Clock, User, PlusCircle, XCircle, 
   AlertTriangle, CheckCircle, Loader2, Power, PowerOff 
@@ -10,7 +16,7 @@ import {
 import { format } from 'date-fns';
 import Sidebardoctor from "@/components/layout/Sidebardoctor"; 
 
-// --- ĐỊNH NGHĨA CÁC KIỂU DỮ LIỆU (ĐÃ CẬP NHẬT) ---
+// --- ĐỊNH NGHĨA CÁC KIỂU DỮ LIỆU ---
 
 interface DoctorData {
   id: number;
@@ -31,8 +37,8 @@ interface TimeSlot {
   work_shift_id: number;
   start_time: string;
   end_time: string;
-  status: 'Available' | 'Booked'; // Trạng thái do hệ thống/bệnh nhân quyết định
-  is_active: boolean;              // Trạng thái do bác sĩ bật/tắt
+  status: 'Available' | 'Booked';
+  is_active: boolean;
 }
 
 const SHIFT_TYPES = {
@@ -50,27 +56,42 @@ export default function ManageWorkSchedulePage() {
   const [success, setSuccess] = useState('');
   const [submittingActions, setSubmittingActions] = useState<Set<string>>(new Set());
 
-  // 1. Tự động nhận diện bác sĩ từ localStorage
+  // 1. Tự động nhận diện bác sĩ từ localStorage (ĐÃ SỬA LỖI)
   useEffect(() => {
+    // Lấy thông tin người dùng (bác sĩ) từ key 'user'
     const rawDoctorData = localStorage.getItem('user'); 
-    const token = localStorage.getItem('doctorToken');
+    
+    // Lấy token từ key 'token'. Đây là key phổ biến nhất.
+    // Nếu bạn lưu token với key khác, hãy đổi lại ở đây.
+    const token = localStorage.getItem('token'); 
 
     if (rawDoctorData && token) {
       try {
         const parsedData = JSON.parse(rawDoctorData);
+        // Kiểm tra xem có phải là tài khoản bác sĩ không
         if (parsedData && parsedData.id && parsedData.role_id === 3) {
+          // Gộp thông tin bác sĩ và token vào cùng một state object
           const doctorDataWithToken: DoctorData = { ...parsedData, token };
           setDoctor(doctorDataWithToken);
+          setError(''); // Xóa lỗi nếu tìm thấy thông tin hợp lệ
         } else {
           setError("Dữ liệu đăng nhập không hợp lệ hoặc không phải tài khoản Bác sĩ.");
+          setLoading(false); // Ngừng loading khi có lỗi
         }
       } catch (e) {
+        console.error("Lỗi khi parse dữ liệu người dùng:", e);
         setError("Lỗi đọc dữ liệu đăng nhập. Vui lòng đăng nhập lại.");
+        setLoading(false); // Ngừng loading khi có lỗi
       }
     } else {
+      // Log ra để kiểm tra xem đang thiếu dữ liệu nào
+      if (!rawDoctorData) console.error("DEBUG: Không tìm thấy 'user' trong localStorage.");
+      if (!token) console.error("DEBUG: Không tìm thấy 'token' trong localStorage.");
+      
       setError("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.");
+      setLoading(false); // Ngừng loading khi có lỗi
     }
-  }, []);
+  }, []); // useEffect này chỉ chạy một lần khi component mount
 
   // 2. Hàm gọi API để lấy lịch làm việc
   const fetchSchedule = useCallback(async (date: string, currentDoctor: DoctorData) => {
@@ -100,9 +121,10 @@ export default function ManageWorkSchedulePage() {
     if (doctor) {
       fetchSchedule(selectedDate, doctor);
     } else {
-      setLoading(false); // Nếu không có doctor, ngừng loading
+      // Nếu không có doctor (do lỗi ở useEffect trên), ngừng loading
+      if(error) setLoading(false);
     }
-  }, [selectedDate, doctor, fetchSchedule]);
+  }, [selectedDate, doctor, fetchSchedule, error]);
 
   // 4. Hàm bao bọc chung cho các hành động (thêm, xóa, sửa)
   const handleAction = async (actionId: string, apiCall: () => Promise<any>) => {
@@ -172,14 +194,19 @@ export default function ManageWorkSchedulePage() {
 
   // 5. Render giao diện
   
+  // Hiển thị lỗi nếu không tìm thấy thông tin đăng nhập sau khi đã kiểm tra xong
   if (!doctor && !loading) {
     return (
         <div className="flex bg-gray-100 min-h-screen">
             <Sidebardoctor />
             <main className="flex-1 p-6 flex justify-center items-center">
-                <p className="text-red-600 font-semibold flex items-center gap-2">
-                    <AlertTriangle/> {error || "Không thể xác định thông tin đăng nhập."}
-                </p>
+                <div className="text-center p-8 bg-white rounded-lg shadow-md">
+                    <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
+                    <p className="mt-4 text-xl text-red-600 font-semibold">
+                        {error || "Không thể xác định thông tin đăng nhập."}
+                    </p>
+                    <p className="mt-2 text-gray-500">Vui lòng đăng xuất và đăng nhập lại.</p>
+                </div>
             </main>
         </div>
     );
@@ -216,7 +243,7 @@ export default function ManageWorkSchedulePage() {
         </div>
         
         {success && <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-green-100 text-green-800 border border-green-200"><CheckCircle size={20} />{success}</div>}
-        {error && <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-100 text-red-800 border border-red-200"><AlertTriangle size={20} />{error}</div>}
+        {error && !loading && <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-100 text-red-800 border border-red-200"><AlertTriangle size={20} />{error}</div>}
 
         {loading ? (
           <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>

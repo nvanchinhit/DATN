@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react"; // <<<< SỬA ĐỔI 1: Thêm useMemo
 import { useSearchParams, useRouter } from "next/navigation";
 import { Calendar, Clock, Loader2, ChevronLeft, X, Info } from "lucide-react";
 import DatePicker from "react-datepicker";
@@ -19,12 +19,10 @@ const getImageUrl = (fileName: string | null | undefined): string => {
 };
 
 // --- Interfaces ---
-// <<<<<<< SỬA ĐỔI 1: Cập nhật Interface >>>>>>>
 interface Specialization { id: number; name: string; }
 interface DoctorInfo { id: number; name: string; img: string; price: number; }
 interface SlotInfo { time_slot_id: number; doctor: DoctorInfo; }
 
-// Interface này phải khớp với dữ liệu mới từ API
 interface ScheduleGroup { 
   time: string; 
   slots: SlotInfo[]; 
@@ -175,6 +173,27 @@ function SpecialtySchedulePage() {
     fetchData();
   }, [specialtyId, selectedDate]);
 
+  // <<<<<<< SỬA ĐỔI 2: Dùng useMemo để nhóm lịch thành sáng và chiều >>>>>>>
+  const groupedSchedule = useMemo(() => {
+    const morning: ScheduleGroup[] = [];
+    const afternoon: ScheduleGroup[] = [];
+    
+    schedule.forEach(group => {
+      // Lấy giờ bắt đầu của ca, ví dụ "08:00" -> 8
+      const startHour = parseInt(group.time.split(' - ')[0].split(':')[0], 10);
+      
+      // Giờ trước 12h là buổi sáng, từ 12h trở đi là buổi chiều
+      if (startHour < 12) {
+        morning.push(group);
+      } else {
+        afternoon.push(group);
+      }
+    });
+
+    return { morning, afternoon };
+  }, [schedule]);
+
+
   const handleBooking = (slot: SlotInfo) => {
     if (!specialty || !selectedTimeGroup) return;
     const dateStr = formatDateForApi(selectedDate);
@@ -186,7 +205,7 @@ function SpecialtySchedulePage() {
       date: dateStr,
       time: { id: slot.time_slot_id, start: selectedTimeGroup.time.split(' - ')[0], end: selectedTimeGroup.time.split(' - ')[1] },
       time_slot_id: slot.time_slot_id,
-      price: Number(slot.doctor.price) || 0 // Chuyển đổi sang number và fallback về 0 nếu NaN
+      price: Number(slot.doctor.price) || 0
     };
     
     const encoded = encodeURIComponent(JSON.stringify(bookingData));
@@ -198,7 +217,6 @@ function SpecialtySchedulePage() {
     setDetailsModalOpen(true);
   };
 
-  // <<<<<<< SỬA ĐỔI 2: Tạo hàm render trạng thái nút >>>>>>>
   const getButtonStatus = (group: ScheduleGroup) => {
     if (group.availableSlots > 0) {
       return {
@@ -209,7 +227,6 @@ function SpecialtySchedulePage() {
       };
     }
     
-    // Nếu tất cả slot đều do bác sĩ tắt (và không có ai đặt)
     if (group.inactiveSlots === group.totalSlots) {
         return {
             disabled: true,
@@ -219,7 +236,6 @@ function SpecialtySchedulePage() {
         };
     }
 
-    // Các trường hợp còn lại (đã đặt hết, hoặc hỗn hợp đặt + tắt)
     return {
       disabled: true,
       className: 'bg-red-100 text-red-800 border-2 border-red-300 cursor-not-allowed',
@@ -249,8 +265,8 @@ function SpecialtySchedulePage() {
                 </div>
             </div>
 
-            <main className="lg:col-span-8 xl:col-span-9">
-              <h3 className="text-xl font-bold flex items-center gap-2 mb-4"><Clock size={20} /> 2. Chọn ca khám có sẵn</h3>
+            <main className="lg:col-span-8 xl:col-span-9 space-y-8">
+              <h3 className="text-xl font-bold flex items-center gap-2"><Clock size={20} /> 2. Chọn ca khám có sẵn</h3>
               {loading && <div className="flex justify-center py-10"><Loader2 className="animate-spin" /></div>}
               {error && <div className="text-center py-10 text-red-500 bg-red-50 p-6 rounded-xl">{error}</div>}
               {!loading && !error && schedule.length === 0 && (
@@ -258,31 +274,65 @@ function SpecialtySchedulePage() {
                     <p>Không có lịch khám nào cho ngày này.</p>
                 </div>
               )}
-
-              {/* <<<<<<< SỬA ĐỔI 3: Sử dụng hàm getButtonStatus để render >>>>>>> */}
+              
+              {/* <<<<<<< SỬA ĐỔI 3: Render lịch khám theo nhóm Sáng và Chiều >>>>>>> */}
               {!loading && schedule.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {schedule.map((group) => {
-                        const status = getButtonStatus(group);
-                        return (
+                <div className="space-y-8">
+                  {/* === BUỔI SÁNG === */}
+                  {groupedSchedule.morning.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-700 mb-4">Buổi sáng</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {groupedSchedule.morning.map((group) => {
+                          const status = getButtonStatus(group);
+                          return (
                             <button 
-                                key={group.time} 
-                                onClick={() => { 
-                                    if (!status.disabled) {
-                                        setSelectedTimeGroup(group); 
-                                        setSelectionModalOpen(true); 
-                                    }
-                                }}
-                                disabled={status.disabled}
-                                className={`p-3 rounded-lg font-semibold text-center transition-all shadow-sm ${status.className}`}
+                              key={group.time} 
+                              onClick={() => { 
+                                if (!status.disabled) {
+                                  setSelectedTimeGroup(group); 
+                                  setSelectionModalOpen(true); 
+                                }
+                              }}
+                              disabled={status.disabled}
+                              className={`p-3 rounded-lg font-semibold text-center transition-all shadow-sm ${status.className}`}
                             >
-                                <p className="text-base">{group.time}</p>
-                                <p className={status.textClassName}>
-                                    {status.text}
-                                </p>
+                              <p className="text-base">{group.time}</p>
+                              <p className={status.textClassName}>{status.text}</p>
                             </button>
-                        )
-                    })}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* === BUỔI CHIỀU === */}
+                  {groupedSchedule.afternoon.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-700 mb-4">Buổi chiều</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {groupedSchedule.afternoon.map((group) => {
+                          const status = getButtonStatus(group);
+                          return (
+                            <button 
+                              key={group.time} 
+                              onClick={() => { 
+                                if (!status.disabled) {
+                                  setSelectedTimeGroup(group); 
+                                  setSelectionModalOpen(true); 
+                                }
+                              }}
+                              disabled={status.disabled}
+                              className={`p-3 rounded-lg font-semibold text-center transition-all shadow-sm ${status.className}`}
+                            >
+                              <p className="text-base">{group.time}</p>
+                              <p className={status.textClassName}>{status.text}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </main>
