@@ -166,7 +166,7 @@ export default function DoctorSchedulePage() {
   
   const handleAppointmentAction = async (action: "confirm" | "reject") => {
     const appointmentId = selectedSlot?.booking?.id;
-    const token = localStorage.getItem("doctorToken");
+    const token = localStorage.getItem("token");
     if (!appointmentId || submitting || !token) return;
     setSubmitting(true);
     try {
@@ -187,7 +187,7 @@ export default function DoctorSchedulePage() {
   
   const handleSaveDiagnosis = async () => {
     const appointmentId = selectedSlot?.booking?.id;
-    const token = localStorage.getItem("doctorToken");
+    const token = localStorage.getItem("token");
     if (!appointmentId || !token) return alert("Lỗi xác thực.");
     if (!diagnosis.trim()) return alert("Vui lòng nhập chẩn đoán.");
     

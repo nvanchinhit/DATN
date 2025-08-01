@@ -116,25 +116,6 @@ router.get('/doctors/top', (req, res) => {
   });
 });
 /// Phải nằm BÊN TRONG router.get!
-// LẤY APPOINTMENT THEO time_slot_id
-router.get('/appointments/slot/:slotId', (req, res) => {
-  const { slotId } = req.params;
-
-  const sql = `
-    SELECT 
-      id, name AS patient_name, email, phone, note, status, payment_status
-    FROM appointments
-    WHERE time_slot_id = ?
-    LIMIT 1
-  `;
-
-  db.query(sql, [slotId], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Lỗi truy vấn lịch hẹn' });
-    if (result.length === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn' });
-    res.json(result[0]);
-  });
-});
-
 
 
 
@@ -242,21 +223,6 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       console.error(`[ERROR] Lỗi logic khi xử lý time-slots cho doctorId ${doctorId}:`, e);
       res.status(500).json({ error: 'Lỗi máy chủ khi xử lý dữ liệu.' });
     }
-  });
-});
-
-
-// routes/appointment.routes.js
-router.put('/appointments/:id/confirm', (req, res) => {
-  const { id } = req.params;
-  const sql = `
-    UPDATE appointments
-    SET status = 'Đã xác nhận'
-    WHERE id = ?`;
-  db.query(sql, [id], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Lỗi xác nhận lịch hẹn.' });
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
-    res.json({ message: 'Xác nhận thành công!' });
   });
 });
 
