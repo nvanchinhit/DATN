@@ -77,20 +77,31 @@ export default function DoctorSchedulePage() {
 
   useEffect(() => {
     const rawData = localStorage.getItem("user");
-    if (rawData) {
+    const token = localStorage.getItem("token");
+    
+    console.log("🔍 [DEBUG] User data from localStorage:", rawData);
+    console.log("🔍 [DEBUG] Token exists:", !!token);
+    
+    if (rawData && token) {
       try {
         const parsed = JSON.parse(rawData);
+        console.log("🔍 [DEBUG] Parsed user data:", parsed);
+        
         if (parsed?.id && parsed?.role_id === 3) {
           setDoctorId(parsed.id);
+          console.log("✅ [DEBUG] Doctor ID set:", parsed.id);
         } else {
+          console.log("❌ [DEBUG] Invalid user role:", parsed?.role_id);
           setError("Tài khoản không hợp lệ hoặc không phải bác sĩ.");
           setLoading(false);
         }
-      } catch {
+      } catch (err) {
+        console.error("❌ [DEBUG] Error parsing user data:", err);
         setError("Lỗi đọc dữ liệu đăng nhập.");
         setLoading(false);
       }
     } else {
+      console.log("❌ [DEBUG] Missing user data or token");
       setError("Vui lòng đăng nhập.");
       setLoading(false);
     }
@@ -142,22 +153,42 @@ export default function DoctorSchedulePage() {
 
   const handleStatusUpdate = async (newStatus: "Đang khám" | "Đã khám xong" | "Đã xác nhận") => {
     const appointmentId = selectedSlot?.booking?.id;
-    const token = localStorage.getItem("doctorToken");
-    if (!appointmentId || !token || submitting) return;
+    const token = localStorage.getItem("token");
+    
+    console.log("🔍 [DEBUG] handleStatusUpdate called with:", { newStatus, appointmentId, token: token ? "exists" : "missing" });
+    
+    if (!appointmentId || !token || submitting) {
+      console.log("❌ [DEBUG] Missing required data:", { appointmentId, token: !!token, submitting });
+      return;
+    }
     
     setSubmitting(true);
     try {
+        console.log("🔍 [DEBUG] Sending request to:", `http://localhost:5000/api/appointments/${appointmentId}/status`);
+        console.log("🔍 [DEBUG] Request body:", { status: newStatus });
+        
         const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/status`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ status: newStatus }),
         });
 
-        if (!res.ok) throw new Error( (await res.json()).message || "Lỗi cập nhật trạng thái.");
+        console.log("🔍 [DEBUG] Response status:", res.status);
         
+        if (!res.ok) {
+            const errorData = await res.json();
+            console.error("❌ [DEBUG] API Error:", errorData);
+            throw new Error(errorData.message || "Lỗi cập nhật trạng thái.");
+        }
+        
+        const successData = await res.json();
+        console.log("✅ [DEBUG] API Success:", successData);
+        
+        alert(`✅ Đã cập nhật trạng thái thành "${newStatus}"`);
         setSelectedSlot(prev => prev && prev.booking ? { ...prev, booking: { ...prev.booking, status: newStatus } } : null);
         fetchDoctorSlots();
     } catch (err: any) {
+        console.error("❌ [DEBUG] Error in handleStatusUpdate:", err);
         alert(`❌ ${err.message}`);
     } finally {
         setSubmitting(false);
@@ -511,7 +542,15 @@ export default function DoctorSchedulePage() {
 
                       {/* Action for "Đã xác nhận" */}
                       {selectedSlot.booking?.status === 'Đã xác nhận' && (
-                         <button onClick={() => handleStatusUpdate('Đang khám')} disabled={submitting} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2">
+                         <button 
+                           onClick={() => {
+                             console.log("🔍 [DEBUG] Bắt đầu khám button clicked");
+                             console.log("🔍 [DEBUG] Selected slot:", selectedSlot);
+                             handleStatusUpdate('Đang khám');
+                           }} 
+                           disabled={submitting} 
+                           className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                         >
                            <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
                          </button>
                       )}

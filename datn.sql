@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th7 31, 2025 lúc 07:25 PM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.0.30
+-- Máy chủ: localhost:3306
+-- Thời gian đã tạo: Th8 01, 2025 lúc 05:58 AM
+-- Phiên bản máy phục vụ: 8.0.30
+-- Phiên bản PHP: 8.1.10
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -28,13 +28,13 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `admins` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL
+  `role_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -42,7 +42,8 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `phone`, `created_at`, `role_id`) VALUES
-(5, 'Admin', 'chinhnvpd10204@gmail.com', '$2b$10$BZwG/okUMMS3e.Qy57cLp.Oj6Ms.x6Y0ltcyCs0Llu1EK9PnaLzjC', '0344757955', '2025-07-26 08:33:06', 1);
+(5, 'Admin', 'chinhnvpd10204@gmail.com', '$2b$10$BZwG/okUMMS3e.Qy57cLp.Oj6Ms.x6Y0ltcyCs0Llu1EK9PnaLzjC', '0344757955', '2025-07-26 08:33:06', 1),
+(6, 'Admin', 'dunghtpd09940@gmail.com', '$2b$10$8D76XftlXeD3EaPyEUNreOjCt3CYMJIQa3FkG6ZoutWDNjCvN9hTq', '0342907002', '2025-08-01 12:45:26', 1);
 
 -- --------------------------------------------------------
 
@@ -51,29 +52,29 @@ INSERT INTO `admins` (`id`, `name`, `email`, `password`, `phone`, `created_at`, 
 --
 
 CREATE TABLE `appointments` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `age` int(11) DEFAULT NULL,
-  `gender` enum('Nam','Nữ','Khác') DEFAULT 'Khác',
-  `email` varchar(100) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `reason` text DEFAULT NULL,
-  `payment_status` enum('Chưa thanh toán','Đã thanh toán') DEFAULT 'Chưa thanh toán',
-  `payment_method` varchar(50) DEFAULT '''cash''' COMMENT 'Phương thức thanh toán: cash, online',
-  `transaction_id` varchar(100) DEFAULT NULL COMMENT 'Mã giao dịch thanh toán',
-  `paid_amount` decimal(10,2) DEFAULT 0.00 COMMENT 'Số tiền đã thanh toán',
+  `id` int NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `age` int DEFAULT NULL,
+  `gender` enum('Nam','Nữ','Khác') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Khác',
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `payment_status` enum('Chưa thanh toán','Đã thanh toán') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Chưa thanh toán',
+  `payment_method` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '''cash''' COMMENT 'Phương thức thanh toán: cash, online',
+  `transaction_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'Mã giao dịch thanh toán',
+  `paid_amount` decimal(10,2) DEFAULT '0.00' COMMENT 'Số tiền đã thanh toán',
   `payment_date` datetime DEFAULT NULL COMMENT 'Ngày thanh toán',
-  `time_slot_id` int(11) DEFAULT NULL,
-  `status` enum('Chưa xác nhận','Đã xác nhận','Từ chối','Đã hủy','Đang khám','Đã khám xong') NOT NULL DEFAULT 'Chưa xác nhận',
-  `is_reviewed` tinyint(1) NOT NULL DEFAULT 0,
-  `address` varchar(255) DEFAULT NULL,
-  `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') DEFAULT 'Chưa xác nhận',
-  `doctor_note` text DEFAULT NULL,
-  `diagnosis` text DEFAULT NULL,
+  `time_slot_id` int DEFAULT NULL,
+  `status` enum('Chưa xác nhận','Đã xác nhận','Từ chối','Đã hủy','Đang khám','Đã khám xong') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Chưa xác nhận',
+  `is_reviewed` tinyint(1) NOT NULL DEFAULT '0',
+  `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Chưa xác nhận',
+  `doctor_note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `diagnosis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `follow_up_date` date DEFAULT NULL,
-  `is_examined` tinyint(1) DEFAULT 0
+  `is_examined` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -85,15 +86,10 @@ INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `cu
 (2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', NULL, 2, 'Nổi mẩn da', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', 0, NULL, 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (35, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'r32w2er2', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (39, 'LÊ CÔNG TUẤN', 24, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'qffedgfa nê', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(40, 'LÊ CÔNG  ddd', 24, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ddddd', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(41, 'LÊ CÔNs TUẤN', 43, 'Nữ', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ssss', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(42, 'nguyễn quodghsdbk', 33, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'dkaskjjd', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, 'fodsahisdj', 'Chưa xác nhận', NULL, NULL, NULL, 0),
 (43, 'Le van a', 22, 'Nam', 'huyensoaicavip@gmail.com', '0988842674', 3, 15, 'fsdfddf', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, ' 04 yet keu', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(44, 'Hà Thị Dung', 22, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'jjjjj', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 683, 'Đã khám xong', 1, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(50, 'Hà Thị Dung', 90, 'Nam', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'hvdufrvrb', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 689, 'Đã khám xong', 1, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(58, 'Nguyễn Văn Chính', 99, 'Nam', 'vanchinh20055@gmail.com', '0335942740', 16, 22, 'a', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 705, 'Chưa xác nhận', 0, 'abc', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(59, 'Chính Văn', 99, 'Nữ', 'vanchinh20055@gmail.com', '0344757955', 16, 22, 'abcd', 'Đã thanh toán', 'online', 'TDCARE1753982367106', 100000.00, '2025-07-31 17:19:57', 706, 'Chưa xác nhận', 0, 'Thượng Sơn', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(60, 'Nguyễn Văn Chính', 99, 'Nam', 'vanchinh20055@gmail.com', '0335942740', 16, 22, 'okela', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 709, 'Chưa xác nhận', 0, '99', 'Chưa xác nhận', NULL, NULL, NULL, 0);
+(61, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'stessg', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 715, 'Đã xác nhận', 0, 'tẻt', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(62, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ykkk', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 752, 'Từ chối', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(63, 'Hà Thị Dung', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'mệt', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 716, 'Đã xác nhận', 0, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -102,18 +98,18 @@ INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `cu
 --
 
 CREATE TABLE `customers` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `gender` enum('Nam','Nữ','Khác') DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gender` enum('Nam','Nữ','Khác') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `birthday` date DEFAULT NULL,
-  `address` text DEFAULT NULL,
-  `avatar` varchar(255) DEFAULT NULL,
-  `is_verified` tinyint(1) DEFAULT 0,
+  `address` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT '0',
   `created_at` datetime DEFAULT NULL,
-  `role_id` int(11) DEFAULT NULL
+  `role_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -139,26 +135,26 @@ INSERT INTO `customers` (`id`, `name`, `email`, `password`, `phone`, `gender`, `
 --
 
 CREATE TABLE `doctors` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `specialization_id` int(11) DEFAULT NULL,
-  `img` varchar(255) DEFAULT NULL,
-  `introduction` text DEFAULT NULL COMMENT 'Mô tả, giới thiệu về bác sĩ',
-  `certificate_image` varchar(255) DEFAULT NULL,
-  `degree_image` varchar(255) DEFAULT NULL COMMENT 'URL hình ảnh bằng cấp',
-  `experience` text DEFAULT NULL,
-  `account_status` varchar(50) DEFAULT '''active''',
-  `role_id` int(11) DEFAULT NULL,
-  `university` varchar(225) DEFAULT NULL,
-  `gpa` varchar(10) DEFAULT NULL,
+  `id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `phone` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `specialization_id` int DEFAULT NULL,
+  `img` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `introduction` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci COMMENT 'Mô tả, giới thiệu về bác sĩ',
+  `certificate_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `degree_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'URL hình ảnh bằng cấp',
+  `experience` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `account_status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT '''active''',
+  `role_id` int DEFAULT NULL,
+  `university` varchar(225) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `gpa` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `graduation_date` date DEFAULT NULL,
-  `degree_type` varchar(100) DEFAULT NULL,
-  `certificate_source` text DEFAULT NULL,
-  `room_number` varchar(20) DEFAULT NULL,
-  `price` decimal(10,0) DEFAULT 0 COMMENT 'Giá khám bệnh'
+  `degree_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `certificate_source` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `room_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `price` decimal(10,0) DEFAULT '0' COMMENT 'Giá khám bệnh'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -182,14 +178,14 @@ INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `password`, `specializati
 --
 
 CREATE TABLE `doctor_time_slot` (
-  `id` int(11) NOT NULL,
-  `doctor_id` int(11) NOT NULL,
-  `work_shift_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `doctor_id` int NOT NULL,
+  `work_shift_id` int DEFAULT NULL,
   `slot_date` date NOT NULL,
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `status` enum('Available','Booked','Cancelled') NOT NULL DEFAULT 'Available',
-  `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Bác sĩ bật (1) hoặc tắt (0) khung giờ này'
+  `status` enum('Available','Booked','Cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Available',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Bác sĩ bật (1) hoặc tắt (0) khung giờ này'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -290,7 +286,53 @@ INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `work_shift_id`, `slot_date`,
 (711, 22, 79, '2025-08-01', '14:15:00', '14:45:00', 'Available', 1),
 (712, 22, 79, '2025-08-01', '15:00:00', '15:30:00', 'Available', 1),
 (713, 22, 79, '2025-08-01', '15:45:00', '16:15:00', 'Available', 1),
-(714, 22, 79, '2025-08-01', '16:30:00', '17:00:00', 'Available', 1);
+(714, 22, 79, '2025-08-01', '16:30:00', '17:00:00', 'Available', 1),
+(715, 15, 80, '2025-08-01', '07:00:00', '07:30:00', 'Available', 1),
+(716, 15, 80, '2025-08-01', '07:45:00', '08:15:00', 'Available', 1),
+(717, 15, 80, '2025-08-01', '08:30:00', '09:00:00', 'Available', 1),
+(718, 15, 80, '2025-08-01', '09:15:00', '09:45:00', 'Available', 1),
+(719, 15, 80, '2025-08-01', '10:00:00', '10:30:00', 'Available', 1),
+(720, 15, 80, '2025-08-01', '10:45:00', '11:15:00', 'Available', 1),
+(721, 15, 80, '2025-08-01', '11:30:00', '12:00:00', 'Available', 1),
+(722, 15, 81, '2025-08-01', '13:30:00', '14:00:00', 'Available', 1),
+(723, 15, 81, '2025-08-01', '14:15:00', '14:45:00', 'Available', 1),
+(724, 15, 81, '2025-08-01', '15:00:00', '15:30:00', 'Available', 1),
+(725, 15, 81, '2025-08-01', '15:45:00', '16:15:00', 'Available', 1),
+(726, 15, 81, '2025-08-01', '16:30:00', '17:00:00', 'Available', 1),
+(727, 15, 82, '2025-08-02', '07:00:00', '07:30:00', 'Available', 1),
+(728, 15, 82, '2025-08-02', '07:45:00', '08:15:00', 'Available', 1),
+(729, 15, 82, '2025-08-02', '08:30:00', '09:00:00', 'Available', 1),
+(730, 15, 82, '2025-08-02', '09:15:00', '09:45:00', 'Available', 1),
+(731, 15, 82, '2025-08-02', '10:00:00', '10:30:00', 'Available', 1),
+(732, 15, 82, '2025-08-02', '10:45:00', '11:15:00', 'Available', 1),
+(733, 15, 82, '2025-08-02', '11:30:00', '12:00:00', 'Available', 1),
+(734, 15, 83, '2025-08-03', '07:00:00', '07:15:00', 'Available', 1),
+(735, 15, 83, '2025-08-03', '07:30:00', '07:45:00', 'Available', 1),
+(736, 15, 83, '2025-08-03', '08:00:00', '08:15:00', 'Available', 1),
+(737, 15, 83, '2025-08-03', '08:30:00', '08:45:00', 'Available', 1),
+(738, 15, 83, '2025-08-03', '09:00:00', '09:15:00', 'Available', 1),
+(739, 15, 83, '2025-08-03', '09:30:00', '09:45:00', 'Available', 1),
+(740, 15, 83, '2025-08-03', '10:00:00', '10:15:00', 'Available', 1),
+(741, 15, 83, '2025-08-03', '10:30:00', '10:45:00', 'Available', 1),
+(742, 15, 83, '2025-08-03', '11:00:00', '11:15:00', 'Available', 1),
+(743, 15, 83, '2025-08-03', '11:30:00', '11:45:00', 'Available', 1),
+(744, 15, 84, '2025-08-03', '13:30:00', '13:45:00', 'Available', 1),
+(745, 15, 84, '2025-08-03', '14:00:00', '14:15:00', 'Available', 1),
+(746, 15, 84, '2025-08-03', '14:30:00', '14:45:00', 'Available', 1),
+(747, 15, 84, '2025-08-03', '15:00:00', '15:15:00', 'Available', 1),
+(748, 15, 84, '2025-08-03', '15:30:00', '15:45:00', 'Available', 1),
+(749, 15, 84, '2025-08-03', '16:00:00', '16:15:00', 'Available', 1),
+(750, 15, 84, '2025-08-03', '16:30:00', '16:45:00', 'Available', 1),
+(751, 15, 84, '2025-08-03', '17:00:00', '17:15:00', 'Available', 1),
+(752, 15, 85, '2025-08-04', '07:00:00', '08:00:00', 'Available', 1),
+(753, 15, 85, '2025-08-04', '08:00:00', '09:00:00', 'Available', 1),
+(754, 15, 85, '2025-08-04', '09:00:00', '10:00:00', 'Available', 1),
+(755, 15, 85, '2025-08-04', '10:00:00', '11:00:00', 'Available', 1),
+(756, 15, 85, '2025-08-04', '11:00:00', '12:00:00', 'Available', 1),
+(757, 15, 86, '2025-08-04', '13:30:00', '14:30:00', 'Available', 1),
+(758, 15, 86, '2025-08-04', '14:30:00', '15:30:00', 'Available', 1),
+(759, 15, 86, '2025-08-04', '15:30:00', '16:30:00', 'Available', 1),
+(760, 15, 86, '2025-08-04', '16:30:00', '17:30:00', 'Available', 1);
 
 -- --------------------------------------------------------
 
@@ -299,15 +341,15 @@ INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `work_shift_id`, `slot_date`,
 --
 
 CREATE TABLE `doctor_work_shifts` (
-  `id` int(11) NOT NULL,
-  `doctor_id` int(11) NOT NULL,
+  `id` int NOT NULL,
+  `doctor_id` int NOT NULL,
   `work_date` date NOT NULL,
-  `shift_name` varchar(100) NOT NULL COMMENT 'Ví dụ: Ca sáng, Ca chiều',
+  `shift_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Ví dụ: Ca sáng, Ca chiều',
   `start_time` time NOT NULL,
   `end_time` time NOT NULL,
-  `status` enum('Active','Cancelled') NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái của cả ca làm việc',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `status` enum('Active','Cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Active' COMMENT 'Trạng thái của cả ca làm việc',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -330,7 +372,14 @@ INSERT INTO `doctor_work_shifts` (`id`, `doctor_id`, `work_date`, `shift_name`, 
 (76, 22, '2025-07-26', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-07-26 02:41:15', '2025-07-26 02:41:15'),
 (77, 22, '2025-07-26', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-26 02:41:16', '2025-07-26 02:41:16'),
 (78, 22, '2025-08-01', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-07-31 14:04:35', '2025-07-31 14:04:35'),
-(79, 22, '2025-08-01', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-31 14:04:35', '2025-07-31 14:04:35');
+(79, 22, '2025-08-01', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-07-31 14:04:35', '2025-07-31 14:04:35'),
+(80, 15, '2025-08-01', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-01 01:10:16', '2025-08-01 01:10:16'),
+(81, 15, '2025-08-01', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-01 01:10:17', '2025-08-01 01:10:17'),
+(82, 15, '2025-08-02', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-01 01:12:19', '2025-08-01 01:12:19'),
+(83, 15, '2025-08-03', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-01 01:13:03', '2025-08-01 01:13:03'),
+(84, 15, '2025-08-03', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-01 01:13:39', '2025-08-01 01:13:39'),
+(85, 15, '2025-08-04', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-01 01:26:18', '2025-08-01 01:26:18'),
+(86, 15, '2025-08-04', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-01 01:26:21', '2025-08-01 01:26:21');
 
 -- --------------------------------------------------------
 
@@ -339,27 +388,15 @@ INSERT INTO `doctor_work_shifts` (`id`, `doctor_id`, `work_date`, `shift_name`, 
 --
 
 CREATE TABLE `medical_records` (
-  `id` int(11) NOT NULL,
-  `appointment_id` int(11) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `diagnosis` text DEFAULT NULL,
-  `treatment` text DEFAULT NULL,
-  `notes` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `appointment_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
+  `diagnosis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `treatment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `medical_records`
---
-
-INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id`, `diagnosis`, `treatment`, `notes`, `created_at`) VALUES
-(1, 1, 1, 1, 'Cảm cúm', 'Nghỉ ngơi và uống thuốc hạ sốt', 'Theo dõi 3 ngày', '2025-06-07 14:02:51'),
-(2, 2, 2, 2, 'Viêm da nhẹ', 'Bôi thuốc và tránh tiếp xúc hóa chất', 'Tái khám sau 1 tuần', '2025-06-07 14:02:51'),
-(5, 35, 15, 3, 'jmm', 'gm', 'mgm', '2025-07-02 10:34:56'),
-(6, 44, 15, 15, 'bình thương', 'không', 'không', '2025-07-23 16:14:14'),
-(7, 50, 15, 15, 'ko có gì đáng ngại', 'không', 'ko', '2025-07-24 13:48:14'),
-(8, 51, 22, 16, 'oke done', 'oke done', 'oke done', '2025-07-26 09:42:27');
 
 -- --------------------------------------------------------
 
@@ -368,12 +405,12 @@ INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id
 --
 
 CREATE TABLE `orders` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
   `order_date` datetime DEFAULT NULL,
-  `status` varchar(100) DEFAULT NULL,
+  `status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
-  `payment_status` varchar(100) DEFAULT NULL
+  `payment_status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -391,9 +428,9 @@ INSERT INTO `orders` (`id`, `customer_id`, `order_date`, `status`, `total_amount
 --
 
 CREATE TABLE `order_details` (
-  `id` int(11) NOT NULL,
-  `order_id` int(11) DEFAULT NULL,
-  `quantity` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `order_id` int DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -413,10 +450,10 @@ INSERT INTO `order_details` (`id`, `order_id`, `quantity`, `price`) VALUES
 --
 
 CREATE TABLE `payments` (
-  `id` int(11) NOT NULL,
-  `order_id` int(11) DEFAULT NULL,
-  `method` varchar(100) DEFAULT NULL,
-  `status` varchar(100) DEFAULT NULL,
+  `id` int NOT NULL,
+  `order_id` int DEFAULT NULL,
+  `method` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `payment_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -435,14 +472,14 @@ INSERT INTO `payments` (`id`, `order_id`, `method`, `status`, `payment_date`) VA
 --
 
 CREATE TABLE `payment_settings` (
-  `id` int(11) NOT NULL,
-  `bank_name` varchar(255) NOT NULL,
-  `account_number` varchar(255) NOT NULL,
-  `account_holder` varchar(255) NOT NULL,
-  `token_auto` text NOT NULL,
-  `description` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `id` int NOT NULL,
+  `bank_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `account_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `account_holder` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `token_auto` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -459,10 +496,10 @@ INSERT INTO `payment_settings` (`id`, `bank_name`, `account_number`, `account_ho
 --
 
 CREATE TABLE `prescriptions` (
-  `id` int(11) NOT NULL,
-  `appointment_id` int(11) DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `customer_id` int(11) DEFAULT NULL,
+  `id` int NOT NULL,
+  `appointment_id` int DEFAULT NULL,
+  `doctor_id` int DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
   `created_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -481,10 +518,10 @@ INSERT INTO `prescriptions` (`id`, `appointment_id`, `doctor_id`, `customer_id`,
 --
 
 CREATE TABLE `prescription_items` (
-  `id` int(11) NOT NULL,
-  `prescription_id` int(11) DEFAULT NULL,
-  `dosage` varchar(255) DEFAULT NULL,
-  `duration` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `prescription_id` int DEFAULT NULL,
+  `dosage` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `duration` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -502,13 +539,13 @@ INSERT INTO `prescription_items` (`id`, `prescription_id`, `dosage`, `duration`)
 --
 
 CREATE TABLE `ratings` (
-  `id` int(11) NOT NULL,
-  `customer_id` int(11) DEFAULT NULL,
-  `rating` int(11) DEFAULT NULL,
-  `comment` text DEFAULT NULL,
+  `id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
+  `rating` int DEFAULT NULL,
+  `comment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `created_at` datetime DEFAULT NULL,
-  `doctor_id` int(11) DEFAULT NULL,
-  `appointment_id` int(11) DEFAULT NULL
+  `doctor_id` int DEFAULT NULL,
+  `appointment_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -529,8 +566,8 @@ INSERT INTO `ratings` (`id`, `customer_id`, `rating`, `comment`, `created_at`, `
 --
 
 CREATE TABLE `role` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL
+  `id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -549,10 +586,10 @@ INSERT INTO `role` (`id`, `name`) VALUES
 --
 
 CREATE TABLE `specializations` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `image` varchar(255) DEFAULT NULL,
-  `price` decimal(10,0) DEFAULT 0 COMMENT 'Giá khám cho chuyên khoa'
+  `id` int NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `price` decimal(10,0) DEFAULT '0' COMMENT 'Giá khám cho chuyên khoa'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -563,13 +600,13 @@ INSERT INTO `specializations` (`id`, `name`, `image`, `price`) VALUES
 (1, 'Nội khoa', '/uploads/1750666911605-cÃ´ng ty tÃ i chÃ­nh.png', 100000),
 (2, 'Da liễu', '/uploads/1750609299162-screenshot_1749730713.png', 100000),
 (3, 'Tai mũi họng', '/uploads/1750609326029-screenshot_1749730713.png', 100000),
-(4, 'Khoa tim mạch', '/uploads/1750609612105-z6609834095121_c248e82fc8056b10772f73afbfb4e383.jpg', 0),
+(4, 'Khoa tim mạch', '/uploads/1750609612105-z6609834095121_c248e82fc8056b10772f73afbfb4e383.jpg', 123000),
 (5, 'Khoa thần kinh', '/uploads/1750640552483-z6584497856600_8fe061a3a4c6e0b9011a5a8abe90e204.jpg', 100000),
-(6, 'Khoa xương khớp', '/uploads/1750641125578-screenshot_1749733441.png', 0),
+(6, 'Khoa xương khớp', '/uploads/1750641125578-screenshot_1749733441.png', 456000),
 (7, 'Tai mũi họng', '/uploads/1750667705054-screenshot_1749733441.png', 100000),
-(8, 'Mắt', '/uploads/1750667714069-cÃ´ng ty tÃ i chÃ­nh.png', 0),
-(9, 'Khoa tiêu hóa', NULL, 0),
-(10, 'Khoa hô hấp', NULL, 0);
+(8, 'Mắt', '/uploads/1750667714069-cÃ´ng ty tÃ i chÃ­nh.png', 450000),
+(9, 'Khoa tiêu hóa', NULL, 456000),
+(10, 'Khoa hô hấp', NULL, 250000);
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -707,97 +744,97 @@ ALTER TABLE `specializations`
 -- AUTO_INCREMENT cho bảng `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT cho bảng `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT cho bảng `doctors`
 --
 ALTER TABLE `doctors`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT cho bảng `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=715;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=761;
 
 --
 -- AUTO_INCREMENT cho bảng `doctor_work_shifts`
 --
 ALTER TABLE `doctor_work_shifts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
 
 --
 -- AUTO_INCREMENT cho bảng `medical_records`
 --
 ALTER TABLE `medical_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT cho bảng `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `payment_settings`
 --
 ALTER TABLE `payment_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT cho bảng `prescriptions`
 --
 ALTER TABLE `prescriptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `prescription_items`
 --
 ALTER TABLE `prescription_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `ratings`
 --
 ALTER TABLE `ratings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT cho bảng `role`
 --
 ALTER TABLE `role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT cho bảng `specializations`
 --
 ALTER TABLE `specializations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Các ràng buộc cho các bảng đã đổ
@@ -844,52 +881,10 @@ ALTER TABLE `doctor_work_shifts`
   ADD CONSTRAINT `fk_work_shifts_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`) ON DELETE CASCADE;
 
 --
--- Các ràng buộc cho bảng `medical_records`
---
-ALTER TABLE `medical_records`
-  ADD CONSTRAINT `medical_records_ibfk_1` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`),
-  ADD CONSTRAINT `medical_records_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
-  ADD CONSTRAINT `medical_records_ibfk_3` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
-
---
 -- Các ràng buộc cho bảng `orders`
 --
 ALTER TABLE `orders`
   ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
-
---
--- Các ràng buộc cho bảng `order_details`
---
-ALTER TABLE `order_details`
-  ADD CONSTRAINT `order_details_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
-
---
--- Các ràng buộc cho bảng `payments`
---
-ALTER TABLE `payments`
-  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`);
-
---
--- Các ràng buộc cho bảng `prescriptions`
---
-ALTER TABLE `prescriptions`
-  ADD CONSTRAINT `prescriptions_ibfk_1` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`),
-  ADD CONSTRAINT `prescriptions_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
-  ADD CONSTRAINT `prescriptions_ibfk_3` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
-
---
--- Các ràng buộc cho bảng `prescription_items`
---
-ALTER TABLE `prescription_items`
-  ADD CONSTRAINT `prescription_items_ibfk_1` FOREIGN KEY (`prescription_id`) REFERENCES `prescriptions` (`id`);
-
---
--- Các ràng buộc cho bảng `ratings`
---
-ALTER TABLE `ratings`
-  ADD CONSTRAINT `fk_ratings_appointment` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_ratings_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
-  ADD CONSTRAINT `ratings_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
