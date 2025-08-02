@@ -1,8 +1,6 @@
-// routes/medical-records.js
-
+// controllers/medicalRecordController.js
 
 const db = require('../config/db.config');
-// controllers/medicalRecordController.js
 const getRecordsByCustomer = (req, res) => {
   const { customerId } = req.params;
   const sql = `

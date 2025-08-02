@@ -26,6 +26,8 @@ interface MedicalRecord {
   doctor_confirmation: string;
   doctor_note: string;
   diagnosis: string;
+  appointment_diagnosis?: string;
+  medical_record_diagnosis?: string;
   follow_up_date: string;
   is_examined: number;
   customer_name: string;
@@ -392,6 +394,11 @@ export default function MedicalRecordsPage() {
                         <p className="text-sm">
                           <span className="font-medium">Lý do khám:</span> {record.reason}
                         </p>
+                        {record.medical_record_diagnosis && (
+                          <p className="text-sm mt-1">
+                            <span className="font-medium text-blue-600">Chẩn đoán của bác sĩ:</span> {record.medical_record_diagnosis}
+                          </p>
+                        )}
                       </div>
                     </div>
                     
@@ -542,17 +549,23 @@ export default function MedicalRecordsPage() {
               </div>
 
               {/* Medical Information */}
-              {(selectedRecord.diagnosis || selectedRecord.doctor_note || selectedRecord.treatment || selectedRecord.medical_notes) && (
+              {(selectedRecord.medical_record_diagnosis || selectedRecord.appointment_diagnosis || selectedRecord.doctor_note || selectedRecord.treatment || selectedRecord.medical_notes) && (
                 <div className="border rounded-lg p-4">
                   <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Thông tin y tế
                   </h3>
                   <div className="space-y-4">
-                    {selectedRecord.diagnosis && (
+                    {selectedRecord.medical_record_diagnosis && (
+                      <div>
+                        <p className="text-sm text-gray-600">Chẩn đoán của bác sĩ</p>
+                        <p className="font-medium text-blue-600">{selectedRecord.medical_record_diagnosis}</p>
+                      </div>
+                    )}
+                    {selectedRecord.appointment_diagnosis && !selectedRecord.medical_record_diagnosis && (
                       <div>
                         <p className="text-sm text-gray-600">Chẩn đoán</p>
-                        <p className="font-medium">{selectedRecord.diagnosis}</p>
+                        <p className="font-medium">{selectedRecord.appointment_diagnosis}</p>
                       </div>
                     )}
                     {selectedRecord.doctor_note && (
