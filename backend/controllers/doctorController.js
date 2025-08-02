@@ -576,3 +576,58 @@ exports.changePassword = (req, res) => {
     });
   });
 };
+exports.getScheduleByDateForAdmin = (req, res) => {
+    const doctorId = req.params.id;
+    const { date } = req.query;
+
+    if (!date) {
+        return res.status(400).json({ message: 'Vui lòng cung cấp tham số ngày (date).' });
+    }
+
+    const sql = `
+        SELECT 
+            ts.id,
+            ts.start_time,
+            ts.end_time,
+            a.id AS appointment_id,
+            a.name AS patient_name,
+            a.reason,
+            a.status AS appointment_status
+        FROM doctor_time_slot ts
+        LEFT JOIN appointments a ON ts.id = a.time_slot_id AND a.status != 'Đã hủy'
+        WHERE ts.doctor_id = ? AND ts.slot_date = ?
+        ORDER BY ts.start_time;
+    `;
+
+    db.query(sql, [doctorId, date], (err, results) => {
+        if (err) {
+            console.error("Lỗi truy vấn lịch làm việc của bác sĩ:", err);
+            return res.status(500).json({ message: "Lỗi máy chủ." });
+        }
+
+        // Tạo mảng slots từ kết quả
+        const slots = results.map(row => ({
+            id: row.id,
+            start: row.start_time,
+            end: row.end_time,
+            is_booked: !!row.appointment_id,
+            is_active: true, // Giả định là active, có thể thêm trường này vào DB nếu cần
+            booking: row.appointment_id ? {
+                id: row.appointment_id,
+                patientName: row.patient_name,
+                note: row.reason,
+                status: row.appointment_status,
+                patientEmail: null, // Thêm các trường còn thiếu nếu cần
+                patientPhone: null
+            } : null
+        }));
+        
+        // LUÔN LUÔN trả về một object có key là ngày và value là một MẢNG các slots
+        // Ngay cả khi không có slot nào, value vẫn là một mảng rỗng [].
+        const scheduleResponse = {
+            [date]: slots 
+        };
+
+        res.json(scheduleResponse);
+    });
+};
