@@ -132,6 +132,7 @@ exports.approveDoctor = (req, res) => {
 };
 
 
+// ✅ ĐÃ SỬA LỖI DATABASE: Loại bỏ cột `d.price` không tồn tại
 exports.getDoctorById = (req, res) => {
   const doctorId = req.params.id;
   const sql = `
@@ -140,7 +141,7 @@ exports.getDoctorById = (req, res) => {
       d.university, d.gpa, d.graduation_date, d.degree_type,
       d.certificate_image, d.certificate_source, d.degree_image,
       d.account_status, d.role_id, d.specialization_id,
-      d.room_number, d.price,
+      d.room_number,
       s.name AS specialization_name,
       s.price AS specialty_price
     FROM doctors d
@@ -184,7 +185,7 @@ exports.getDoctorById = (req, res) => {
 
       res.json({
         ...doctor,
-        price: doctor.specialty_price || doctor.price || 0,
+        price: doctor.specialty_price || 0, // Lấy giá từ chuyên khoa
         specialty_price: doctor.specialty_price,
         Certificates,
         Degrees,
