@@ -225,7 +225,7 @@ exports.getPieStats = async (req, res) => {
 // [9] Lấy tất cả hồ sơ bệnh án của tất cả bệnh nhân
 exports.getAllMedicalRecords = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', status = '', doctor_id = '' } = req.query;
+    const { page = 1, limit = 10, search = '', status = '', doctor_id = '', date = '' } = req.query;
     const offset = (page - 1) * limit;
 
     let conditions = [];
@@ -250,6 +250,12 @@ exports.getAllMedicalRecords = async (req, res) => {
     if (doctor_id) {
       conditions.push("a.doctor_id = ?");
       values.push(doctor_id);
+    }
+
+    // Lọc theo ngày khám
+    if (date) {
+      conditions.push("DATE(dts.slot_date) = ?");
+      values.push(date);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -406,7 +412,7 @@ exports.getDoctors = async (req, res) => {
 // [12] Lấy tất cả hồ sơ bệnh án của các bác sĩ đã tạo
 exports.getMedicalRecordsByDoctors = async (req, res) => {
   try {
-    const { page = 1, limit = 10, doctor_id = '', search = '', status = '' } = req.query;
+    const { page = 1, limit = 10, doctor_id = '', search = '', status = '', date = '' } = req.query;
     const offset = (page - 1) * limit;
 
     let conditions = [];
@@ -431,6 +437,12 @@ exports.getMedicalRecordsByDoctors = async (req, res) => {
     if (status) {
       conditions.push("a.status = ?");
       values.push(status);
+    }
+
+    // Lọc theo ngày khám
+    if (date) {
+      conditions.push("DATE(dts.slot_date) = ?");
+      values.push(date);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

@@ -9,11 +9,22 @@ export async function GET(
   try {
     const { id } = params;
     
+    // Lấy Authorization header từ request
+    const authHeader = request.headers.get('authorization');
+    
+    // Tạo headers object
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Thêm Authorization header nếu có
+    if (authHeader) {
+      headers['Authorization'] = authHeader;
+    }
+    
     const response = await fetch(`${BACKEND_URL}/api/admin/medical-records/${id}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     const data = await response.json();

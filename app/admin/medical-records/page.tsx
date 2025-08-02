@@ -62,6 +62,7 @@ export default function MedicalRecordsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [doctors, setDoctors] = useState<Array<{id: number, name: string}>>([]);
 
@@ -74,10 +75,19 @@ export default function MedicalRecordsPage() {
         search: search,
         status: statusFilter === 'all' ? '' : statusFilter,
         doctor_id: doctorFilter === 'all' ? '' : doctorFilter,
+        date: dateFilter,
         type: activeTab === 'all' ? 'all' : 'by-doctors'
       });
 
-      const response = await fetch(`/api/admin/medical-records?${params}`);
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`/api/admin/medical-records?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -95,7 +105,15 @@ export default function MedicalRecordsPage() {
 
   const fetchDoctors = async () => {
     try {
-      const response = await fetch('/api/admin/doctors');
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('/api/admin/doctors', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       if (response.ok) {
         setDoctors(data);
@@ -107,7 +125,7 @@ export default function MedicalRecordsPage() {
 
   useEffect(() => {
     fetchRecords();
-  }, [currentPage, search, statusFilter, doctorFilter, activeTab]);
+  }, [currentPage, search, statusFilter, doctorFilter, dateFilter, activeTab]);
 
   useEffect(() => {
     fetchDoctors();
@@ -122,6 +140,7 @@ export default function MedicalRecordsPage() {
     setSearch('');
     setStatusFilter('all');
     setDoctorFilter('all');
+    setDateFilter('');
     setCurrentPage(1);
   };
 
@@ -141,7 +160,15 @@ export default function MedicalRecordsPage() {
 
   const openDetailModal = async (record: MedicalRecord) => {
     try {
-      const response = await fetch(`/api/admin/medical-records/${record.appointment_id}`);
+      // Lấy token từ localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`/api/admin/medical-records/${record.appointment_id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -197,7 +224,7 @@ export default function MedicalRecordsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tìm kiếm bệnh nhân
@@ -230,26 +257,38 @@ export default function MedicalRecordsPage() {
               </Select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bác sĩ
-              </label>
-              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tất cả bác sĩ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả bác sĩ</SelectItem>
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      {doctor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                         <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 Bác sĩ
+               </label>
+               <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Tất cả bác sĩ" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="all">Tất cả bác sĩ</SelectItem>
+                   {doctors.map((doctor) => (
+                     <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                       {doctor.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
 
-            <div className="flex items-end gap-2">
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 Ngày khám
+               </label>
+               <Input
+                 type="date"
+                 value={dateFilter}
+                 onChange={(e) => setDateFilter(e.target.value)}
+                 className="w-full"
+               />
+             </div>
+
+             <div className="flex items-end gap-2">
               <Button onClick={handleSearch} className="flex-1">
                 Tìm kiếm
               </Button>
