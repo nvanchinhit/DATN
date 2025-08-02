@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { motion } from 'framer-motion'
 
-import { Users, UserCheck, CalendarCheck, Stethoscope } from 'lucide-react'
+import { Users, UserCheck, CalendarCheck, Stethoscope, AlertCircle } from 'lucide-react'
 
 interface StatResponse {
   users: number
@@ -18,6 +18,8 @@ interface StatResponse {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<StatResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [bookingRatioByMonth, setBookingRatioByMonth] = useState<any[]>([])
   const [revenueByDay, setRevenueByDay] = useState<any[]>([])
   const [revenueByYear, setRevenueByYear] = useState<any[]>([])
@@ -32,30 +34,125 @@ export default function AdminDashboard() {
   // FETCH DATA
   // ===================================================================
   useEffect(() => {
-    fetch('/api/admin/stats').then(res => res.json()).then(setStats)
-    fetch('/api/admin/booking-ratio-monthly').then(res => res.json()).then(setBookingRatioByMonth)
-    fetch('/api/admin/revenue-daily').then(res => res.json()).then(setRevenueByDay)
-    fetch('/api/admin/revenue-yearly').then(res => res.json()).then(setRevenueByYear)
-    fetch('/api/admin/pie-stats').then(res => res.json()).then(setPieStats)
-
-    fetch('/api/admin/specialty-list')
-      .then(res => res.json())
-      .then(data => setAllSpecializations(data.map((s: any) => s.name)))
-      .catch(() => setAllSpecializations([]))
-
-    fetch('/api/admin/specialty-stats')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0 && data[0].specialization) {
-          setSpecialtyData(data)
-        } else {
-          console.warn("⚠️ specialty-stats trả dữ liệu không hợp lệ:", data)
-          setSpecialtyData([])
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          setError('Vui lòng đăng nhập để xem thống kê')
+          setLoading(false)
+          return
         }
-      })
+
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+
+        // Fetch stats
+        const statsRes = await fetch('/api/admin/stats', { headers })
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        } else {
+          console.error('Lỗi fetch stats:', statsRes.status)
+        }
+
+        // Fetch booking ratio
+        const bookingRes = await fetch('/api/admin/booking-ratio-monthly', { headers })
+        if (bookingRes.ok) {
+          const bookingData = await bookingRes.json()
+          setBookingRatioByMonth(Array.isArray(bookingData) ? bookingData : [])
+        }
+
+        // Fetch revenue daily
+        const revenueDailyRes = await fetch('/api/admin/revenue/daily', { headers })
+        if (revenueDailyRes.ok) {
+          const revenueDailyData = await revenueDailyRes.json()
+          setRevenueByDay(Array.isArray(revenueDailyData) ? revenueDailyData : [])
+        }
+
+        // Fetch revenue yearly
+        const revenueYearlyRes = await fetch('/api/admin/revenue/yearly', { headers })
+        if (revenueYearlyRes.ok) {
+          const revenueYearlyData = await revenueYearlyRes.json()
+          setRevenueByYear(Array.isArray(revenueYearlyData) ? revenueYearlyData : [])
+        }
+
+        // Fetch pie stats
+        const pieRes = await fetch('/api/admin/pie-stats', { headers })
+        if (pieRes.ok) {
+          const pieData = await pieRes.json()
+          setPieStats(pieData)
+        }
+
+        // Fetch specialty list
+        const specialtyListRes = await fetch('/api/admin/specialty-list', { headers })
+        if (specialtyListRes.ok) {
+          const specialtyListData = await specialtyListRes.json()
+          setAllSpecializations(Array.isArray(specialtyListData) ? specialtyListData.map((s: any) => s.name) : [])
+        }
+
+        // Fetch specialty stats
+        const specialtyStatsRes = await fetch('/api/admin/specialty-stats', { headers })
+        if (specialtyStatsRes.ok) {
+          const specialtyStatsData = await specialtyStatsRes.json()
+          setSpecialtyData(Array.isArray(specialtyStatsData) ? specialtyStatsData : [])
+        }
+
+      } catch (err) {
+        console.error('Lỗi fetch data:', err)
+        setError('Có lỗi khi tải dữ liệu thống kê')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
-  if (!stats) return <div className="p-4 text-center">Đang tải thống kê...</div>
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải thống kê...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-8 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center p-12">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Lỗi tải dữ liệu</h2>
+            <p className="text-gray-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-6 space-y-8 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center p-12">
+            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-yellow-600 mb-2">Không có dữ liệu</h2>
+            <p className="text-gray-600">Không thể tải dữ liệu thống kê</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ===================================================================
   // CONFIGURATION DES CARTES DE STATISTIQUES
@@ -63,7 +160,7 @@ export default function AdminDashboard() {
   const statsConfig = [
     {
       label: 'Người dùng',
-      value: stats.users,
+      value: stats.users || 0,
       icon: Users,
       bgGradient: 'from-blue-50 to-blue-100',
       iconBg: 'bg-blue-500',
@@ -72,7 +169,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Bác sĩ',
-      value: stats.doctors,
+      value: stats.doctors || 0,
       icon: UserCheck,
       bgGradient: 'from-green-50 to-green-100',
       iconBg: 'bg-green-500',
@@ -81,7 +178,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Lượt đặt khám',
-      value: stats.appointments,
+      value: stats.appointments || 0,
       icon: CalendarCheck,
       bgGradient: 'from-purple-50 to-purple-100',
       iconBg: 'bg-purple-500',
@@ -90,7 +187,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Đã khám',
-      value: stats.examined,
+      value: stats.examined || 0,
       icon: Stethoscope,
       bgGradient: 'from-orange-50 to-orange-100',
       iconBg: 'bg-orange-500',
@@ -105,8 +202,8 @@ export default function AdminDashboard() {
 
   // --- Booking ratio theo tháng (lọc theo năm) ---
   const filteredBookingRatio = selectedBookingYear
-    ? bookingRatioByMonth.filter(r => r.month.includes(`/${selectedBookingYear}`))
-    : bookingRatioByMonth
+    ? (Array.isArray(bookingRatioByMonth) ? bookingRatioByMonth.filter(r => r.month.includes(`/${selectedBookingYear}`)) : [])
+    : (Array.isArray(bookingRatioByMonth) ? bookingRatioByMonth : [])
 
   const monthLabels = Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`)
   const ratioMap: Record<string, number> = {}
@@ -131,11 +228,11 @@ export default function AdminDashboard() {
 
   // --- Doanh thu theo ngày ---
   const dayLineData = {
-    labels: revenueByDay.map(r => r.day),
+    labels: Array.isArray(revenueByDay) ? revenueByDay.map(r => r.day) : [],
     datasets: [
       {
         label: 'Doanh thu theo ngày',
-        data: revenueByDay.map(r => parseInt(r.total) || 0),
+        data: Array.isArray(revenueByDay) ? revenueByDay.map(r => parseInt(r.total) || 0) : [],
         borderColor: '#06b6d4',
         backgroundColor: 'rgba(6, 182, 212, 0.1)',
         fill: true,
@@ -146,11 +243,11 @@ export default function AdminDashboard() {
 
   // --- Doanh thu theo năm ---
   const yearBarData = {
-    labels: revenueByYear.map(r => r.year),
+    labels: Array.isArray(revenueByYear) ? revenueByYear.map(r => r.year) : [],
     datasets: [
       {
         label: 'Doanh thu theo năm (VNĐ)',
-        data: revenueByYear.map(r => parseInt(r.total) || 0),
+        data: Array.isArray(revenueByYear) ? revenueByYear.map(r => parseInt(r.total) || 0) : [],
         backgroundColor: '#10b981',
       },
     ],
@@ -192,22 +289,22 @@ export default function AdminDashboard() {
 
   // --- Pie charts ---
   const statusChartData = {
-    labels: pieStats?.statusStats.map((s: any) => s.status) || [],
+    labels: Array.isArray(pieStats?.statusStats) ? pieStats.statusStats.map((s: any) => s.status) : [],
     datasets: [
       {
         label: 'Trạng thái lịch khám',
-        data: pieStats?.statusStats.map((s: any) => s.count) || [],
+        data: Array.isArray(pieStats?.statusStats) ? pieStats.statusStats.map((s: any) => s.count) : [],
         backgroundColor: ['#3b82f6', '#f97316', '#10b981', '#f43f5e']
       }
     ]
   }
 
   const genderChartData = {
-    labels: pieStats?.genderStats.map((g: any) => g.gender || 'Khác') || [],
+    labels: Array.isArray(pieStats?.genderStats) ? pieStats.genderStats.map((g: any) => g.gender || 'Khác') : [],
     datasets: [
       {
         label: 'Tỷ lệ giới tính',
-        data: pieStats?.genderStats.map((g: any) => g.count) || [],
+        data: Array.isArray(pieStats?.genderStats) ? pieStats.genderStats.map((g: any) => g.count) : [],
         backgroundColor: ['#3b82f6', '#f43f5e', '#a855f7']
       }
     ]
@@ -247,7 +344,7 @@ export default function AdminDashboard() {
     ...chartBaseOptions,
     animation: {
       duration: 1200,
-      easing: 'easeOutQuart'
+      easing: 'easeOutQuart' as const
     },
     scales: {
       y: { beginAtZero: true }
@@ -261,7 +358,7 @@ export default function AdminDashboard() {
     ...chartBaseOptions,
     animation: {
       duration: 1000,
-      easing: 'easeOutQuart'
+      easing: 'easeOutQuart' as const
     },
     scales: {
       y: { beginAtZero: true }
@@ -347,7 +444,11 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="month" className="space-y-6">
-          
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="month">Theo tháng</TabsTrigger>
+            <TabsTrigger value="day">Theo ngày</TabsTrigger>
+            <TabsTrigger value="year">Theo năm</TabsTrigger>
+          </TabsList>
 
           {/* Month (Line) */}
           <TabsContent value="month">
@@ -366,9 +467,9 @@ export default function AdminDashboard() {
                   onChange={e => setSelectedBookingYear(e.target.value)}
                 >
                   <option value="">Tất cả</option>
-                  {[...new Set(bookingRatioByMonth.map(r => r.month.split('/')[1]))].map(year => (
+                  {Array.isArray(bookingRatioByMonth) ? Array.from(new Set(bookingRatioByMonth.map(r => r.month.split('/')[1]))).map(year => (
                     <option key={year} value={year}>{year}</option>
-                  ))}
+                  )) : []}
                 </select>
               </div>
               <Card className="bg-white shadow-lg rounded-xl border border-gray-200">
@@ -451,9 +552,9 @@ export default function AdminDashboard() {
                   onChange={e => setSelectedYear(e.target.value)}
                 >
                   <option value="">Tất cả năm</option>
-                  {Array.from(new Set(specialtyData.map(item => new Date(item.day).getFullYear()))).map(year => (
+                  {Array.isArray(specialtyData) ? Array.from(new Set(specialtyData.map(item => new Date(item.day).getFullYear()))).map(year => (
                     <option key={year} value={year}>{year}</option>
-                  ))}
+                  )) : []}
                 </select>
               </div>
               <div className="relative h-[400px] w-full">

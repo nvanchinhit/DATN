@@ -1,5 +1,3 @@
-// /app/doctor/dashboard/page.tsx
-// PHIÊN BẢN HOÀN CHỈNH - ĐÃ CẬP NHẬT LOGIC THỐNG KÊ "HÔM NAY" VÀ "SẮP TỚI"
 
 'use client';
 import React, { useEffect, useState } from 'react';
