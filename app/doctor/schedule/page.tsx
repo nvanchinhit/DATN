@@ -29,7 +29,8 @@ import {
   ChevronRight,
   Heart,
   Star,
-  PlayCircle // Icon cho "Đang khám"
+  PlayCircle, // Icon cho "Đang khám"
+  CreditCard // Icon cho thanh toán
 } from "lucide-react";
 
 interface BookingDetail {
@@ -45,6 +46,10 @@ interface BookingDetail {
   followUpDate?: string;
   isExamined?: boolean;
   customer_id: number;
+  paymentMethod?: 'cash' | 'online';
+  paidAmount?: number;
+  transactionId?: string;
+  paymentDate?: string;
 }
 
 interface Slot {
@@ -74,7 +79,16 @@ export default function DoctorSchedulePage() {
   const [followUpDate, setFollowUpDate] = useState('');
   const [showMedicalForm, setShowMedicalForm] = useState(false); // State để điều khiển việc hiển thị form
   const [refreshing, setRefreshing] = useState(false);
-
+  const [showPaymentForm, setShowPaymentForm] = useState(false); // State để hiển thị form thanh toán
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash'); // Phương thức thanh toán
+  const [paymentAmount, setPaymentAmount] = useState(''); // Số tiền thanh toán
+  const [paymentNote, setPaymentNote] = useState(''); // Ghi chú thanh toán
+  const [transactionId, setTransactionId] = useState(''); // ID giao dịch chuyển khoản
+  const [checkingPayment, setCheckingPayment] = useState(false); // Đang kiểm tra thanh toán
+  const [paymentSettings, setPaymentSettings] = useState<any>(null); // Cài đặt thanh toán
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>(''); // URL QR code được tạo
+  const [generatingQR, setGeneratingQR] = useState(false); // Đang tạo QR code
+  
   useEffect(() => {
     const rawData = localStorage.getItem("user");
     const token = localStorage.getItem("token");
@@ -129,6 +143,21 @@ export default function DoctorSchedulePage() {
     if (doctorId) fetchDoctorSlots();
   }, [doctorId]);
 
+  // Load payment settings
+  useEffect(() => {
+    const loadPaymentSettings = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/payment/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentSettings(data.data);
+        }
+      } catch (error) {
+        console.error('Error loading payment settings:', error);
+      }
+    };
+    loadPaymentSettings();
+  }, []);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -278,6 +307,129 @@ export default function DoctorSchedulePage() {
       alert(`❌ ${err.message}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Function xử lý thanh toán tiền mặt
+  const handleCashPayment = async () => {
+    const appointmentId = selectedSlot?.booking?.id;
+    const token = localStorage.getItem("token");
+    if (!appointmentId || !token) return alert("Lỗi xác thực.");
+    if (!paymentAmount.trim()) return alert("Vui lòng nhập số tiền.");
+    
+    setSubmitting(true);
+    try {
+      const requestBody = {
+        appointment_id: appointmentId,
+        payment_method: 'cash',
+        paid_amount: parseInt(paymentAmount),
+        payment_note: paymentNote,
+        payment_date: new Date().toISOString()
+      };
+      
+      const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/payment`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`},
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Không thể cập nhật thanh toán.");
+      }
+
+      alert("✅ Đã cập nhật thanh toán tiền mặt thành công.");
+      setShowPaymentForm(false);
+      setPaymentAmount('');
+      setPaymentNote('');
+      fetchDoctorSlots();
+    } catch (err: any) {
+      alert(`❌ ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Function kiểm tra thanh toán chuyển khoản
+  const handleCheckOnlinePayment = async () => {
+    if (!paymentSettings?.token_auto || !paymentSettings?.account_number || !paymentAmount.trim()) {
+      return alert("Vui lòng điền đầy đủ thông tin.");
+    }
+
+    setCheckingPayment(true);
+    try {
+      // Tạo transaction_id tự động dựa trên appointment_id
+      const autoTransactionId = `TDCARE${selectedSlot?.booking?.id}`;
+      
+      const response = await fetch('http://localhost:5000/api/payment/check-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          token: paymentSettings.token_auto,
+          account_number: paymentSettings.account_number,
+          transaction_id: autoTransactionId, // Sử dụng transaction_id tự động
+          amount: parseInt(paymentAmount),
+          appointment_id: selectedSlot?.booking?.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.hasPayment) {
+        alert("✅ Thanh toán thành công! Giao dịch đã được xác nhận.");
+        setShowPaymentForm(false);
+        setPaymentAmount('');
+        fetchDoctorSlots();
+      } else {
+        alert("❌ Chưa tìm thấy giao dịch thanh toán. Vui lòng kiểm tra lại hoặc thử lại sau.");
+      }
+    } catch (error) {
+      console.error('Error checking payment:', error);
+      alert("❌ Lỗi khi kiểm tra thanh toán.");
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
+
+  // Function tạo QR code động
+  const handleGenerateQR = async () => {
+    if (!paymentAmount.trim() || !selectedSlot?.booking?.id) {
+      return alert("Vui lòng nhập số tiền trước khi tạo QR code.");
+    }
+
+    setGeneratingQR(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/payment/generate-qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          bank_name: paymentSettings?.bank_name,
+          account_number: paymentSettings?.account_number,
+          account_holder: paymentSettings?.account_holder,
+          amount: parseInt(paymentAmount),
+          content: `TDCARE${selectedSlot.booking.id}`
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setQrCodeUrl(data.qrCodeUrl);
+        alert("✅ Đã tạo QR code thành công!");
+      } else {
+        alert("❌ Không thể tạo QR code. Vui lòng thử lại.");
+      }
+    } catch (error) {
+      console.error('Error generating QR:', error);
+      alert("❌ Lỗi khi tạo QR code.");
+    } finally {
+      setGeneratingQR(false);
     }
   };
 
@@ -603,6 +755,203 @@ export default function DoctorSchedulePage() {
                                 <Plus className="w-5 h-5"/><span>Tạo bệnh án</span>
                             </button>
                         )}
+                     </div>
+                  )}
+
+                  {/* Payment Section */}
+                  {selectedSlot.booking?.status === "Đã khám xong" && selectedSlot.booking?.paymentStatus !== "Đã thanh toán" && (
+                     <div className="bg-gray-50 p-6 rounded-2xl border">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">Thanh toán</h3>
+                        
+                        {showPaymentForm ? (
+                            <div className="space-y-4">
+                                {/* Payment Method Selection */}
+                                <div>
+                                   <label className="block text-sm font-medium text-gray-700 mb-2">Phương thức thanh toán</label>
+                                   <div className="flex gap-4">
+                                       <button 
+                                           onClick={() => setPaymentMethod('cash')}
+                                           className={`flex-1 py-3 px-4 rounded-lg border-2 transition ${
+                                               paymentMethod === 'cash' 
+                                                   ? 'border-green-500 bg-green-50 text-green-700' 
+                                                   : 'border-gray-300 bg-white text-gray-700'
+                                           }`}
+                                       >
+                                           💰 Tiền mặt
+                                       </button>
+                                       <button 
+                                           onClick={() => setPaymentMethod('online')}
+                                           className={`flex-1 py-3 px-4 rounded-lg border-2 transition ${
+                                               paymentMethod === 'online' 
+                                                   ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                                                   : 'border-gray-300 bg-white text-gray-700'
+                                           }`}
+                                       >
+                                           💳 Chuyển khoản
+                                       </button>
+                                   </div>
+                                </div>
+
+                                {/* Amount Input */}
+                                <div>
+                                   <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền *</label>
+                                   <input 
+                                       type="number" 
+                                       value={paymentAmount} 
+                                       onChange={(e) => setPaymentAmount(e.target.value)} 
+                                       placeholder="Nhập số tiền..." 
+                                       className="w-full p-3 border-gray-300 rounded-lg"
+                                   />
+                                </div>
+
+                                {/* Cash Payment Form */}
+                                {paymentMethod === 'cash' && (
+                                    <div className="space-y-4">
+                                        <div>
+                                           <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú (tùy chọn)</label>
+                                           <input 
+                                               type="text" 
+                                               value={paymentNote} 
+                                               onChange={(e) => setPaymentNote(e.target.value)} 
+                                               placeholder="Ghi chú thanh toán..." 
+                                               className="w-full p-3 border-gray-300 rounded-lg"
+                                           />
+                                        </div>
+                                        <button 
+                                            onClick={handleCashPayment} 
+                                            disabled={!paymentAmount.trim() || submitting}
+                                            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
+                                        >
+                                            {submitting ? 'Đang xử lý...' : 'Xác nhận tiền mặt'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Online Payment Form */}
+                                {paymentMethod === 'online' && (
+                                    <div className="space-y-4">
+                                        {/* QR Code Display */}
+                                        {paymentSettings && (
+                                            <div className="bg-white p-6 rounded-lg border text-center">
+                                                <h4 className="font-semibold text-gray-800 mb-4">Quét mã QR để thanh toán</h4>
+                                                
+                                                {/* QR Code Image */}
+                                                {qrCodeUrl ? (
+                                                    <div className="mb-4">
+                                                        <img 
+                                                            src={qrCodeUrl} 
+                                                            alt="QR Code" 
+                                                            className="w-48 h-48 mx-auto border-2 border-gray-200 rounded-lg"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <button 
+                                                        onClick={handleGenerateQR}
+                                                        disabled={!paymentAmount.trim() || generatingQR}
+                                                        className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 mb-4"
+                                                    >
+                                                        {generatingQR ? 'Đang tạo QR...' : 'Tạo QR Code'}
+                                                    </button>
+                                                )}
+
+                                                {/* Payment Information */}
+                                                <div className="space-y-2 text-sm text-gray-600">
+                                                    <div><strong>Ngân hàng:</strong> {paymentSettings.bank_name}</div>
+                                                    <div><strong>Số tài khoản:</strong> {paymentSettings.account_number}</div>
+                                                    <div><strong>Chủ tài khoản:</strong> {paymentSettings.account_holder}</div>
+                                                    <div className="bg-gray-100 p-2 rounded">
+                                                        <strong>Nội dung:</strong> TDCARE{selectedSlot.booking?.id}
+                                                    </div>
+                                                </div>
+
+                                                {/* Instructions */}
+                                                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                                                    <strong>Hướng dẫn:</strong> Quét mã QR bằng ứng dụng ngân hàng, nhập số tiền và nội dung chuyển khoản như trên.
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Payment Status Display */}
+                                        <div className="bg-gray-50 p-4 rounded-lg border">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-medium text-gray-700">Trạng thái thanh toán:</span>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                                                    <span className="text-yellow-700 font-medium">Chờ thanh toán</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-500 mt-2">
+                                                Hệ thống sẽ tự động kiểm tra và cập nhật trạng thái khi có giao dịch thanh toán.
+                                            </p>
+                                        </div>
+
+                                        {/* Auto Check Button */}
+                                        <button 
+                                            onClick={handleCheckOnlinePayment} 
+                                            disabled={!paymentAmount.trim() || checkingPayment}
+                                            className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
+                                        >
+                                            {checkingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={() => setShowPaymentForm(false)} 
+                                    className="w-full bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition"
+                                >
+                                    Hủy
+                                </button>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={() => setShowPaymentForm(true)} 
+                                className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition flex items-center justify-center space-x-2"
+                            >
+                                <CreditCard className="w-5 h-5"/><span>Nhập thanh toán</span>
+                            </button>
+                        )}
+                     </div>
+                  )}
+
+                  {/* Payment Info Section - Hiển thị khi đã thanh toán */}
+                  {selectedSlot.booking?.status === "Đã khám xong" && selectedSlot.booking?.paymentStatus === "Đã thanh toán" && (
+                     <div className="bg-green-50 p-6 rounded-2xl border border-green-200">
+                        <h3 className="text-xl font-bold text-green-800 mb-4 flex items-center">
+                           <Check className="w-5 h-5 mr-2"/> Đã thanh toán
+                        </h3>
+                        
+                        <div className="space-y-3 text-green-800">
+                           <div className="flex justify-between">
+                              <span className="font-medium">Phương thức:</span>
+                              <span className="capitalize">
+                                 {selectedSlot.booking.paymentMethod === 'cash' ? 'Tiền mặt' : 
+                                  selectedSlot.booking.paymentMethod === 'online' ? 'Chuyển khoản' : 
+                                  selectedSlot.booking.paymentMethod || 'Không xác định'}
+                              </span>
+                           </div>
+                           <div className="flex justify-between">
+                              <span className="font-medium">Số tiền:</span>
+                              <span className="font-bold">
+                                 {selectedSlot.booking.paidAmount ? 
+                                    selectedSlot.booking.paidAmount.toLocaleString('vi-VN') + ' VNĐ' : 
+                                    'Chưa cập nhật'
+                                 }
+                              </span>
+                           </div>
+                           {selectedSlot.booking.transactionId && (
+                              <div className="flex justify-between">
+                                 <span className="font-medium">Ghi chú:</span>
+                                 <span className="text-sm">{selectedSlot.booking.transactionId}</span>
+                              </div>
+                           )}
+                           {selectedSlot.booking.paymentDate && (
+                              <div className="flex justify-between">
+                                 <span className="font-medium">Ngày thanh toán:</span>
+                                 <span>{new Date(selectedSlot.booking.paymentDate).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                           )}
+                        </div>
                      </div>
                   )}
 

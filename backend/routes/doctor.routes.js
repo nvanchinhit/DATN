@@ -67,5 +67,6 @@ router.put(
 
 // Route lấy chi tiết bác sĩ (bao gồm giá tiền) - ĐẶT CUỐI CÙNG
 router.get("/:id", doctorController.getDoctorById);
+router.get("/:id/schedule-by-date", doctorController.getScheduleByDateForAdmin);
 
 module.exports = router;

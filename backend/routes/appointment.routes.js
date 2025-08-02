@@ -355,4 +355,56 @@ router.put('/appointments/:id/diagnosis', (req, res) => {
     res.json({ message: "✅ Lưu bệnh án thành công." });
   });
 });
+
+/**
+ * ==========================================================
+ * ROUTE 5: CẬP NHẬT THANH TOÁN CHO BÁC SĨ
+ * ==========================================================
+ */
+router.put('/:id/payment', (req, res) => {
+  const { id } = req.params;
+  const { payment_method, paid_amount, payment_note } = req.body;
+
+  // Kiểm tra dữ liệu đầu vào
+  if (!payment_method || !paid_amount) {
+    return res.status(400).json({ 
+      error: "Thiếu thông tin thanh toán." 
+    });
+  }
+
+  console.log('💰 Updating payment for appointment:', { id, payment_method, paid_amount, payment_note });
+
+  // Cập nhật: số tiền vào paid_amount, ghi chú vào transaction_id
+  const sql = `
+    UPDATE appointments 
+    SET 
+      payment_status = 'Đã thanh toán',
+      payment_method = ?,
+      paid_amount = ?,
+      payment_date = NOW(),
+      transaction_id = ?
+    WHERE id = ?
+  `;
+
+  db.query(sql, [payment_method, paid_amount, payment_note || null, id], (err, result) => {
+    if (err) {
+      console.error("❌ Lỗi khi cập nhật thanh toán:", err);
+      return res.status(500).json({ error: "Không thể cập nhật thanh toán." });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Không tìm thấy cuộc hẹn." });
+    }
+    
+    console.log("✅ Cập nhật thanh toán thành công cho appointment ID:", id);
+    res.json({ 
+      message: "✅ Cập nhật thanh toán thành công.",
+      data: {
+        payment_method,
+        paid_amount,
+        payment_note
+      }
+    });
+  });
+});
+
 module.exports = router;
