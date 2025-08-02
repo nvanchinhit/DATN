@@ -2,10 +2,6 @@
 
 const db = require('../config/db.config');
 
-// Các tham số cấu hình cho việc chia slot
-const SLOT_DURATION_MINUTES = 15; // Mỗi ca khám kéo dài 1515 phút
-const BREAK_IN_MINUTES = 15;      // Thời gian nghỉ giữa các ca là 15 phút
-
 // file: backend/controllers/schedule.controller.js
 
 /**
@@ -18,7 +14,7 @@ const generateTimeSlots = (shift) => {
     const { id: work_shift_id, doctor_id, work_date, start_time, end_time } = shift;
     
     // Cấu hình thời gian của mỗi slot
-    const SLOT_DURATION_MINUTES = 60; 
+    const SLOT_DURATION_MINUTES = 15; 
     
     // Chuyển đổi thời gian string thành đối tượng Date để tính toán
     let currentTime = new Date(`${work_date}T${start_time}`);
