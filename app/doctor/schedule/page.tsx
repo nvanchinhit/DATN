@@ -74,7 +74,14 @@ export default function DoctorSchedulePage() {
   const [followUpDate, setFollowUpDate] = useState('');
   const [showMedicalForm, setShowMedicalForm] = useState(false); // State để điều khiển việc hiển thị form
   const [refreshing, setRefreshing] = useState(false);
-
+  const [showPaymentForm, setShowPaymentForm] = useState(false); // State để hiển thị form thanh toán
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash'); // Phương thức thanh toán
+  const [paymentAmount, setPaymentAmount] = useState(''); // Số tiền thanh toán
+  const [paymentNote, setPaymentNote] = useState(''); // Ghi chú thanh toán
+  const [transactionId, setTransactionId] = useState(''); // ID giao dịch chuyển khoản
+  const [checkingPayment, setCheckingPayment] = useState(false); // Đang kiểm tra thanh toán
+  const [paymentSettings, setPaymentSettings] = useState<any>(null); // Cài đặt thanh toán
+  
   useEffect(() => {
     const rawData = localStorage.getItem("user");
     const token = localStorage.getItem("token");
@@ -129,6 +136,21 @@ export default function DoctorSchedulePage() {
     if (doctorId) fetchDoctorSlots();
   }, [doctorId]);
 
+  // Load payment settings
+  useEffect(() => {
+    const loadPaymentSettings = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/payment/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentSettings(data.data);
+        }
+      } catch (error) {
+        console.error('Error loading payment settings:', error);
+      }
+    };
+    loadPaymentSettings();
+  }, []);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);

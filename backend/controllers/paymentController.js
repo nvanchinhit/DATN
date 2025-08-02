@@ -241,32 +241,51 @@ class PaymentController {
           
           const responseData = JSON.parse(data);
           
+          console.log('📊 API Response Data:', JSON.stringify(responseData, null, 2));
+          
           // ================================================================
-          // <<< THAY ĐỔI LOGIC KIỂM TRA TẠI ĐÂY >>>
+          // <<< CẢI THIỆN LOGIC KIỂM TRA >>>
           // ================================================================
           
-          // 1. Sử dụng `find` để tìm giao dịch ĐẦU TIÊN thỏa mãn TẤT CẢ điều kiện
-          const transactions = responseData.transactions || []; // Đảm bảo transactions là một mảng
+          const transactions = responseData.transactions || [];
+          console.log(`🔍 Found ${transactions.length} transactions to check`);
           
+          // Log tất cả giao dịch để debug
+          transactions.forEach((txn, index) => {
+            console.log(`📋 Transaction ${index + 1}:`, {
+              description: txn.description,
+              amount: txn.amount,
+              type: txn.type,
+              date: txn.transactionDate || txn.date
+            });
+          });
+          
+          // Tìm giao dịch phù hợp với logic nghiêm ngặt
           const foundTransaction = transactions.find(txn => {
+            // 1. Kiểm tra số tiền - PHẢI CHÍNH XÁC TUYỆT ĐỐI
             const amountMatch = txn.amount === amount;
+            
+            // 2. Kiểm tra loại giao dịch - PHẢI LÀ 'IN' (tiền vào)
             const typeMatch = txn.type === 'IN';
-            // 2. Thêm điều kiện quan trọng: Nội dung chuyển khoản PHẢI chứa transaction_id
+            
+            // 3. Kiểm tra nội dung chuyển khoản - PHẢI CHỨA transaction_id
             const descriptionMatch = txn.description && txn.description.includes(transaction_id);
             
-            // Log chi tiết cho từng giao dịch để dễ debug
-            console.log(
-              `--> Checking TXN [${txn.description}]: Amount ok? ${amountMatch}, Type ok? ${typeMatch}, Content ok? ${descriptionMatch}`
-            );
+            // Log chi tiết cho từng giao dịch
+            console.log(`🔍 Checking TXN [${txn.description}]:`, {
+              amountMatch: `${txn.amount} vs ${amount} (${amountMatch ? '✅' : '❌'})`,
+              typeMatch: `${txn.type} (${typeMatch ? '✅' : '❌'})`,
+              descriptionMatch: `${descriptionMatch ? '✅' : '❌'}`
+            });
 
             return amountMatch && typeMatch && descriptionMatch;
           });
 
-          // 3. Trả về kết quả dựa trên việc có tìm thấy `foundTransaction` hay không
+          // Trả về kết quả
           if (foundTransaction) {
             console.log('✅ VALID TRANSACTION FOUND:', foundTransaction);
             
-            // Nếu có appointment_id, cập nhật trạng thái thanh toán trong database
+            // Cập nhật database nếu có appointment_id
             if (appointment_id) {
               const updateSql = `
                 UPDATE appointments 
@@ -287,24 +306,39 @@ class PaymentController {
               });
             }
             
-            // Trả về cấu trúc response mới mà frontend đang mong đợi
             res.status(200).json({
               success: true,
               hasPayment: true,
               transactionDetails: {
                 description: foundTransaction.description,
                 amount: foundTransaction.amount,
-                transactionDate: foundTransaction.transactionDate // hoặc tên trường ngày tháng tương ứng
+                transactionDate: foundTransaction.transactionDate || foundTransaction.date
               },
               message: 'Tìm thấy giao dịch thanh toán hợp lệ.'
             });
           } else {
             console.log('⏳ No valid transaction found yet.');
+            console.log('💡 Debug info:', {
+              expectedAmount: amount,
+              expectedTransactionId: transaction_id,
+              totalTransactions: transactions.length,
+              recentTransactions: transactions.slice(0, 3).map(t => ({
+                description: t.description,
+                amount: t.amount,
+                type: t.type
+              }))
+            });
+            
             res.status(200).json({
               success: true,
               hasPayment: false,
               transactionDetails: null,
-              message: 'Chưa tìm thấy giao dịch hợp lệ.'
+              message: 'Chưa tìm thấy giao dịch hợp lệ. Vui lòng kiểm tra lại thông tin thanh toán.',
+              debug: {
+                expectedAmount: amount,
+                expectedTransactionId: transaction_id,
+                totalTransactions: transactions.length
+              }
             });
           }
         } catch (error) {
@@ -321,6 +355,88 @@ class PaymentController {
 
     apiReq.on('error', (error) => {
       console.error('Error calling external API:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi gọi API bên ngoài',
+        error: error.message
+      });
+    });
+
+    apiReq.end();
+  }
+
+  // POST - Test API thanh toán (chỉ để debug)
+  testPaymentAPI(req, res) {
+    const { token, account_number } = req.body;
+    
+    if (!token || !account_number) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin token hoặc account_number'
+      });
+    }
+
+    console.log('🧪 Testing payment API with:', { token, account_number });
+
+    const https = require('https');
+    
+    const options = {
+      hostname: 'thueapibank.vn',
+      port: 443,
+      path: `/historyapiacbv2/${token}`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    };
+
+    const apiReq = https.request(options, (apiRes) => {
+      let data = '';
+      
+      console.log('🧪 API Response status:', apiRes.statusCode);
+      
+      apiRes.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      apiRes.on('end', () => {
+        console.log('🧪 Raw API response received.');
+        
+        try {
+          if (data.trim().startsWith('<')) {
+            console.error('🧪 API returned HTML instead of JSON');
+            return res.status(500).json({
+              success: false,
+              message: 'API trả về HTML thay vì JSON. Có thể token sai hoặc hết hạn.',
+              rawResponse: data.substring(0, 500)
+            });
+          }
+          
+          const responseData = JSON.parse(data);
+          
+          res.status(200).json({
+            success: true,
+            message: 'API test thành công',
+            data: {
+              totalTransactions: responseData.transactions?.length || 0,
+              recentTransactions: responseData.transactions?.slice(0, 5) || [],
+              apiResponse: responseData
+            }
+          });
+        } catch (error) {
+          console.error('🧪 Error parsing API response:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Lỗi khi xử lý response từ API',
+            error: error.message,
+            rawResponse: data.substring(0, 500)
+          });
+        }
+      });
+    });
+
+    apiReq.on('error', (error) => {
+      console.error('🧪 Error calling external API:', error);
       res.status(500).json({
         success: false,
         message: 'Lỗi khi gọi API bên ngoài',
