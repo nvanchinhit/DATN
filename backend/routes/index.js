@@ -159,6 +159,10 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       a.phone AS patient_phone,
       a.reason AS patient_note,      -- << ĐÃ SỬA TẠI ĐÂY
       a.payment_status,
+      a.payment_method,
+      a.paid_amount,
+      a.transaction_id,
+      a.payment_date,
       a.status AS booking_status,
       a.diagnosis,
       a.doctor_note,
@@ -195,6 +199,10 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
               patientPhone: slot.patient_phone,
               note: slot.patient_note, // Frontend sẽ nhận trường `note`
               paymentStatus: slot.payment_status,
+              paymentMethod: slot.payment_method,
+              paidAmount: slot.paid_amount,
+              transactionId: slot.transaction_id,
+              paymentDate: slot.payment_date,
               status: slot.booking_status,
               diagnosis: slot.diagnosis,
               doctorNote: slot.doctor_note,

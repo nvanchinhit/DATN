@@ -446,6 +446,56 @@ class PaymentController {
 
     apiReq.end();
   }
+
+  // POST - Tạo QR code động
+  generateQR(req, res) {
+    const { bank_name, account_number, account_holder, amount, content } = req.body;
+    
+    if (!bank_name || !account_number || !account_holder || !amount || !content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin cần thiết để tạo QR code'
+      });
+    }
+
+    console.log('🎨 Generating QR code with:', { bank_name, account_number, account_holder, amount, content });
+
+    try {
+      // Tạo dữ liệu QR code theo chuẩn VietQR
+      const qrData = {
+        bankBin: '970416', // ACB Bank
+        accountNo: account_number,
+        amount: amount,
+        format: 'text',
+        template: 'compact2'
+      };
+
+      // Tạo URL QR code sử dụng API VietQR
+      const qrCodeUrl = `https://img.vietqr.io/image/${qrData.bankBin}-${qrData.accountNo}-${qrData.template}.png?amount=${qrData.amount}&addInfo=${encodeURIComponent(content)}`;
+
+      console.log('✅ QR code generated successfully:', qrCodeUrl);
+
+      res.status(200).json({
+        success: true,
+        message: 'Tạo QR code thành công',
+        qrCodeUrl: qrCodeUrl,
+        data: {
+          bank_name,
+          account_number,
+          account_holder,
+          amount,
+          content
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error generating QR code:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tạo QR code',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = PaymentController;

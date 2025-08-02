@@ -28,4 +28,7 @@ router.post('/check-history', paymentController.checkPaymentHistory.bind(payment
 // POST - Test API thanh toán (chỉ để debug)
 router.post('/test-api', adminAuth, paymentController.testPaymentAPI.bind(paymentController));
 
+// POST - Tạo QR code động
+router.post('/generate-qr', paymentController.generateQR.bind(paymentController));
+
 module.exports = router; 
