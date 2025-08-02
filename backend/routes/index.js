@@ -438,7 +438,7 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
         return res.status(400).json({ error: 'Thiếu ID chuyên khoa hoặc ngày.' });
     }
 
-    const sql = `
+            const sql = `
         SELECT 
             dts.id AS time_slot_id,
             dts.is_active, 
@@ -447,7 +447,6 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
             d.id AS doctor_id,
             d.name AS doctor_name,
             d.img AS doctor_img,
-            d.price AS doctor_price, -- Thêm giá của bác sĩ
             s.price AS specialty_price,
             a.id AS appointment_id
         FROM doctor_time_slot dts
@@ -493,7 +492,8 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
                 // Chỉ "có sẵn" khi chưa đặt VÀ bác sĩ đang bật
                 group.availableSlots++;
                 
-                const finalPrice = (slot.doctor_price && slot.doctor_price > 0) ? slot.doctor_price : slot.specialty_price;
+                // Sử dụng giá từ chuyên khoa thay vì giá của bác sĩ
+                const finalPrice = slot.specialty_price || 0;
                 
                 group.slots.push({
                     time_slot_id: slot.time_slot_id,
@@ -501,7 +501,7 @@ router.get('/specializations/:specializationId/schedule', (req, res) => {
                         id: slot.doctor_id,
                         name: slot.doctor_name,
                         img: slot.doctor_img,
-                        price: finalPrice // Sử dụng giá cuối cùng đã được xác định
+                        price: finalPrice // Sử dụng giá từ chuyên khoa
                     }
                 });
             }

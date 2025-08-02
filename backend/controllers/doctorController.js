@@ -147,7 +147,7 @@ exports.getDoctorById = (req, res) => {
       d.university, d.gpa, d.graduation_date, d.degree_type,
       d.certificate_image, d.certificate_source, d.degree_image,
       d.account_status, d.role_id, d.specialization_id,
-      d.room_number, d.price,
+      d.room_number,
       s.name AS specialization_name,
       s.price AS specialty_price
     FROM doctors d
@@ -193,9 +193,10 @@ exports.getDoctorById = (req, res) => {
           degree_type: doctor.degree_type ?? '',
         }));
 
-      // Gửi phản hồi về client
+      // Gửi phản hồi về client - sử dụng giá từ chuyên khoa thay vì giá của bác sĩ
       res.json({
         ...doctor,
+        price: doctor.specialty_price || 0, // Sử dụng giá từ chuyên khoa
         specialty_price: doctor.specialty_price,
         Certificates,
         Degrees,
