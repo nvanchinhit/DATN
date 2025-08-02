@@ -510,3 +510,159 @@ exports.getMedicalRecordsByDoctors = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// [9] Lấy danh sách lịch hẹn đã thanh toán
+exports.getPaidAppointments = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '', payment_method = '', date_from = '', date_to = '' } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    
+    let conditions = ["a.payment_status = 'Đã thanh toán'"];
+    let values = [];
+
+    // Tìm kiếm theo tên bệnh nhân, email, số điện thoại
+    if (search) {
+      conditions.push("(a.name LIKE ? OR a.email LIKE ? OR a.phone LIKE ?)");
+      values.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    // Lọc theo phương thức thanh toán
+    if (payment_method) {
+      conditions.push("a.payment_method = ?");
+      values.push(payment_method);
+    }
+
+    // Lọc theo khoảng thời gian thanh toán
+    if (date_from) {
+      conditions.push("DATE(a.payment_date) >= ?");
+      values.push(date_from);
+    }
+
+    if (date_to) {
+      conditions.push("DATE(a.payment_date) <= ?");
+      values.push(date_to);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Query để lấy tổng số records
+    const countSql = `
+      SELECT COUNT(*) as total
+      FROM appointments a
+      JOIN doctors d ON a.doctor_id = d.id
+      JOIN specializations s ON d.specialization_id = s.id
+      JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      ${whereClause}
+    `;
+
+    const [countResult] = await db.promise().query(countSql, values);
+    const totalRecords = countResult[0].total;
+
+    // Query chính để lấy dữ liệu
+    const sql = `
+      SELECT 
+        a.id,
+        a.name AS patient_name,
+        a.age,
+        a.gender,
+        a.email,
+        a.phone,
+        a.reason,
+        a.address,
+        a.payment_status,
+        a.payment_method,
+        a.transaction_id,
+        a.paid_amount,
+        a.payment_date,
+        a.status,
+        a.doctor_confirmation,
+        a.doctor_note,
+        a.diagnosis,
+        a.follow_up_date,
+        a.is_examined,
+        d.name AS doctor_name,
+        d.phone AS doctor_phone,
+        d.email AS doctor_email,
+        s.name AS specialization_name,
+        dts.slot_date,
+        dts.start_time,
+        dts.end_time
+      FROM appointments a
+      JOIN doctors d ON a.doctor_id = d.id
+      JOIN specializations s ON d.specialization_id = s.id
+      JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      ${whereClause}
+      ORDER BY a.payment_date DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [appointments] = await db.promise().query(sql, [...values, parseInt(limit), offset]);
+
+    // Tính tổng doanh thu
+    const revenueSql = `
+      SELECT SUM(paid_amount) as total_revenue
+      FROM appointments a
+      ${whereClause}
+    `;
+    const [revenueResult] = await db.promise().query(revenueSql, values);
+    const totalRevenue = revenueResult[0].total_revenue || 0;
+
+    res.json({
+      appointments,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        limit: parseInt(limit)
+      },
+      totalRevenue: parseFloat(totalRevenue)
+    });
+  } catch (err) {
+    console.error("❌ Lỗi getPaidAppointments:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// [10] Thống kê thanh toán theo thời gian
+exports.getPaymentStats = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+    
+    let groupBy, dateFormat;
+    switch (period) {
+      case 'day':
+        groupBy = 'DATE(payment_date)';
+        dateFormat = '%Y-%m-%d';
+        break;
+      case 'week':
+        groupBy = 'YEARWEEK(payment_date)';
+        dateFormat = '%Y-%u';
+        break;
+      case 'month':
+      default:
+        groupBy = 'DATE_FORMAT(payment_date, "%Y-%m")';
+        dateFormat = '%Y-%m';
+        break;
+    }
+
+    const sql = `
+      SELECT 
+        DATE_FORMAT(payment_date, ?) AS period,
+        COUNT(*) AS total_appointments,
+        SUM(paid_amount) AS total_revenue,
+        AVG(paid_amount) AS avg_amount
+      FROM appointments 
+      WHERE payment_status = 'Đã thanh toán' 
+        AND payment_date IS NOT NULL
+      GROUP BY ${groupBy}
+      ORDER BY period DESC
+      LIMIT 12
+    `;
+
+    const [stats] = await db.promise().query(sql, [dateFormat]);
+    res.json(stats);
+  } catch (err) {
+    console.error("❌ Lỗi getPaymentStats:", err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

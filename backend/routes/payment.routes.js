@@ -25,4 +25,7 @@ router.delete('/settings/:id', adminAuth, paymentController.deletePaymentSetting
 // POST - Check payment history từ API bên ngoài
 router.post('/check-history', paymentController.checkPaymentHistory.bind(paymentController));
 
+// POST - Test API thanh toán (chỉ để debug)
+router.post('/test-api', adminAuth, paymentController.testPaymentAPI.bind(paymentController));
+
 module.exports = router; 
