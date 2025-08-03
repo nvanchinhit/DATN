@@ -7,7 +7,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Link from "next/link";
 import DoctorDetailsModal from './DoctorDetailsModal';
-
+import FloatingChat from "@/components/ui/FloatingChat";
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 const getImageUrl = (fileName: string | null | undefined): string => {
@@ -338,7 +338,7 @@ function SpecialtySchedulePage() {
             </main>
         </div>
       </div>
-
+                <FloatingChat />
       <DoctorSelectionModal
         isOpen={isSelectionModalOpen}
         onClose={() => setSelectionModalOpen(false)}

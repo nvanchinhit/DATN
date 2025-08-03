@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/page';
+<<<<<<< HEAD
 import { 
   User, 
   Mail, 
@@ -20,6 +21,10 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+=======
+import { User, Mail, Phone, Calendar, Save, Camera, ShieldCheck, X } from 'lucide-react';
+import FloatingChat from "@/components/ui/FloatingChat";
+>>>>>>> f33c0445acbef0418cf7928f650d108b7e021320
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Customer {
@@ -519,6 +524,7 @@ export default function ProfilePage() {
                 <p className="text-lg">{formatDateForDisplay((profileData as Customer).birthday)}</p>
               )}
             </ProfileField>
+<<<<<<< HEAD
           )}
           
           {isDoctor && (
@@ -693,6 +699,10 @@ export default function ProfilePage() {
             >
               Hủy
             </button>
+=======
+                         <FloatingChat />
+            <div className="mt-8 flex justify-end">
+>>>>>>> f33c0445acbef0418cf7928f650d108b7e021320
               <button 
                 type="submit" 
               disabled={isSubmitting}
