@@ -138,13 +138,30 @@ router.get('/doctors-by-specialization/:specializationId', (req, res) => {
 
 router.get('/doctors/:doctorId/time-slots', (req, res) => {
   const { doctorId } = req.params;
+  const { start_date, end_date } = req.query;
 
   // 1. Kiểm tra đầu vào
   if (!doctorId || isNaN(parseInt(doctorId))) {
     return res.status(400).json({ error: 'ID bác sĩ không hợp lệ.' });
   }
 
-  // 2. Câu lệnh SQL "Tất cả trong một", đã sửa 'note' thành 'reason'
+  // 2. Xây dựng điều kiện WHERE cho khoảng thời gian
+  let dateCondition = 'dts.slot_date >= CURDATE()';
+  let queryParams = [doctorId];
+
+  if (start_date && end_date) {
+    dateCondition = 'dts.slot_date BETWEEN ? AND ?';
+    queryParams = [doctorId, start_date, end_date];
+  } else if (start_date) {
+    dateCondition = 'dts.slot_date >= ?';
+    queryParams = [doctorId, start_date];
+  } else if (end_date) {
+    dateCondition = 'dts.slot_date <= ?';
+    queryParams = [doctorId, end_date];
+  }
+
+  // 3. Câu lệnh SQL với điều kiện thời gian linh hoạt
+  // Khi xem dữ liệu lịch sử, hiển thị tất cả các trạng thái bao gồm cả đã hủy
   const sql = `
     SELECT 
       dts.id, 
@@ -157,7 +174,7 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       a.name AS patient_name,
       a.email AS patient_email,
       a.phone AS patient_phone,
-      a.reason AS patient_note,      -- << ĐÃ SỬA TẠI ĐÂY
+      a.reason AS patient_note,
       a.payment_status,
       a.payment_method,
       a.paid_amount,
@@ -169,12 +186,12 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       a.follow_up_date,
       a.is_examined
     FROM doctor_time_slot AS dts
-    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id AND a.status != 'Đã hủy'
-    WHERE dts.doctor_id = ? AND dts.slot_date >= CURDATE()
+    LEFT JOIN appointments AS a ON dts.id = a.time_slot_id
+    WHERE dts.doctor_id = ? AND ${dateCondition}
     ORDER BY dts.slot_date, dts.start_time`;
 
-  // 3. Thực thi truy vấn
-  db.query(sql, [doctorId], (err, results) => {
+  // 4. Thực thi truy vấn
+  db.query(sql, queryParams, (err, results) => {
     // Bẫy lỗi nếu truy vấn SQL thất bại
     if (err) {
       console.error(`[ERROR] Lỗi khi truy vấn time-slots cho doctorId ${doctorId}:`, err);

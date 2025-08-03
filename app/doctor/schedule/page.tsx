@@ -24,7 +24,7 @@ import {
   Users,
   Award,
   TrendingUp,
-  Filter,
+
   RefreshCw,
   ChevronRight,
   Heart,
@@ -88,6 +88,12 @@ export default function DoctorSchedulePage() {
   const [paymentSettings, setPaymentSettings] = useState<any>(null); // Cài đặt thanh toán
   const [qrCodeUrl, setQrCodeUrl] = useState<string>(''); // URL QR code được tạo
   const [generatingQR, setGeneratingQR] = useState(false); // Đang tạo QR code
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'custom'>('today'); // Bộ lọc thời gian
+  const [startDate, setStartDate] = useState(''); // Ngày bắt đầu cho bộ lọc tùy chỉnh
+  const [endDate, setEndDate] = useState(''); // Ngày kết thúc cho bộ lọc tùy chỉnh
+  const [showHistoricalData, setShowHistoricalData] = useState(false); // Hiển thị dữ liệu lịch sử
+  
+
   
   useEffect(() => {
     const rawData = localStorage.getItem("user");
@@ -124,24 +130,89 @@ export default function DoctorSchedulePage() {
   const fetchDoctorSlots = useCallback(() => {
     if (!doctorId) return;
     setLoading(true);
-    fetch(`http://localhost:5000/api/doctors/${doctorId}/time-slots`)
+    
+    // Tạo URL với các tham số bộ lọc thời gian
+    let url = `http://localhost:5000/api/doctors/${doctorId}/time-slots`;
+    const params = new URLSearchParams();
+    
+    // Thêm tham số bộ lọc thời gian
+    if (dateRange === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      params.append('start_date', today);
+      params.append('end_date', today);
+      console.log("🔍 [DEBUG] Fetching today's data:", today);
+    } else if (dateRange === 'week') {
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      
+      const startDateStr = startOfWeek.toISOString().split('T')[0];
+      const endDateStr = endOfWeek.toISOString().split('T')[0];
+      params.append('start_date', startDateStr);
+      params.append('end_date', endDateStr);
+      console.log("🔍 [DEBUG] Fetching week data:", startDateStr, "to", endDateStr);
+    } else if (dateRange === 'month') {
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      const startDateStr = startOfMonth.toISOString().split('T')[0];
+      const endDateStr = endOfMonth.toISOString().split('T')[0];
+      params.append('start_date', startDateStr);
+      params.append('end_date', endDateStr);
+      console.log("🔍 [DEBUG] Fetching month data:", startDateStr, "to", endDateStr);
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      params.append('start_date', startDate);
+      params.append('end_date', endDate);
+      console.log("🔍 [DEBUG] Fetching custom date range:", startDate, "to", endDate);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    console.log("🔍 [DEBUG] Final URL:", url);
+    
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Không thể tải lịch.");
         return res.json();
       })
       .then((data: GroupedSlotsApiResponse) => {
+        console.log("🔍 [DEBUG] Received data:", data);
         const flattenedSlots = Object.entries(data).flatMap(([date, slots]) =>
           slots.map((slot) => ({ ...slot, date }))
         );
+        console.log("🔍 [DEBUG] Flattened slots:", flattenedSlots.length, "slots");
         setAllSlots(flattenedSlots);
       })
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        console.error("❌ [DEBUG] Error fetching slots:", err);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
-  }, [doctorId]);
+  }, [doctorId, dateRange, startDate, endDate]);
 
   useEffect(() => {
     if (doctorId) fetchDoctorSlots();
-  }, [doctorId]);
+  }, [doctorId, fetchDoctorSlots]);
+
+  // Auto-fetch when date range changes
+  useEffect(() => {
+    if (doctorId && (dateRange === 'today' || dateRange === 'week' || dateRange === 'month')) {
+      fetchDoctorSlots();
+    }
+  }, [dateRange, doctorId, fetchDoctorSlots]);
+
+  // Auto-fetch when custom date range is set
+  useEffect(() => {
+    if (doctorId && dateRange === 'custom' && startDate && endDate) {
+      console.log("🔍 [DEBUG] Auto-fetching custom date range:", startDate, "to", endDate);
+      fetchDoctorSlots();
+    }
+  }, [startDate, endDate, doctorId, fetchDoctorSlots]);
 
   // Load payment settings
   useEffect(() => {
@@ -435,13 +506,23 @@ export default function DoctorSchedulePage() {
 
   const filteredSlots = allSlots.filter((slot) => {
     const status = slot.booking?.status || "Trống";
-    const name = slot.booking?.patientName || "";
-    const matchesDate = filterDate ? slot.date === filterDate : true;
+    const patientName = slot.booking?.patientName || "";
+    const patientPhone = slot.booking?.patientPhone || "";
+    const patientEmail = slot.booking?.patientEmail || "";
+    const slotDate = slot.date;
+
+    // Lọc theo ngày cụ thể (nếu có)
+    const matchesDateFilter = filterDate ? slotDate === filterDate : true;
+    
+    // Lọc theo từ khóa tìm kiếm
     const matchesSearch = searchTerm
       ? status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        name.toLowerCase().includes(searchTerm.toLowerCase())
+        patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patientPhone.includes(searchTerm) ||
+        patientEmail.toLowerCase().includes(searchTerm.toLowerCase())
       : true;
-    return matchesDate && matchesSearch;
+
+    return matchesDateFilter && matchesSearch;
   });
 
   const groupedSlots = filteredSlots.reduce((acc: Record<string, Slot[]>, slot) => {
@@ -464,11 +545,12 @@ export default function DoctorSchedulePage() {
   const examiningSlots = allSlots.filter(slot => slot.booking?.status === 'Đang khám').length;
   const confirmedSlots = allSlots.filter(slot => slot.booking?.status === "Đã xác nhận").length;
   const completedSlots = allSlots.filter(slot => slot.booking?.status === 'Đã khám xong').length;
+  const cancelledSlots = allSlots.filter(slot => slot.booking?.status === 'Đã hủy').length;
   
   const getCardStyle = (slot: Slot) => {
     const status = slot.booking?.status;
     if (status === "Đã khám xong" || slot.booking?.isExamined) {
-      return "border-blue-500 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 hover:from-blue-100 hover:to-indigo-100";
+      return "border-orange-500 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100 hover:from-orange-100 hover:to-amber-100";
     }
     if (status === "Đang khám") {
       return "border-purple-500 bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 hover:from-purple-100 hover:to-pink-100 animate-pulse";
@@ -479,15 +561,19 @@ export default function DoctorSchedulePage() {
     if (status === "Chưa xác nhận") {
       return "border-amber-500 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 hover:from-amber-100 hover:to-yellow-100";
     }
+    if (status === "Đã hủy") {
+      return "border-red-500 bg-gradient-to-br from-red-50 via-pink-50 to-red-100 hover:from-red-100 hover:to-pink-100 opacity-75";
+    }
     return "border-gray-400 bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 hover:from-gray-100 hover:to-slate-100";
   };
   
   const getStatusBadgeStyle = (status?: string) => {
      switch(status) {
-        case "Đã khám xong": return "bg-blue-200 text-blue-900 border border-blue-300";
+        case "Đã khám xong": return "bg-orange-200 text-orange-900 border border-orange-300";
         case "Đang khám": return "bg-purple-200 text-purple-900 border border-purple-300";
         case "Đã xác nhận": return "bg-emerald-200 text-emerald-900 border border-emerald-300";
         case "Chưa xác nhận": return "bg-amber-200 text-amber-900 border border-amber-300";
+        case "Đã hủy": return "bg-red-200 text-red-900 border border-red-300";
         default: return "bg-gray-200 text-gray-700 border border-gray-300";
      }
   }
@@ -498,9 +584,46 @@ export default function DoctorSchedulePage() {
         case "Đang khám": return <PlayCircle className="w-3 h-3 mr-1 animate-pulse" />;
         case "Đã xác nhận": return <Check className="w-3 h-3 mr-1" />;
         case "Chưa xác nhận": return <Clock className="w-3 h-3 mr-1" />;
+        case "Đã hủy": return <X className="w-3 h-3 mr-1" />;
         default: return null;
      }
   }
+
+  // Hàm tạo tiêu đề cho khoảng thời gian
+  const getDateRangeTitle = () => {
+    switch(dateRange) {
+      case 'today':
+        return 'Hôm nay';
+      case 'week':
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return `Tuần này (${startOfWeek.toLocaleDateString('vi-VN')} - ${endOfWeek.toLocaleDateString('vi-VN')})`;
+      case 'month':
+        const currentMonth = new Date();
+        return `Tháng ${currentMonth.getMonth() + 1}/${currentMonth.getFullYear()}`;
+      case 'custom':
+        if (startDate && endDate) {
+          const startDateObj = new Date(startDate);
+          const endDateObj = new Date(endDate);
+          const today = new Date();
+          
+          let title = `Từ ${startDateObj.toLocaleDateString('vi-VN')} đến ${endDateObj.toLocaleDateString('vi-VN')}`;
+          
+          // Thêm chỉ báo nếu đang xem dữ liệu lịch sử
+          if (startDateObj < today) {
+            title += ' (Dữ liệu lịch sử)';
+          }
+          
+          return title;
+        }
+        return 'Khoảng thời gian tùy chọn';
+      default:
+        return 'Tất cả lịch hẹn';
+    }
+  };
 
 
   return (
@@ -516,7 +639,7 @@ export default function DoctorSchedulePage() {
                         <div className="bg-white/20 p-3 rounded-2xl"><Calendar className="w-8 h-8 text-white" /></div>
                         <div>
                             <h1 className="text-4xl font-bold text-white">Quản lý lịch khám</h1>
-                            <p className="text-blue-100 text-lg">{new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                            <p className="text-blue-100 text-lg">{getDateRangeTitle()}</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -529,8 +652,8 @@ export default function DoctorSchedulePage() {
         </div>
 
         <div className="p-8">
-          {/* Statistics Cards - 5 cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+          {/* Statistics Cards - 6 cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
             {/* Tổng lịch hẹn */}
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-xl text-white transform hover:scale-105 transition-all">
                 <p className="text-sm font-medium text-blue-100">Tổng lịch hẹn</p>
@@ -571,18 +694,206 @@ export default function DoctorSchedulePage() {
                     <div className="bg-white/20 p-3 rounded-xl"><Stethoscope className="w-7 h-7" /></div>
                 </div>
             </div>
+            {/* Đã hủy */}
+            <div className="bg-gradient-to-br from-red-500 to-pink-600 p-6 rounded-2xl shadow-xl text-white transform hover:scale-105 transition-all">
+                <p className="text-sm font-medium text-red-100">Đã hủy</p>
+                <div className="flex justify-between items-end">
+                    <p className="text-4xl font-bold">{cancelledSlots}</p>
+                    <div className="bg-white/20 p-3 rounded-xl"><X className="w-7 h-7" /></div>
+                </div>
+            </div>
           </div>
+
+          {/* Historical Data Summary */}
+          {showHistoricalData && totalSlots > 0 && (
+            <div className="mb-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl shadow-xl p-6 text-white">
+              <h2 className="text-2xl font-bold flex items-center mb-4">
+                <TrendingUp className="w-6 h-6 mr-3"/> Tổng quan dữ liệu lịch sử
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="bg-white/20 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold">{totalSlots}</div>
+                  <div>Tổng cuộc hẹn</div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold">{completedSlots}</div>
+                  <div>Đã hoàn thành</div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold">{cancelledSlots}</div>
+                  <div>Đã hủy</div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg text-center">
+                  <div className="text-2xl font-bold">{Math.round((completedSlots / totalSlots) * 100)}%</div>
+                  <div>Tỷ lệ hoàn thành</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search and Filter */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border p-6 mb-8">
-            <div className="flex flex-col lg:flex-row items-center gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg"><Calendar className="w-5 h-5 text-blue-600" /></div>
-                <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500" />
+            <div className="space-y-6">
+              {/* Time Range Filter */}
+              <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-blue-100 p-2 rounded-lg"><Calendar className="w-5 h-5 text-blue-600" /></div>
+                  <span className="font-medium text-gray-700">Khoảng thời gian:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setDateRange('today')}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      dateRange === 'today'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Hôm nay
+                  </button>
+                  <button
+                    onClick={() => setDateRange('week')}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      dateRange === 'week'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tuần này
+                  </button>
+                  <button
+                    onClick={() => setDateRange('month')}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      dateRange === 'month'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tháng này
+                  </button>
+                  <button
+                    onClick={() => setDateRange('custom')}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      dateRange === 'custom'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tùy chọn
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const lastWeek = new Date(today);
+                      lastWeek.setDate(today.getDate() - 7);
+                      const lastWeekEnd = new Date(lastWeek);
+                      lastWeekEnd.setDate(lastWeek.getDate() + 6);
+                      
+                      setDateRange('custom');
+                      setStartDate(lastWeek.toISOString().split('T')[0]);
+                      setEndDate(lastWeekEnd.toISOString().split('T')[0]);
+                      setShowHistoricalData(true);
+                    }}
+                    className="px-4 py-2 rounded-lg font-medium transition bg-orange-100 text-orange-700 hover:bg-orange-200"
+                  >
+                    Tuần trước
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+                      
+                      setDateRange('custom');
+                      setStartDate(lastMonth.toISOString().split('T')[0]);
+                      setEndDate(lastMonthEnd.toISOString().split('T')[0]);
+                      setShowHistoricalData(true);
+                    }}
+                    className="px-4 py-2 rounded-lg font-medium transition bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  >
+                    Tháng trước
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const lastYear = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                      const lastYearEnd = new Date(today.getFullYear() - 1, today.getMonth() + 1, 0);
+                      
+                      setDateRange('custom');
+                      setStartDate(lastYear.toISOString().split('T')[0]);
+                      setEndDate(lastYearEnd.toISOString().split('T')[0]);
+                      setShowHistoricalData(true);
+                    }}
+                    className="px-4 py-2 rounded-lg font-medium transition bg-red-100 text-red-700 hover:bg-red-200"
+                  >
+                    Năm trước
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input type="text" placeholder="Tìm kiếm bệnh nhân hoặc trạng thái..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500" />
+
+              {/* Custom Date Range */}
+              {dateRange === 'custom' && (
+                <div className="flex flex-col lg:flex-row items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    <label className="font-medium text-gray-700">Từ ngày:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        if (new Date(e.target.value) < new Date()) {
+                          setShowHistoricalData(true);
+                        }
+                      }}
+                      className="border-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <label className="font-medium text-gray-700">Đến ngày:</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        if (new Date(e.target.value) < new Date()) {
+                          setShowHistoricalData(true);
+                        }
+                      }}
+                      min={startDate}
+                      className="border-gray-200 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => fetchDoctorSlots()}
+                    disabled={!startDate || !endDate}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Làm mới
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDateRange('today');
+                      setStartDate('');
+                      setEndDate('');
+                      setShowHistoricalData(false);
+                    }}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition"
+                  >
+                    Về hôm nay
+                  </button>
+                </div>
+              )}
+
+              {/* Search Bar */}
+              <div className="flex flex-col lg:flex-row items-center gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-green-100 p-2 rounded-lg"><Search className="w-5 h-5 text-green-600" /></div>
+                  <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border-gray-200 px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500" placeholder="Lọc theo ngày cụ thể" />
+                </div>
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input type="text" placeholder="Tìm kiếm bệnh nhân hoặc trạng thái..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500" />
+                </div>
               </div>
             </div>
           </div>
@@ -601,6 +912,49 @@ export default function DoctorSchedulePage() {
                 </div>
             </div>
           )}
+
+          {/* Historical Data Alert */}
+          {showHistoricalData && (
+            <div className="mb-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white">
+              <h2 className="text-2xl font-bold flex items-center mb-4">
+                <Clock className="w-6 h-6 mr-3"/> Dữ liệu lịch sử
+              </h2>
+              <p className="text-blue-100 mb-3">
+                Bạn đang xem lịch khám trong quá khứ. Hiển thị đầy đủ tất cả các trạng thái bao gồm: Đã xác nhận, Đang khám, Đã khám xong, và Đã hủy.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span>Đã xác nhận</span>
+                  </div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span>Đang khám</span>
+                  </div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <span>Đã khám xong</span>
+                  </div>
+                </div>
+                <div className="bg-white/20 p-3 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span>Đã hủy</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-white/20 rounded-lg">
+                <p className="text-sm">
+                  <strong>Lưu ý:</strong> Khi xem dữ liệu lịch sử, bạn có thể xem chi tiết các cuộc hẹn đã hoàn thành nhưng không thể thực hiện các hành động thay đổi trạng thái.
+                </p>
+              </div>
+            </div>
+          )}
           {unexaminedSlots.length > 0 && (
              <div className="mb-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white">
                 <h2 className="text-2xl font-bold flex items-center mb-4"><FileText className="w-6 h-6 mr-3"/> Cần tạo bệnh án ({unexaminedSlots.length})</h2>
@@ -615,11 +969,27 @@ export default function DoctorSchedulePage() {
             </div>
           )}
 
+
+
           {/* Main Schedule */}
           {loading && <div className="text-center p-12"><Loader2 className="animate-spin w-10 h-10 text-blue-600 mx-auto" /></div>}
           {error && <div className="text-center p-12 text-red-600"><AlertCircle className="w-10 h-10 mx-auto mb-2"/>{error}</div>}
           {!loading && !error && Object.keys(groupedSlots).length === 0 && (
-            <div className="text-center p-12 text-gray-500"><Calendar className="w-16 h-16 mx-auto mb-4"/><h3>Không có lịch hẹn nào được tìm thấy.</h3></div>
+            <div className="text-center p-12 text-gray-500">
+              <Calendar className="w-16 h-16 mx-auto mb-4"/>
+              <h3 className="text-xl font-semibold mb-2">Không có lịch hẹn nào được tìm thấy</h3>
+              <p className="text-gray-400">Trong khoảng thời gian: {getDateRangeTitle()}</p>
+              
+
+              
+              {showHistoricalData && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-blue-700">
+                    <strong>Gợi ý:</strong> Thử chọn khoảng thời gian khác hoặc kiểm tra lại ngày tháng đã chọn.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           {!loading && !error && (
@@ -687,8 +1057,20 @@ export default function DoctorSchedulePage() {
                       {/* Actions for "Chưa xác nhận" */}
                       {selectedSlot.booking?.status === "Chưa xác nhận" && (
                         <div className="flex gap-4">
-                          <button onClick={() => handleAppointmentAction("confirm")} disabled={submitting} className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400">Xác nhận</button>
-                          <button onClick={() => handleAppointmentAction("reject")} disabled={submitting} className="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400">Từ chối</button>
+                          <button 
+                            onClick={() => handleAppointmentAction("confirm")} 
+                            disabled={submitting || showHistoricalData} 
+                            className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
+                          >
+                            Xác nhận
+                          </button>
+                          <button 
+                            onClick={() => handleAppointmentAction("reject")} 
+                            disabled={submitting || showHistoricalData} 
+                            className="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
+                          >
+                            Từ chối
+                          </button>
                         </div>
                       )}
 
@@ -700,7 +1082,7 @@ export default function DoctorSchedulePage() {
                              console.log("🔍 [DEBUG] Selected slot:", selectedSlot);
                              handleStatusUpdate('Đang khám');
                            }} 
-                           disabled={submitting} 
+                           disabled={submitting || showHistoricalData} 
                            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
                          >
                            <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
@@ -709,9 +1091,26 @@ export default function DoctorSchedulePage() {
 
                       {/* Action for "Đang khám" */}
                       {selectedSlot.booking?.status === 'Đang khám' && (
-                         <button onClick={() => handleStatusUpdate('Đã khám xong')} disabled={submitting} className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2">
+                         <button 
+                           onClick={() => handleStatusUpdate('Đã khám xong')} 
+                           disabled={submitting || showHistoricalData} 
+                           className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                         >
                             <Check className="w-5 h-5" /><span>Hoàn tất khám</span>
                          </button>
+                      )}
+
+                      {/* Display for "Đã hủy" */}
+                      {selectedSlot.booking?.status === 'Đã hủy' && (
+                         <div className="w-full bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center">
+                           <div className="flex items-center justify-center space-x-2 text-red-700">
+                             <X className="w-5 h-5" />
+                             <span className="font-semibold">Lịch hẹn đã bị hủy</span>
+                           </div>
+                           <p className="text-sm text-red-600 mt-2">
+                             Lịch hẹn này đã được hủy và không thể thực hiện thêm hành động nào.
+                           </p>
+                         </div>
                       )}
                   </div>
 
