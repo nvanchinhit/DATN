@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Phone, Mail, ChevronDown, Search, User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
+import { Phone, Mail, ChevronDown, Search, User as UserIcon, LogOut, LayoutDashboard, MessageCircle } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
@@ -147,6 +147,10 @@ export default function Header() {
                           <LayoutDashboard size={16} />
                           Hồ sơ của tôi
                         </Link>
+                        <Link href="/chat" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <MessageCircle size={16} />
+                 Tin nhắn
+                     </Link>
                         <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
                            <LogOut size={16} />
                            Đăng xuất

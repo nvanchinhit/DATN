@@ -74,6 +74,7 @@ export default function Sidebardoctor() {
     { href: '/doctor/schedule', icon: '🗓️', label: 'Lịch khám', color: 'from-green-500 to-green-600' },
     { href: '/doctor/patients', icon: '📁', label: 'Hồ sơ bệnh án', color: 'from-purple-500 to-purple-600' },
     { href: '/doctor/profile', icon: '👤', label: 'Hồ sơ cá nhân', color: 'from-orange-500 to-orange-600' },
+    { href: '/doctor/chat', icon: '💬', label: 'Tin nhắn', color: 'from-pink-500 to-pink-600' },
   ];
 
   return (

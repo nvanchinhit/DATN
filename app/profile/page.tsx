@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/page';
 import { User, Mail, Phone, Calendar, Save, Camera, ShieldCheck, X } from 'lucide-react';
-
+import FloatingChat from "@/components/ui/FloatingChat";
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Customer {
@@ -220,7 +220,7 @@ export default function ProfilePage() {
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
                 />
             </ProfileField>
-
+                         <FloatingChat />
             <div className="mt-8 flex justify-end">
               <button 
                 type="submit" 

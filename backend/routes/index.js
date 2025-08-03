@@ -32,9 +32,11 @@ const ratingRoutes = require('./rating.routes'); // <-- Import
 const adminRoutes = require('./admin.routes');
 const scheduleRoutes = require('./schedule.routes');
 const paymentRoutes = require('./payment.routes');
+const chatRoutes = require('./chatRoutes');
 
 
 
+router.use('/chat', chatRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/admin', adminRoutes);
