@@ -69,23 +69,14 @@
 
     const isActive = (href: string) => pathname.startsWith(href);
 
-<<<<<<< HEAD
     const menuItems = [
       { href: '/doctor/dashboard', icon: '📊', label: 'Dashboard', color: 'from-blue-500 to-blue-600' },
-        { href: '/doctor/schedules', icon: '📁', label: 'Ca khám ', color: 'from-indigo-500 to-indigo-600' },
+      { href: '/doctor/schedules', icon: '📁', label: 'Ca khám', color: 'from-indigo-500 to-indigo-600' },
       { href: '/doctor/schedule', icon: '🗓️', label: 'Lịch khám', color: 'from-green-500 to-green-600' },
-      { href: '/doctor/patients', icon: '📁', label: 'Hồ sơ bệnh án ', color: 'from-indigo-500 to-indigo-600' },
+      { href: '/doctor/patients', icon: '📁', label: 'Hồ sơ bệnh án', color: 'from-purple-500 to-purple-600' },
       { href: '/doctor/profile', icon: '👤', label: 'Hồ sơ cá nhân', color: 'from-orange-500 to-orange-600' },
+      { href: '/doctor/chat', icon: '💬', label: 'Tin nhắn', color: 'from-pink-500 to-pink-600' },
     ];
-=======
-  const menuItems = [
-    { href: '/doctor/dashboard', icon: '📊', label: 'Dashboard', color: 'from-blue-500 to-blue-600' },
-    { href: '/doctor/schedule', icon: '🗓️', label: 'Lịch khám', color: 'from-green-500 to-green-600' },
-    { href: '/doctor/patients', icon: '📁', label: 'Hồ sơ bệnh án', color: 'from-purple-500 to-purple-600' },
-    { href: '/doctor/profile', icon: '👤', label: 'Hồ sơ cá nhân', color: 'from-orange-500 to-orange-600' },
-    { href: '/doctor/chat', icon: '💬', label: 'Tin nhắn', color: 'from-pink-500 to-pink-600' },
-  ];
->>>>>>> f33c0445acbef0418cf7928f650d108b7e021320
 
     return (
       <aside className="w-72 bg-gradient-to-b from-blue-50 via-white to-blue-50 border-r border-blue-100 p-6 flex flex-col min-h-screen shadow-xl relative overflow-hidden">
