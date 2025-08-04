@@ -199,13 +199,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
                       <span>Về trang chủ</span>
                     </Link>
                     
-                    <Link 
-                      href="/shop" 
-                      className="flex items-center gap-3 p-3 rounded-xl text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
-                    >
-                      <Heart size={18} />
-                      <span>Mua thuốc</span>
-                    </Link>
+          
                   </div>
                 </div>
 
