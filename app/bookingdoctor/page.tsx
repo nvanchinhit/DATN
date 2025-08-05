@@ -124,7 +124,7 @@ export default function SpecialtySchedulePageWrapper() {
 }
 
 // --- Main Page Component ---
-function SpecialtySchedulePage() {
+function SpecialtySchedulePage(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const specialtyId = searchParams.get("specialization");
@@ -217,7 +217,26 @@ function SpecialtySchedulePage() {
     setDetailsModalOpen(true);
   };
 
-  const getButtonStatus = (group: ScheduleGroup) => {
+  const getButtonStatus = (group: ScheduleGroup, selectedDate: Date) => {
+    // Kiểm tra nếu là hôm nay và ca đã qua thì disable
+    const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    if (isToday) {
+      // Lấy giờ bắt đầu của ca
+      const startHour = parseInt(group.time.split(' - ')[0].split(':')[0], 10);
+      const startMinute = parseInt(group.time.split(' - ')[0].split(':')[1], 10);
+      if (
+        startHour < now.getHours() ||
+        (startHour === now.getHours() && startMinute <= now.getMinutes())
+      ) {
+        return {
+          disabled: true,
+          className: 'bg-gray-200 text-gray-400 border-2 border-gray-300 cursor-not-allowed',
+          text: 'Đã qua',
+          textClassName: 'text-xs font-bold text-gray-500 mt-1',
+        };
+      }
+    }
     if (group.availableSlots > 0) {
       return {
         disabled: false,
@@ -284,7 +303,7 @@ function SpecialtySchedulePage() {
                       <h4 className="text-lg font-bold text-gray-700 mb-4">Buổi sáng</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
                         {groupedSchedule.morning.map((group) => {
-                          const status = getButtonStatus(group);
+                          const status = getButtonStatus(group, selectedDate);
                           return (
                             <button 
                               key={group.time} 
@@ -312,7 +331,7 @@ function SpecialtySchedulePage() {
                       <h4 className="text-lg font-bold text-gray-700 mb-4">Buổi chiều</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
                         {groupedSchedule.afternoon.map((group) => {
-                          const status = getButtonStatus(group);
+                          const status = getButtonStatus(group, selectedDate);
                           return (
                             <button 
                               key={group.time} 
