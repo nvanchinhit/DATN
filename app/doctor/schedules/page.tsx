@@ -55,6 +55,7 @@ export default function ManageWorkSchedulePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submittingActions, setSubmittingActions] = useState<Set<string>>(new Set());
+  const [validateError, setValidateError] = useState('');
 
   // 1. Tự động nhận diện bác sĩ từ localStorage (ĐÃ SỬA LỖI)
   useEffect(() => {
@@ -171,6 +172,26 @@ export default function ManageWorkSchedulePage() {
 
   const handleAddShift = (shiftType: 'morning' | 'afternoon') => {
     const shiftDetails = SHIFT_TYPES[shiftType];
+    const today = new Date();
+    const selected = new Date(selectedDate + 'T00:00:00');
+    // Nếu ngày đã qua
+    if (selected < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+      setValidateError('Không thể thêm ca cho ngày đã qua.');
+      return;
+    }
+    // Nếu là hôm nay, kiểm tra giờ kết thúc ca
+    if (selected.toDateString() === today.toDateString()) {
+      const [endHour, endMinute] = shiftDetails.endTime.split(':').map(Number);
+      if (
+        endHour < today.getHours() ||
+        (endHour === today.getHours() && endMinute <= today.getMinutes())
+      ) {
+        setValidateError('Đã quá thời gian đăng kí ca làm việc.');
+        return;
+      }
+    }
+    setValidateError('');
+    setError('');
     const actionId = `add-${shiftType}`;
     const apiOptions = createApiOptions('POST', {
       workDate: selectedDate,
@@ -221,13 +242,12 @@ export default function ManageWorkSchedulePage() {
       <main className="flex-1 p-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Tạo Lịch Làm Việc</h1>
         {doctor && <h2 className="text-xl font-semibold text-blue-600 mb-6 flex items-center gap-2"><User /> {doctor.name}</h2>}
-        
         <div className="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-end gap-4">
             <div>
                 <label htmlFor="date-picker" className="block text-sm font-medium text-gray-700 mb-1">Chọn ngày để tạo lịch</label>
                 <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input type="date" id="date-picker" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+                    <input type="date" id="date-picker" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setValidateError(''); }} className="w-full md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
                 </div>
             </div>
             <div className="flex-grow flex justify-start md:justify-end gap-2">
@@ -242,8 +262,15 @@ export default function ManageWorkSchedulePage() {
             </div>
         </div>
         
+        {/* Hiển thị alert lỗi validate hoặc lỗi API ở dưới */}
+        {(validateError || error) && (
+          <div className="mt-2 px-4 py-2 rounded-xl flex items-center gap-3 border-2 border-red-400 bg-red-50 text-red-700 font-semibold shadow-sm animate-fade-in">
+            <AlertTriangle size={28} className="text-red-500 flex-shrink-0" />
+            <span className="text-base leading-tight">{validateError || error}</span>
+          </div>
+        )}
+
         {success && <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-green-100 text-green-800 border border-green-200"><CheckCircle size={20} />{success}</div>}
-        {error && !loading && <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-red-100 text-red-800 border border-red-200"><AlertTriangle size={20} />{error}</div>}
 
         {loading ? (
           <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
@@ -315,3 +342,14 @@ export default function ManageWorkSchedulePage() {
     </div>
   );
 }
+
+// Thêm hiệu ứng fade-in cho alert
+<style jsx global>{`
+  .animate-fade-in {
+    animation: fadeInAlert 0.5s;
+  }
+  @keyframes fadeInAlert {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`}</style>
