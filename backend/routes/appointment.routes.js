@@ -179,13 +179,26 @@ router.post('/', authMiddleware, (req, res) => {
            payment: payment_status // Sử dụng trạng thái thanh toán thực tế
          });
 
-        res.status(201).json({ 
-          message: 'Đặt lịch thành công! Email xác nhận đã được gửi.', 
-          appointmentId: result.insertId,
-          paymentStatus: payment_status,
-          paymentMethod: payment_method,
-          transactionId: transaction_id,
-          paidAmount: paid_amount
+        // Sau khi tạo appointment thành công, lấy thông tin phòng khám
+        const doctorSql = 'SELECT room_number FROM doctors WHERE id = ?';
+        db.query(doctorSql, [doctor_id], (docErr, docRows) => {
+          let room_number = 'N/A';
+          if (!docErr && docRows.length > 0) {
+            room_number = docRows[0].room_number || 'N/A';
+          }
+          res.status(201).json({
+            message: 'Đặt lịch thành công! Email xác nhận đã được gửi.',
+            appointmentId: result.insertId,
+            paymentStatus: payment_status,
+            paymentMethod: payment_method,
+            transactionId: transaction_id,
+            paidAmount: paid_amount,
+            clinic: {
+              room_number,
+              clinic_name: 'Phòng khám Đa khoa ABC', // điền tĩnh
+              address: '123 Đường Tĩnh, Quận 1, TP.HCM' // điền tĩnh
+            }
+          });
         });
       });
     });

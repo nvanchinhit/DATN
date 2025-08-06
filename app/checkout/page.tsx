@@ -63,6 +63,7 @@ export default function CheckoutPage() {
   const [submitted, setSubmitted] = useState(false); // Trạng thái đã gửi thành công
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash'); // Mặc định thanh toán khi đến khám
   const [showPaymentInfo, setShowPaymentInfo] = useState(false); // Hiển thị thông tin thanh toán chi tiết
+  const [clinicInfo, setClinicInfo] = useState<{ clinic_name: string; room_number: string; address: string } | null>(null);
 
   // Lấy thông tin user khi tải trang
   useEffect(() => {
@@ -215,6 +216,7 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         setSubmitted(true); // Đặt lịch thành công
+        if (resultData.clinic) setClinicInfo(resultData.clinic);
       } else {
         alert('Lỗi từ máy chủ: ' + (resultData.message || "Có lỗi không xác định xảy ra."));
       }
@@ -267,6 +269,13 @@ export default function CheckoutPage() {
                 <li><strong>Ngày khám:</strong> {new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {bookingInfo.time.start} - {bookingInfo.time.end}</li>
                 {doctorInfo && doctorInfo.price > 0 && (
                   <li><strong>Phí khám:</strong> {formatPrice(doctorInfo.price)}</li>
+                )}
+                {clinicInfo && (
+                  <>
+                    <li><strong>Tên phòng khám:</strong> {clinicInfo.clinic_name}</li>
+                    <li><strong>Số phòng:</strong> {clinicInfo.room_number}</li>
+                    <li><strong>Địa chỉ:</strong> {clinicInfo.address}</li>
+                  </>
                 )}
               </div>
               <div className="flex justify-center gap-4">
