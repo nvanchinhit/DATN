@@ -1,10 +1,3 @@
-// file: app/doctor/schedules/page.tsx
-// ============================================
-// ĐÃ SỬA LỖI:
-// 1. Sửa key lấy token từ `doctorToken` thành `token` để đồng bộ với cách lưu token khi đăng nhập.
-// 2. Thêm `setLoading(false)` vào các nhánh xử lý lỗi để tránh UI bị kẹt ở trạng thái "loading".
-// 3. Thêm log chi tiết hơn để dễ dàng debug nếu `user` hoặc `token` không có trong localStorage.
-// ============================================
 
 'use client';
 
