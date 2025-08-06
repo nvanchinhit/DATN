@@ -38,6 +38,12 @@ export default function DoctorMedicalRecordsPage() {
   const [filterDate, setFilterDate] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editDiagnosis, setEditDiagnosis] = useState('');
+  const [editTreatment, setEditTreatment] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editDoctorNote, setEditDoctorNote] = useState('');
+  const [editFollowUpDate, setEditFollowUpDate] = useState('');
 
   useEffect(() => {
     const rawData = localStorage.getItem("user");
@@ -87,11 +93,50 @@ export default function DoctorMedicalRecordsPage() {
     if (doctorId) fetchMedicalRecords();
   }, [doctorId, fetchMedicalRecords]);
 
+  // Khi chọn hồ sơ để xem chi tiết, reset editMode và set giá trị form
+  useEffect(() => {
+    if (selectedRecord) {
+      setEditMode(false);
+      setEditDiagnosis(selectedRecord.diagnosis || '');
+      setEditTreatment(selectedRecord.treatment || '');
+      setEditNotes(selectedRecord.notes || '');
+      setEditDoctorNote(selectedRecord.doctor_note || '');
+      setEditFollowUpDate(selectedRecord.follow_up_date || '');
+    }
+  }, [selectedRecord]);
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchMedicalRecords();
     setTimeout(() => setRefreshing(false), 1000);
   }, [fetchMedicalRecords]);
+
+  const handleUpdateRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRecord) return;
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    await fetch('http://localhost:5000/api/medical-records/save-from-schedule', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        appointment_id: selectedRecord.appointment_id,
+        doctor_id: user.id,
+        customer_id: selectedRecord.customer_name, // Nếu có customer_id thì dùng customer_id
+        diagnosis: editDiagnosis,
+        treatment: editTreatment,
+        notes: editNotes,
+        doctor_note: editDoctorNote,
+        follow_up_date: editFollowUpDate
+      })
+    });
+    setEditMode(false);
+    setSelectedRecord(null);
+    fetchMedicalRecords();
+  };
 
   const filteredRecords = records.filter((record) => {
     const matchesSearch = searchTerm
@@ -320,118 +365,156 @@ export default function DoctorMedicalRecordsPage() {
                     <h2 className="text-3xl font-bold">Chi tiết hồ sơ bệnh án</h2>
                     <p className="text-blue-200">ID: {selectedRecord.record_id}</p>
                   </div>
-                  <button 
-                    onClick={() => setSelectedRecord(null)} 
-                    className="p-2 rounded-full hover:bg-white/20"
-                  >
-                    <span className="text-2xl">×</span>
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={() => setEditMode(true)}
+                    >
+                      Sửa hồ sơ
+                    </button>
+                    <button 
+                      onClick={() => setSelectedRecord(null)} 
+                      className="p-2 rounded-full hover:bg-white/20"
+                    >
+                      <span className="text-2xl">×</span>
+                    </button>
+                  </div>
                 </div>
-                
                 <div className="p-8 overflow-y-auto space-y-6">
-                  {/* Patient Info */}
-                  <div className="bg-gray-50 p-6 rounded-2xl border">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <span>👤</span>
-                      Thông tin cá nhân
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Tên bệnh nhân:</span>
-                        <span>{selectedRecord.patient_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Tài khoản:</span>
-                        <span>{selectedRecord.customer_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Tuổi:</span>
-                        <span>{selectedRecord.age || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Giới tính:</span>
-                        <span>{selectedRecord.gender || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Số điện thoại:</span>
-                        <span>{selectedRecord.patient_phone || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Email:</span>
-                        <span>{selectedRecord.patient_email || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between col-span-full">
-                        <span className="font-semibold">Địa chỉ:</span>
-                        <span>{selectedRecord.address || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between col-span-full">
-                        <span className="font-semibold">Số lần khám:</span>
-                        <span className="font-bold text-blue-600">{selectedRecord.visit_count || 1}</span>
-                      </div>
-                      <div className="flex justify-between col-span-full">
-                        <span className="font-semibold">Lý do khám:</span>
-                        <span>{selectedRecord.reason || 'Không có'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Medical Record */}
-                  <div className="bg-gray-50 p-6 rounded-2xl border">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <span>🏥</span>
-                      Thông tin bệnh án
-                    </h3>
-                    <div className="space-y-4 text-gray-700">
+                  {editMode ? (
+                    <form onSubmit={handleUpdateRecord} className="space-y-4">
                       <div>
-                        <p className="font-semibold text-gray-600 mb-1">Chẩn đoán:</p>
-                        <p className="text-lg font-semibold text-gray-800">{selectedRecord.diagnosis}</p>
+                        <label className="block font-semibold mb-1">Chẩn đoán *</label>
+                        <input type="text" value={editDiagnosis} onChange={e => setEditDiagnosis(e.target.value)} required className="w-full p-2 border rounded" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-600 mb-1">Điều trị:</p>
-                        <p className="text-gray-800">{selectedRecord.treatment || 'Chưa có'}</p>
+                        <label className="block font-semibold mb-1">Điều trị</label>
+                        <input type="text" value={editTreatment} onChange={e => setEditTreatment(e.target.value)} className="w-full p-2 border rounded" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-600 mb-1">Ghi chú:</p>
-                        <p className="text-gray-800">{selectedRecord.notes || 'Không có'}</p>
+                        <label className="block font-semibold mb-1">Ghi chú</label>
+                        <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full p-2 border rounded" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-600 mb-1">Ghi chú bác sĩ:</p>
-                        <p className="text-gray-800">{selectedRecord.doctor_note || 'Không có'}</p>
+                        <label className="block font-semibold mb-1">Ghi chú bác sĩ</label>
+                        <textarea value={editDoctorNote} onChange={e => setEditDoctorNote(e.target.value)} className="w-full p-2 border rounded" />
                       </div>
-                      {selectedRecord.follow_up_date && (
-                        <div>
-                          <p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p>
-                          <p className="text-orange-600 font-semibold">{formatDate(selectedRecord.follow_up_date)}</p>
+                      <div>
+                        <label className="block font-semibold mb-1">Ngày tái khám</label>
+                        <input type="date" value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Lưu</button>
+                        <button type="button" className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setEditMode(false)}>Hủy</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      {/* Patient Info */}
+                      <div className="bg-gray-50 p-6 rounded-2xl border">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <span>👤</span>
+                          Thông tin cá nhân
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Tên bệnh nhân:</span>
+                            <span>{selectedRecord.patient_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Tài khoản:</span>
+                            <span>{selectedRecord.customer_name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Tuổi:</span>
+                            <span>{selectedRecord.age || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Giới tính:</span>
+                            <span>{selectedRecord.gender || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Số điện thoại:</span>
+                            <span>{selectedRecord.patient_phone || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Email:</span>
+                            <span>{selectedRecord.patient_email || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between col-span-full">
+                            <span className="font-semibold">Địa chỉ:</span>
+                            <span>{selectedRecord.address || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between col-span-full">
+                            <span className="font-semibold">Số lần khám:</span>
+                            <span className="font-bold text-blue-600">{selectedRecord.visit_count || 1}</span>
+                          </div>
+                          <div className="flex justify-between col-span-full">
+                            <span className="font-semibold">Lý do khám:</span>
+                            <span>{selectedRecord.reason || 'Không có'}</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Timestamps */}
-                  <div className="bg-gray-50 p-6 rounded-2xl border">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <span>⏰</span>
-                      Thông tin thời gian
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Ngày khám:</span>
-                        <span>{formatDate(selectedRecord.slot_date)}</span>
+                      {/* Medical Record */}
+                      <div className="bg-gray-50 p-6 rounded-2xl border">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <span>🏥</span>
+                          Thông tin bệnh án
+                        </h3>
+                        <div className="space-y-4 text-gray-700">
+                          <div>
+                            <p className="font-semibold text-gray-600 mb-1">Chẩn đoán:</p>
+                            <p className="text-lg font-semibold text-gray-800">{selectedRecord.diagnosis}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-600 mb-1">Điều trị:</p>
+                            <p className="text-gray-800">{selectedRecord.treatment || 'Chưa có'}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-600 mb-1">Ghi chú:</p>
+                            <p className="text-gray-800">{selectedRecord.notes || 'Không có'}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-600 mb-1">Ghi chú bác sĩ:</p>
+                            <p className="text-gray-800">{selectedRecord.doctor_note || 'Không có'}</p>
+                          </div>
+                          {selectedRecord.follow_up_date && (
+                            <div>
+                              <p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p>
+                              <p className="text-orange-600 font-semibold">{formatDate(selectedRecord.follow_up_date)}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Giờ khám:</span>
-                        <span>{selectedRecord.start_time} - {selectedRecord.end_time}</span>
+
+                      {/* Timestamps */}
+                      <div className="bg-gray-50 p-6 rounded-2xl border">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <span>⏰</span>
+                          Thông tin thời gian
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Ngày khám:</span>
+                            <span>{formatDate(selectedRecord.slot_date)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Giờ khám:</span>
+                            <span>{selectedRecord.start_time} - {selectedRecord.end_time}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Tạo hồ sơ:</span>
+                            <span>{formatDateTime(selectedRecord.created_at)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-semibold">Cập nhật cuối:</span>
+                            <span>{formatDateTime(selectedRecord.updated_at)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Tạo hồ sơ:</span>
-                        <span>{formatDateTime(selectedRecord.created_at)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-semibold">Cập nhật cuối:</span>
-                        <span>{formatDateTime(selectedRecord.updated_at)}</span>
-                      </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -5,6 +5,7 @@ const db = require('../config/db.config');
 
 // 1. Bổ sung middleware xác thực người dùng
 const authMiddleware = require('../middleware/auth.middleware');
+const { isDoctor } = require('../middleware/auth.middleware');
 
 // =================================================================================
 // LẤY DANH SÁCH BỆNH NHÂN CHO BÁC SĨ (GET) - Dành cho trang của bác sĩ
@@ -79,8 +80,8 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
 
 // =================================================================================
 // LƯU HỒ SƠ BỆNH ÁN TỪ TRANG SCHEDULE (POST) - API mới
-// =================================================================================
-router.post('/save-from-schedule', authMiddleware, (req, res) => {
+// Thêm phân quyền: chỉ bác sĩ phụ trách mới được sửa
+router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
   console.log("🔍 [DEBUG] Request body:", req.body);
   console.log("🔍 [DEBUG] User from middleware:", req.user);
   
@@ -98,6 +99,11 @@ router.post('/save-from-schedule', authMiddleware, (req, res) => {
   if (!appointment_id || !doctor_id || !customer_id || !diagnosis) {
     console.log("❌ [DEBUG] Missing required fields:", { appointment_id, doctor_id, customer_id, diagnosis });
     return res.status(400).json({ error: 'Vui lòng cung cấp đủ thông tin bắt buộc.' });
+  }
+
+  // Kiểm tra quyền: chỉ bác sĩ phụ trách mới được sửa
+  if (req.user.role_id !== 3 || req.user.id !== doctor_id) {
+    return res.status(403).json({ error: 'Chỉ bác sĩ phụ trách mới được phép sửa hồ sơ bệnh án này.' });
   }
 
   // Kiểm tra xem hồ sơ đã tồn tại chưa
