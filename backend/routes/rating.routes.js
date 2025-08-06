@@ -125,34 +125,34 @@ router.delete('/:id', authMiddleware, isAdmin, (req, res) => {
 });
 
 // API: Sửa bình luận theo id (chỉ admin)
-router.put('/:id', authMiddleware, isAdmin, (req, res) => {
-    const ratingId = req.params.id;
-    const { rating, comment } = req.body;
-    if (!rating && !comment) {
-        return res.status(400).json({ message: "Cần có rating hoặc comment để cập nhật." });
-    }
-    const fields = [];
-    const values = [];
-    if (rating !== undefined) {
-        fields.push('rating = ?');
-        values.push(rating);
-    }
-    if (comment !== undefined) {
-        fields.push('comment = ?');
-        values.push(comment);
-    }
-    values.push(ratingId);
-    const sql = `UPDATE ratings SET ${fields.join(', ')} WHERE id = ?`;
-    db.query(sql, values, (err, result) => {
-        if (err) {
-            console.error("Lỗi khi cập nhật bình luận:", err);
-            return res.status(500).json({ message: "Lỗi máy chủ khi cập nhật bình luận." });
-        }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Không tìm thấy bình luận để cập nhật." });
-        }
-        res.status(200).json({ message: "Đã cập nhật bình luận thành công." });
-    });
-});
+// router.put('/:id', authMiddleware, isAdmin, (req, res) => {
+//     const ratingId = req.params.id;
+//     const { rating, comment } = req.body;
+//     if (!rating && !comment) {
+//         return res.status(400).json({ message: "Cần có rating hoặc comment để cập nhật." });
+//     }
+//     const fields = [];
+//     const values = [];
+//     if (rating !== undefined) {
+//         fields.push('rating = ?');
+//         values.push(rating);
+//     }
+//     if (comment !== undefined) {
+//         fields.push('comment = ?');
+//         values.push(comment);
+//     }
+//     values.push(ratingId);
+//     const sql = `UPDATE ratings SET ${fields.join(', ')} WHERE id = ?`;
+//     db.query(sql, values, (err, result) => {
+//         if (err) {
+//             console.error("Lỗi khi cập nhật bình luận:", err);
+//             return res.status(500).json({ message: "Lỗi máy chủ khi cập nhật bình luận." });
+//         }
+//         if (result.affectedRows === 0) {
+//             return res.status(404).json({ message: "Không tìm thấy bình luận để cập nhật." });
+//         }
+//         res.status(200).json({ message: "Đã cập nhật bình luận thành công." });
+//     });
+// });
 
 module.exports = router;

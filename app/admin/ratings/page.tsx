@@ -19,10 +19,6 @@ export default function AdminRatingsPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editId, setEditId] = useState<number | null>(null);
-  const [editComment, setEditComment] = useState('');
-  const [editRating, setEditRating] = useState<number>(0);
-  const [modalOpen, setModalOpen] = useState(false);
   const [filterStar, setFilterStar] = useState<number | null>(null);
   const [searchText, setSearchText] = useState('');
 
@@ -59,35 +55,6 @@ export default function AdminRatingsPage() {
       });
       if (!res.ok) throw new Error('Lỗi khi xóa bình luận');
       setRatings(ratings.filter(r => r.id !== id));
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  // Mở modal sửa
-  const openEditModal = (rating: Rating) => {
-    setEditId(rating.id);
-    setEditComment(rating.comment || '');
-    setEditRating(rating.rating);
-    setModalOpen(true);
-  };
-
-  // Sửa bình luận
-  const handleEdit = async () => {
-    if (!editId) return;
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ratings/${editId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ rating: editRating, comment: editComment })
-      });
-      if (!res.ok) throw new Error('Lỗi khi cập nhật bình luận');
-      setRatings(ratings.map(r => r.id === editId ? { ...r, rating: editRating, comment: editComment } : r));
-      setModalOpen(false);
     } catch (err: any) {
       alert(err.message);
     }
@@ -150,31 +117,12 @@ export default function AdminRatingsPage() {
                 <td className="border px-2 py-1">{r.comment}</td>
                 <td className="border px-2 py-1">{new Date(r.created_at).toLocaleString()}</td>
                 <td className="border px-2 py-1">
-                  <button className="text-blue-600 mr-2 underline" onClick={() => openEditModal(r)}>Sửa</button>
                   <button className="text-red-600 underline" onClick={() => handleDelete(r.id)}>Xóa</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      )}
-      {/* Modal sửa bình luận */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Sửa bình luận</h2>
-            <label className="block mb-2">Số sao:
-              <input type="number" min={1} max={5} value={editRating} onChange={e => setEditRating(Number(e.target.value))} className="border p-1 ml-2 w-16" />
-            </label>
-            <label className="block mb-2">Bình luận:
-              <textarea value={editComment} onChange={e => setEditComment(e.target.value)} className="border p-2 w-full mt-1" rows={3} />
-            </label>
-            <div className="flex justify-end space-x-2 mt-4">
-              <button className="px-4 py-2 bg-gray-200 rounded" onClick={() => setModalOpen(false)}>Hủy</button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleEdit}>Lưu</button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
