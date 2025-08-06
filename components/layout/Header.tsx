@@ -63,7 +63,7 @@ export default function Header() {
     { href: "/specialty", label: "Chuyên khoa" },
     { href: "/staff", label: "Bác Sĩ"},
     { href: "/about-us", label: "Về chúng tôi" },
-    { href: "/contact-us", label: "Liên hệ" },
+    { href: "/contact", label: "Liên hệ" },
   ];
 
   // Tránh hydration mismatch bằng cách chỉ render sau khi component đã mount
