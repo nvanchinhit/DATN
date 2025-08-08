@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Star, Calendar, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface Doctor {
   id: number;
@@ -13,6 +13,8 @@ interface Doctor {
   introduction?: string;
   specialty: string;
   price?: number;
+  average_rating?: number;
+  review_count?: number;
 }
 
 const TopDoctors = () => {
@@ -20,7 +22,7 @@ const TopDoctors = () => {
 
   useEffect(() => {
     axios
-      .get(`${API_BASE}/api/doctors/top`)
+      .get(`${API_URL}/api/doctors/top`)
       .then((res) => setDoctors(res.data))
       .catch((err) => {
         console.error('❌ Lỗi lấy bác sĩ:', err);
@@ -46,7 +48,7 @@ const TopDoctors = () => {
             >
               <div className="relative h-64 overflow-hidden">
                 <img
-                  src={`${API_BASE}${doctor.img}`}
+                  src={`${API_URL}${doctor.img}`}
                   alt={doctor.name}
                   className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                 />
@@ -62,9 +64,7 @@ const TopDoctors = () => {
               <div className="p-6 flex-grow flex flex-col">
                 <p className="text-sm font-semibold text-blue-600 mb-1">{doctor.specialty}</p>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{doctor.name}</h3>
-                <p className="text-gray-500 text-sm flex-grow">
-                    {doctor.introduction || 'Bác sĩ có nhiều năm kinh nghiệm trong lĩnh vực.'}
-                </p>
+
                 {doctor.price && doctor.price > 0 && (
                   <div className="mb-3">
                     <span className="text-lg font-bold text-green-600">
@@ -74,12 +74,20 @@ const TopDoctors = () => {
                   </div>
                 )}
                  <div className="flex items-center text-sm text-yellow-500 mt-4 mb-4">
-                  <Star className="w-4 h-4 fill-current" />
-                  <Star className="w-4 h-4 fill-current" />
-                  <Star className="w-4 h-4 fill-current" />
-                  <Star className="w-4 h-4 fill-current" />
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-gray-600 ml-2">(5.0)</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${
+                        doctor.average_rating && star <= Math.round(Number(doctor.average_rating))
+                          ? 'fill-current'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-gray-600 ml-2">
+                    ({doctor.average_rating ? Number(doctor.average_rating).toFixed(1) : '0.0'})
+                    {doctor.review_count && ` (${doctor.review_count} đánh giá)`}
+                  </span>
                 </div>
                 <a
                   href={`/dat-lich/${doctor.id}`}

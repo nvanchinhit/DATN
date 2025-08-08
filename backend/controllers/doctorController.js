@@ -306,8 +306,8 @@ exports.getTopDoctors = (req, res) => {
         d.certificate_image,
         d.certificate_source,
         s.name AS specialty_name,
-        AVG(r.rating) AS average_rating,
-        COUNT(r.id) AS review_count
+        COALESCE(AVG(r.rating), 0) AS average_rating,
+        COALESCE(COUNT(r.id), 0) AS review_count
     FROM
         doctors d
     LEFT JOIN
@@ -321,8 +321,6 @@ exports.getTopDoctors = (req, res) => {
         d.degree_image, d.gpa, d.university, d.graduation_date, d.degree_type,
         d.certificate_image, d.certificate_source,
         s.name
-    HAVING
-        COUNT(r.id) > 0
     ORDER BY
         average_rating DESC,
         review_count DESC
@@ -339,10 +337,10 @@ exports.getTopDoctors = (req, res) => {
       id: doc.id,
       name: doc.name,
       introduction: doc.introduction,
-      specialty_name: doc.specialty_name || "Chưa cập nhật",
+      specialty: doc.specialty_name || "Chưa cập nhật", // Đổi tên field để khớp với frontend
       img: doc.img ? `/uploads/${doc.img}` : null,
-      average_rating: parseFloat(doc.average_rating).toFixed(1),
-      review_count: doc.review_count,
+      average_rating: parseFloat(doc.average_rating || 0),
+      review_count: parseInt(doc.review_count || 0),
       degrees: doc.degree_image
         ? doc.degree_image.split('|').map((img) => ({
             filename: `/uploads/${img}`,
