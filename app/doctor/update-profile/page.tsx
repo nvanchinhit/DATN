@@ -86,7 +86,7 @@ export default function EditProfilePage() {
             if (data.certificate_image && data.certificate_source) {
                 const images = data.certificate_image.split(',').filter(Boolean);
                 const sources = data.certificate_source.split(',').filter(Boolean);
-                setExistingCertificates(images.map((img, i) => ({ image: img, source: sources[i] || '' })));
+                setExistingCertificates(images.map((img: string, i: number) => ({ image: img, source: sources[i] || '' })));
             }
         })
         .catch(() => { router.back(); })

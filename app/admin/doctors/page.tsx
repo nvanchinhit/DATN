@@ -272,7 +272,7 @@ export default function DoctorsPage() {
   
   const specializations = useMemo(() => {
     const specs = doctors.map(d => d.specialty_name).filter(Boolean);
-    return [...new Set(specs)];
+    return Array.from(new Set(specs));
   }, [doctors]);
   
   const statuses = useMemo(() => Object.keys(statusMap), []);
