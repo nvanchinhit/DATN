@@ -10,7 +10,7 @@ const PendingApprovalScreen = () => {
   
   const handleLogout = () => {
     localStorage.removeItem('user');
-    localStorage.removeItem('doctorToken');
+    localStorage.removeItem('token');
     router.push('/doctor/login'); 
   };
 
@@ -57,12 +57,12 @@ export default function CompleteProfilePage() {
   // --- LẤY DỮ LIỆU BAN ĐẦU ---
   useEffect(() => {
     const user = localStorage.getItem('user');
-    const token = localStorage.getItem('doctorToken');
+    const token = localStorage.getItem('token');
 
     if (user && token) {
       const parsedUser = JSON.parse(user);
       
-      fetch(`http://localhost:5000/api/doctors/${parsedUser.id}`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/doctors/${parsedUser.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
@@ -264,7 +264,7 @@ export default function CompleteProfilePage() {
         return;
     }
 
-    const token = localStorage.getItem('doctorToken');
+    const token = localStorage.getItem('token');
     if (!token) {
         alert("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
         router.push('/doctor/login');
@@ -291,7 +291,7 @@ export default function CompleteProfilePage() {
 
     try {
         // ✅ ĐÂY LÀ DÒNG CODE ĐÃ ĐƯỢC SỬA
-        const res = await fetch(`http://localhost:5000/api/doctors/${form.id}/profile`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/doctors/${form.id}/profile`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData,

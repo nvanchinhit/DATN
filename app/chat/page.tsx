@@ -19,6 +19,7 @@ interface ChatMessage {
   message: string;
   created_at: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function UserChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -32,7 +33,7 @@ export default function UserChatPage() {
 
   // Khởi tạo socket
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(`${API_URL}`);
 
     socketRef.current.on('connect', () => {
       console.log('✅ Socket connected:', socketRef.current?.id);
@@ -72,7 +73,7 @@ export default function UserChatPage() {
   useEffect(() => {
     if (!customerId) return;
 
-    fetch(`http://localhost:5000/api/chat/rooms/customer/${customerId}`)
+    fetch(`${API_URL}/api/chat/rooms/customer/${customerId}`)
       .then((res) => res.json())
       .then((data) => setRooms(data));
   }, [customerId]);
@@ -81,7 +82,7 @@ export default function UserChatPage() {
   useEffect(() => {
     if (!selectedRoomId) return;
 
-    fetch(`http://localhost:5000/api/chat/${selectedRoomId}/messages`)
+    fetch(`${API_URL}/api/chat/${selectedRoomId}/messages`)
       .then((res) => res.json())
       .then((data) => setMessages(data));
 

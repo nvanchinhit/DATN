@@ -14,6 +14,7 @@ interface Rating {
   start_time: string;
   customer_name: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function AdminRatingsPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -29,7 +30,7 @@ export default function AdminRatingsPage() {
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/ratings/all', {
+        const res = await fetch(`${API_URL}/api/ratings/all`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Lỗi khi lấy danh sách bình luận');
@@ -49,7 +50,7 @@ export default function AdminRatingsPage() {
     if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`/api/ratings/${id}`, {
+      const res = await fetch(`${API_URL}/api/ratings/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -70,7 +70,7 @@ export default function EditProfilePage() {
     // --- LẤY DỮ LIỆU BAN ĐẦU ---
     useEffect(() => {
         const user = localStorage.getItem('user');
-        const token = localStorage.getItem('doctorToken');
+        const token = localStorage.getItem('token');
         if (!user || !token) { router.replace('/doctor/login'); return; }
         const { id } = JSON.parse(user);
 
@@ -165,7 +165,7 @@ export default function EditProfilePage() {
         }
 
         if (!doctor) return;
-        const token = localStorage.getItem('doctorToken');
+        const token = localStorage.getItem('token');
         if (!token) { router.push('/doctor/login'); return; }
 
         setIsSubmitting(true);

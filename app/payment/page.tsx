@@ -23,6 +23,7 @@ const CheckoutPage = () => {
   // State để lưu dữ liệu từ checkout
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   // Lấy dữ liệu từ URL parameters
   useEffect(() => {
@@ -88,7 +89,7 @@ const CheckoutPage = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/payment/settings', {
+      const response = await fetch(`${API_URL}/api/payment/settings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ const CheckoutPage = () => {
     
     setIsCheckingPayment(true);
     try {
-      const response = await fetch('http://localhost:5000/api/payment/check-history', {
+      const response = await fetch(`${API_URL}/api/payment/check-history`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,6 +183,16 @@ const CheckoutPage = () => {
     }
 
     try {
+      // Validate required fields first
+      const requiredFields = ['doctor_id', 'time_slot_id', 'name', 'age', 'phone', 'email'];
+      const missingFields = requiredFields.filter(field => !formData[field]);
+      
+      if (missingFields.length > 0) {
+        console.error('❌ Missing required fields:', missingFields);
+        console.error('❌ FormData received:', formData);
+        return false;
+      }
+
       // Thêm thông tin thanh toán vào formData
       const appointmentData = {
         ...formData,
@@ -192,9 +203,11 @@ const CheckoutPage = () => {
         payment_date: new Date().toISOString() // Ngày thanh toán
       };
 
-      console.log('Creating appointment with payment info:', appointmentData);
+      console.log('📤 Creating appointment with data:', appointmentData);
+      console.log('📤 API_URL:', API_URL);
+      console.log('📤 Token exists:', !!token);
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments`, {
+      const response = await fetch(`${API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,13 +216,32 @@ const CheckoutPage = () => {
         body: JSON.stringify(appointmentData)
       });
 
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response statusText:', response.statusText);
+
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Appointment created successfully with payment status:', result);
         return true;
       } else {
-        const errorData = await response.json();
-        console.error('❌ Error creating appointment:', errorData);
+        // Get raw response text first to see what server actually returns
+        const responseText = await response.text();
+        console.log('📥 Raw response:', responseText);
+        
+        let errorData;
+        try {
+          errorData = responseText ? JSON.parse(responseText) : { error: 'Empty response' };
+        } catch (parseError) {
+          console.log('📥 JSON parse failed:', parseError);
+          errorData = { error: `Parse error: ${responseText}` };
+        }
+        
+        console.error('❌ Error creating appointment:', {
+          status: response.status,
+          statusText: response.statusText,
+          rawResponse: responseText,
+          parsedError: errorData
+        });
         return false;
       }
     } catch (error) {

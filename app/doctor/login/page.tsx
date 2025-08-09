@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/app/contexts/page';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DoctorLoginPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function DoctorLoginPage() {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/doctors/login', {
+      const res = await fetch(`${API_URL}/api/doctors/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

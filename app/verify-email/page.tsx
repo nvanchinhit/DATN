@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
@@ -10,7 +11,7 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     if (token) {
-      fetch(`http://localhost:5000/api/auth/verify-email?token=${token}`)
+      fetch(`${API_URL}/api/auth/verify-email?token=${token}`)
         .then(res => res.json())
         .then(data => setMessage(data.msg || 'Xác thực thành công!'))
         .catch(() => setMessage('Xác thực thất bại hoặc link đã hết hạn.'));

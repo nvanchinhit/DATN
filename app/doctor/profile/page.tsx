@@ -8,10 +8,19 @@ import {
   Mail, Phone, Stethoscope, GraduationCap, FileText,
   UserCheck, Edit, Loader2, AlertTriangle, ImageOff
 } from 'lucide-react';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const getFullImageUrl = (filename: string | null | undefined): string => {
   if (!filename) return '/default-doctor.jpg';
-  return `http://localhost:5000/uploads/${filename}`;
+  
+  // Debug logging
+  console.log('🖼️ Getting image URL for:', filename);
+  console.log('🖼️ API_URL:', API_URL);
+  
+  const fullUrl = `${API_URL}/uploads/${filename}`;
+  console.log('🖼️ Full URL:', fullUrl);
+  
+  return fullUrl;
 };
 
 interface ImageFile {
@@ -21,6 +30,7 @@ interface ImageFile {
   university?: string;
   graduation_date?: string;
   degree_type?: string;
+  source?: string;
 }
 
 export default function DoctorProfilePage() {
@@ -41,7 +51,7 @@ export default function DoctorProfilePage() {
 
     const fetchDoctor = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/doctors/${id}`);
+        const res = await fetch(`${API_URL}/api/doctors/${id}`);
         if (!res.ok) {
           if (res.status === 404) throw new Error("Không tìm thấy hồ sơ của bạn.");
           throw new Error("Không thể tải hồ sơ. Vui lòng thử lại.");
@@ -79,6 +89,12 @@ export default function DoctorProfilePage() {
             ]
           : [];
 
+        console.log('🔍 Doctor data received:', data);
+        console.log('🔍 Certificates processed:', certificates);
+        console.log('🔍 Degrees processed:', degrees);
+        console.log('🔍 Certificate image field:', data.certificate_image);
+        console.log('🔍 Degree image field:', data.degree_image);
+        
         setDoctor({ ...data, Certificates: certificates, Degrees: degrees });
 
         // Ta chỉ cần đảm bảo rằng role_id cũng được lưu lại.
@@ -238,6 +254,10 @@ localStorage.setItem(
                           src={getFullImageUrl(deg.filename)}
                           alt="Bằng cấp"
                           className="w-full h-48 object-contain rounded-md mb-2"
+                          onError={(e) => {
+                            console.error('❌ Failed to load degree image:', getFullImageUrl(deg.filename));
+                            (e.target as HTMLImageElement).src = '/default-degree.jpg';
+                          }}
                         />
                         <div className="text-sm text-gray-700 space-y-1">
                           <p><strong>Trường:</strong> {deg.university || 'N/A'}</p>
@@ -270,6 +290,10 @@ localStorage.setItem(
                    src={getFullImageUrl(cert.filename)}
                    alt="Chứng chỉ"
                   className="w-full max-h-[500px] object-contain rounded-md mb-2"
+                  onError={(e) => {
+                    console.error('❌ Failed to load certificate image:', getFullImageUrl(cert.filename));
+                    (e.target as HTMLImageElement).src = '/default-certificate.jpg';
+                  }}
               />
               <p className="text-sm text-gray-600">
                 <strong>Nơi cấp:</strong> {cert.source || 'Không rõ'}

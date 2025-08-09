@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Clock, User, Phone, Mail, MapPin, Stethoscope, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface MedicalRecord {
   appointment_id: number;
@@ -84,7 +85,7 @@ export default function MedicalRecordsPage() {
       // Lấy token từ localStorage
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`/api/admin/medical-records?${params}`, {
+      const response = await fetch(`${API_URL}/api/admin/medical-records?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ export default function MedicalRecordsPage() {
       // Lấy token từ localStorage
       const token = localStorage.getItem('token');
       
-      const response = await fetch('/api/admin/doctors', {
+      const response = await fetch(`${API_URL}/api/admin/doctors`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -165,7 +166,7 @@ export default function MedicalRecordsPage() {
       // Lấy token từ localStorage
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`/api/admin/medical-records/${record.appointment_id}`, {
+      const response = await fetch(`${API_URL}/api/admin/medical-records/${record.appointment_id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

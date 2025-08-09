@@ -38,6 +38,7 @@ const SHIFT_TYPES = {
   morning: { name: 'Ca sáng', startTime: '07:00:00', endTime: '12:00:00' },
   afternoon: { name: 'Ca chiều', startTime: '13:30:00', endTime: '17:30:00' },
 };
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function ManageWorkSchedulePage() {
   const [doctor, setDoctor] = useState<DoctorData | null>(null);
@@ -93,7 +94,7 @@ export default function ManageWorkSchedulePage() {
     setError('');
     setSuccess('');
     try {
-      const res = await fetch(`http://localhost:5000/api/schedules/doctor-schedule?date=${date}`, {
+      const res = await fetch(`${API_URL}/api/schedules/doctor-schedule?date=${date}`, {
         headers: { 'Authorization': `Bearer ${currentDoctor.token}` }
       });
       if (!res.ok) {
@@ -190,20 +191,20 @@ export default function ManageWorkSchedulePage() {
       workDate: selectedDate,
       ...shiftDetails,
     });
-    handleAction(actionId, () => handleApiCall('http://localhost:5000/api/schedules/shifts', apiOptions));
+    handleAction(actionId, () => handleApiCall(`${API_URL}/api/schedules/shifts`, apiOptions));
   };
 
   const handleCancelShift = (shiftId: number) => {
     if (!window.confirm('Bạn có chắc muốn hủy cả ca làm việc này không? Các khung giờ chưa có người đặt sẽ bị tắt.')) return;
     const actionId = `cancel-shift-${shiftId}`;
     const apiOptions = createApiOptions('PUT');
-    handleAction(actionId, () => handleApiCall(`http://localhost:5000/api/schedules/shifts/${shiftId}/cancel`, apiOptions));
+    handleAction(actionId, () => handleApiCall(`${API_URL}/api/schedules/shifts/${shiftId}/cancel`, apiOptions));
   };
 
   const handleToggleSlot = (slotId: number) => {
     const actionId = `toggle-slot-${slotId}`;
     const apiOptions = createApiOptions('PUT');
-    handleAction(actionId, () => handleApiCall(`http://localhost:5000/api/schedules/slots/${slotId}/toggle-status`, apiOptions));
+    handleAction(actionId, () => handleApiCall(`${API_URL}/api/schedules/slots/${slotId}/toggle-status`, apiOptions));
   };
 
   // 5. Render giao diện

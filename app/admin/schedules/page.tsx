@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Định nghĩa kiểu dữ liệu (interface)
 interface Doctor {
@@ -48,7 +49,7 @@ export default function AdminDoctorSchedulesPage() {
     const fetchDoctors = async () => {
       setLoadingDoctors(true);
       try {
-        const res = await fetch("http://localhost:5000/api/doctors");
+        const res = await fetch(`${API_URL}/api/doctors`);
         const data = await res.json();
         setDoctors(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -73,7 +74,7 @@ export default function AdminDoctorSchedulesPage() {
     setSelectedDoctorObj(doctor);
     const formattedDate = selectedDate.toISOString().split('T')[0];
     
-    fetch(`http://localhost:5000/api/doctors/${selectedDoctor}/schedule-by-date?date=${formattedDate}`)
+    fetch(`${API_URL}/api/doctors/${selectedDoctor}/schedule-by-date?date=${formattedDate}`)
       .then((res) => {
         if (!res.ok) throw new Error('Yêu cầu API thất bại');
         return res.json();
@@ -209,7 +210,7 @@ export default function AdminDoctorSchedulesPage() {
               selectedDoctorObj.img
                 ? selectedDoctorObj.img.startsWith('http')
                   ? selectedDoctorObj.img
-                  : `http://localhost:5000${selectedDoctorObj.img}`
+                  : `${API_URL}${selectedDoctorObj.img}`
                 : "https://via.placeholder.com/80x80?text=Dr"
             }
             alt={`Avatar của ${selectedDoctorObj.name}`}

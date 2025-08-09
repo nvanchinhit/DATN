@@ -64,6 +64,7 @@ interface Slot {
 interface GroupedSlotsApiResponse {
   [date: string]: Omit<Slot, "date">[];
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DoctorSchedulePage() {
   const [doctorId, setDoctorId] = useState<number | null>(null);
@@ -132,7 +133,7 @@ export default function DoctorSchedulePage() {
     setLoading(true);
     
     // Tạo URL với các tham số bộ lọc thời gian
-    let url = `http://localhost:5000/api/doctors/${doctorId}/time-slots`;
+    let url = `${API_URL}/api/doctors/${doctorId}/time-slots`;
     const params = new URLSearchParams();
     
     // Thêm tham số bộ lọc thời gian
@@ -218,7 +219,7 @@ export default function DoctorSchedulePage() {
   useEffect(() => {
     const loadPaymentSettings = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/payment/settings');
+        const response = await fetch(`${API_URL}/api/payment/settings`);
         if (response.ok) {
           const data = await response.json();
           setPaymentSettings(data.data);
@@ -264,10 +265,10 @@ export default function DoctorSchedulePage() {
     
     setSubmitting(true);
     try {
-        console.log("🔍 [DEBUG] Sending request to:", `http://localhost:5000/api/appointments/${appointmentId}/status`);
+        console.log("🔍 [DEBUG] Sending request to:", `${API_URL}/api/appointments/${appointmentId}/status`);
         console.log("🔍 [DEBUG] Request body:", { status: newStatus });
         
-        const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/status`, {
+        const res = await fetch(`${API_URL}/api/appointments/${appointmentId}/status`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ status: newStatus }),
@@ -301,7 +302,7 @@ export default function DoctorSchedulePage() {
     if (!appointmentId || submitting || !token) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/${action}`, {
+      const res = await fetch(`${API_URL}/api/appointments/${appointmentId}/${action}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`},
       });
@@ -343,7 +344,7 @@ export default function DoctorSchedulePage() {
       
       console.log("🔍 [DEBUG] Request body:", requestBody);
       
-      const res = await fetch(`http://localhost:5000/api/medical-records/save-from-schedule`, {
+      const res = await fetch(`${API_URL}/api/medical-records/save-from-schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`},
         body: JSON.stringify(requestBody),
@@ -398,7 +399,7 @@ export default function DoctorSchedulePage() {
         payment_date: new Date().toISOString()
       };
       
-      const res = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/payment`, {
+      const res = await fetch(`${API_URL}/api/appointments/${appointmentId}/payment`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`},
         body: JSON.stringify(requestBody),
@@ -432,7 +433,7 @@ export default function DoctorSchedulePage() {
       // Tạo transaction_id tự động dựa trên appointment_id
       const autoTransactionId = `TDCARE${selectedSlot?.booking?.id}`;
       
-      const response = await fetch('http://localhost:5000/api/payment/check-history', {
+      const response = await fetch(`${API_URL}/api/payment/check-history`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +474,7 @@ export default function DoctorSchedulePage() {
 
     setGeneratingQR(true);
     try {
-      const response = await fetch('http://localhost:5000/api/payment/generate-qr', {
+      const response = await fetch(`${API_URL}/api/payment/generate-qr`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

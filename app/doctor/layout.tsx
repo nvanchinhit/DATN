@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         console.log('Doctor ID:', doctorId);
 
         console.log('Fetching doctor status...');
-        const res = await fetch(`http://localhost:5000/api/doctors/${doctorId}`);
+        const res = await fetch(`${API_URL}/api/doctors/${doctorId}`);
         console.log('Response status:', res.status);
         
         if (!res.ok) {

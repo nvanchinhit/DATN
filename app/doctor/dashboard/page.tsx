@@ -51,7 +51,7 @@ export default function DoctorDashboardPage() {
         setLoading(true);
         setError(null);
         const doctorId = 15;
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/dashboard/${doctorId}?range=${range}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://nvanchinhit.click/api'}/dashboard/${doctorId}?range=${range}`;
         const response = await fetch(apiUrl);
         if (!response.ok) { throw new Error(`Lỗi HTTP ${response.status}`); }
         const result: DashboardData = await response.json();
@@ -79,7 +79,7 @@ export default function DoctorDashboardPage() {
     setModalContent([]);
     try {
         const doctorId = 15;
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/dashboard/${doctorId}/patients?type=${type}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://nvanchinhit.click/api'}/dashboard/${doctorId}/patients?type=${type}`;
         const response = await fetch(apiUrl);
         if (!response.ok) { throw new Error(`Không thể tải danh sách. Lỗi: ${response.status}`); }
         const patientList: Patient[] = await response.json();

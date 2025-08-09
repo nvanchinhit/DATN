@@ -28,6 +28,7 @@ interface MedicalRecord {
   end_time: string | null;
   visit_count?: number; // Số lần khám
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DoctorMedicalRecordsPage() {
   const [doctorId, setDoctorId] = useState<number | null>(null);
@@ -69,7 +70,7 @@ export default function DoctorMedicalRecordsPage() {
   const fetchMedicalRecords = useCallback(() => {
     if (!doctorId) return;
     setLoading(true);
-    fetch(`http://localhost:5000/api/medical-records/doctor/${doctorId}/all-records`)
+    fetch(`${API_URL}/api/medical-records/doctor/${doctorId}/all-records`)
       .then((res) => {
         if (!res.ok) throw new Error("Không thể tải hồ sơ bệnh án.");
         return res.json();
@@ -116,7 +117,7 @@ export default function DoctorMedicalRecordsPage() {
     if (!selectedRecord) return;
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    await fetch('http://localhost:5000/api/medical-records/save-from-schedule', {
+    await fetch(`${API_URL}/api/medical-records/save-from-schedule`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -321,6 +321,8 @@ exports.getTopDoctors = (req, res) => {
         d.degree_image, d.gpa, d.university, d.graduation_date, d.degree_type,
         d.certificate_image, d.certificate_source,
         s.name
+    HAVING
+        COUNT(r.id) > 0
     ORDER BY
         average_rating DESC,
         review_count DESC

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Save, CreditCard, User, Key, RefreshCw } from "lucide-react";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 interface PaymentInfo {
   bankName: string;
@@ -37,7 +38,7 @@ export default function PaymentPage() {
   const loadPaymentSettings = async () => {
     try {
       setIsLoadingData(true);
-      const response = await fetch('http://localhost:5000/api/payment/settings', {
+      const response = await fetch(`${API_URL}/api/payment/settings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ export default function PaymentPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/payment/settings', {
+      const response = await fetch(`${API_URL}/api/payment/settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

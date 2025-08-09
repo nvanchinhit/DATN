@@ -23,6 +23,7 @@ interface Doctor {
   id: number;
   name: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function AdminChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -35,7 +36,7 @@ export default function AdminChatPage() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io('${API_URL}');
 
     socketRef.current.on('connect', () => {
       console.log('✅ Socket connected:', socketRef.current?.id);
@@ -54,13 +55,13 @@ export default function AdminChatPage() {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/chat/rooms/unassigned')
+    fetch('${API_URL}/api/chat/rooms/unassigned')
       .then((res) => res.json())
       .then((data) => setRooms(data));
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/doctors')
+    fetch('${API_URL}/api/doctors')
       .then((res) => res.json())
       .then((data) => setDoctors(data));
   }, []);
@@ -68,7 +69,7 @@ export default function AdminChatPage() {
   useEffect(() => {
     if (!selectedRoomId) return;
 
-    fetch(`http://localhost:5000/api/chat/${selectedRoomId}/messages`)
+    fetch(`${API_URL}/api/chat/${selectedRoomId}/messages`)
       .then((res) => res.json())
       .then((data) => setMessages(data));
 
@@ -110,7 +111,7 @@ export default function AdminChatPage() {
   const assignDoctor = () => {
     if (!selectedDoctorId || !selectedRoomId) return;
 
-    fetch('http://localhost:5000/api/chat/assign', {
+    fetch('${API_URL}/api/chat/assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

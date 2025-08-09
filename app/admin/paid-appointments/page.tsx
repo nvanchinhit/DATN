@@ -61,6 +61,7 @@ interface PaymentStats {
   total_revenue: number;
   avg_amount: number;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function PaidAppointmentsPage() {
   const [appointments, setAppointments] = useState<PaidAppointment[]>([]);
@@ -97,7 +98,7 @@ export default function PaidAppointmentsPage() {
         ...(dateTo && { date_to: dateTo }),
       });
 
-      const response = await fetch(`http://localhost:5000/api/admin/paid-appointments?${params}`, {
+      const response = await fetch(`${API_URL}/api/admin/paid-appointments?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -126,7 +127,7 @@ export default function PaidAppointmentsPage() {
 
   const loadPaymentStats = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/payment-stats?period=${statsPeriod}`, {
+      const response = await fetch(`${API_URL}/api/admin/payment-stats?period=${statsPeriod}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },

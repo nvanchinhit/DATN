@@ -36,6 +36,7 @@ interface DoctorInfo {
   price: number;
   specialization_name: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function CheckoutPage() {
   const searchParams = useSearchParams();
@@ -207,7 +208,7 @@ export default function CheckoutPage() {
         'Authorization': `Bearer ${token}`
       };
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments`, {
+      const response = await fetch(`${API_URL}/api/appointments`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload)

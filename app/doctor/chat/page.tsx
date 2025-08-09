@@ -20,6 +20,7 @@ interface ChatMessage {
   created_at: string;
   sender_name?: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /* ------------ Component ------------ */
 export default function DoctorChatPage() {
@@ -49,7 +50,7 @@ export default function DoctorChatPage() {
     if (!doctorId) return;
 
     // Khởi tạo socket
-    const socket = io('http://localhost:5000', { transports: ['websocket'] });
+    const socket = io('${API_URL}', { transports: ['websocket'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -82,7 +83,7 @@ export default function DoctorChatPage() {
   useEffect(() => {
     if (!doctorId) return;
 
-    fetch(`http://localhost:5000/api/chat/rooms/doctor/${doctorId}`)
+    fetch(`${API_URL}/api/chat/rooms/doctor/${doctorId}`)
       .then((res) => res.json())
       .then((data) => setRooms(data))
       .catch((err) => console.error('Lỗi khi fetch rooms:', err));
@@ -102,7 +103,7 @@ export default function DoctorChatPage() {
       setMessages(messageCache.current[selectedRoomId]);
     } else {
       // Chưa có thì fetch
-      fetch(`http://localhost:5000/api/chat/${selectedRoomId}/messages`)
+      fetch(`${API_URL}/api/chat/${selectedRoomId}/messages`)
         .then((res) => res.json())
         .then((data) => {
           messageCache.current[selectedRoomId] = data;

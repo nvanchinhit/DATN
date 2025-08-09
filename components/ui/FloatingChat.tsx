@@ -20,6 +20,7 @@ interface ChatMessage {
 }
 
 let socket: Socket;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +65,7 @@ export default function FloatingChat() {
   useEffect(() => {
     if (!customerId) return;
 
-    socket = io('http://localhost:5000', {
+    socket = io('${API_URL}', {
       transports: ['websocket'],
     });
 
@@ -86,7 +87,7 @@ export default function FloatingChat() {
 
     const initRoom = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/chat/start', {
+        const res = await fetch('${API_URL}/api/chat/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ customerId }),

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function StatisticsPage() {
   const [overview, setOverview] = useState<any>({});
@@ -13,9 +14,9 @@ export default function StatisticsPage() {
     const fetchStats = async () => {
       try {
         const [overviewRes, doctorRes, userRes] = await Promise.all([
-          axios.get("http://localhost:5000/statistics/overview"),
-          axios.get("http://localhost:5000/statistics/revenue-by-doctor"),
-          axios.get("http://localhost:5000/statistics/revenue-by-user"),
+          axios.get(`${API_URL}/statistics/overview`),
+          axios.get(`${API_URL}/statistics/revenue-by-doctor`),
+          axios.get(`${API_URL}/statistics/revenue-by-user`),
         ]);
         setOverview(overviewRes.data);
         setDoctorRevenue(doctorRes.data);
