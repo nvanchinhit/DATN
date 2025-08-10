@@ -17,6 +17,7 @@ interface ChatMessage {
   sender_type: 'customer' | 'doctor' | 'admin' | 'bot';
   message: string;
   created_at: string;
+  pending?: boolean;
 }
 
 let socket: Socket;
@@ -30,38 +31,33 @@ export default function FloatingChat() {
   const [customerId, setCustomerId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Lấy user ID
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (!storedUser) return;
-
     const parsedUser = JSON.parse(storedUser);
-    const customerId = parsedUser.id;
-    setCustomerId(customerId);
+    setCustomerId(parsedUser.id);
   }, []);
+// Tin nhắn bot chào mừng khi lần đầu mở chat
+useEffect(() => {
+  if (messages.length === 0) {
+    setMessages([
+      {
+        sender_type: 'bot',
+        message: 'Xin chào! Tôi là trợ lý ảo của Bệnh viện. Tôi có thể hỗ trợ bạn:',
+        created_at: new Date().toISOString(),
+      },
+      {
+        sender_type: 'bot',
+        message:
+          '• Thông tin khám bệnh và đặt lịch\n• Giờ làm việc và liên hệ\n• Dịch vụ y tế\n• Câu hỏi về sức khỏe',
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  }
+}, [messages.length]);
 
-  useEffect(() => {
-    const storedMessages = localStorage.getItem('chat_messages');
-    if (storedMessages) {
-      setMessages(JSON.parse(storedMessages));
-    } else {
-      const initialBotMessages: ChatMessage[] = [
-        {
-          sender_type: 'bot',
-          message: 'Xin chào! Tôi là trợ lý ảo của Bệnh viện. Tôi có thể hỗ trợ bạn:',
-          created_at: new Date().toISOString(),
-        },
-        {
-          sender_type: 'bot',
-          message:
-            '• Thông tin khám bệnh và đặt lịch\n• Giờ làm việc và liên hệ\n• Dịch vụ y tế\n• Câu hỏi về sức khỏe',
-          created_at: new Date().toISOString(),
-        },
-      ];
-      setMessages(initialBotMessages);
-      localStorage.setItem('chat_messages', JSON.stringify(initialBotMessages));
-    }
-  }, []);
-
+  // Kết nối socket khi có customerId
   useEffect(() => {
     if (!customerId) return;
 
@@ -79,9 +75,16 @@ export default function FloatingChat() {
 
     socket.on('newMessage', (msg: ChatMessage) => {
       setMessages((prev) => {
-        const updated = [...prev, msg];
-        localStorage.setItem('chat_messages', JSON.stringify(updated));
-        return updated;
+        // Xóa tin pending trùng nội dung & sender_type
+        const filtered = prev.filter(
+          (m) =>
+            !(
+              m.pending &&
+              m.sender_type === msg.sender_type &&
+              m.message === msg.message
+            )
+        );
+        return [...filtered, msg];
       });
     });
 
@@ -111,6 +114,7 @@ export default function FloatingChat() {
     };
   }, [customerId]);
 
+  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -120,25 +124,27 @@ export default function FloatingChat() {
   const sendMessage = () => {
     if (!message.trim() || !roomId || !customerId) return;
 
-    const newMsg: ChatMessage = {
+    // Hiển thị tin nhắn ngay (pending)
+    const tempMsg: ChatMessage = {
       room_id: roomId,
       sender_id: customerId,
       sender_type: 'customer',
       message,
       created_at: new Date().toISOString(),
+      pending: true,
     };
+    setMessages((prev) => [...prev, tempMsg]);
 
+    // Gửi lên server
     socket.emit('sendMessage', {
       customer_id: customerId,
       room_id: roomId,
       message,
     });
 
-    const updatedMessages = [...messages, newMsg];
-    setMessages(updatedMessages);
-    localStorage.setItem('chat_messages', JSON.stringify(updatedMessages));
     setMessage('');
 
+    // Bot trả lời sau 1 giây (chỉ nếu chưa có bot trả lời cùng nội dung)
     setTimeout(() => {
       const botMsg: ChatMessage = {
         sender_type: 'bot',
@@ -146,9 +152,12 @@ export default function FloatingChat() {
           'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất. Để được hỗ trợ nhanh hơn, bạn có thể gọi hotline: 1900-1234',
         created_at: new Date().toISOString(),
       };
-      const botUpdated = [...updatedMessages, botMsg];
-      setMessages(botUpdated);
-      localStorage.setItem('chat_messages', JSON.stringify(botUpdated));
+      setMessages((prev) => {
+        if (prev.some((m) => m.message === botMsg.message && m.sender_type === 'bot')) {
+          return prev;
+        }
+        return [...prev, botMsg];
+      });
     }, 1000);
   };
 
@@ -158,6 +167,7 @@ export default function FloatingChat() {
 
   return (
     <>
+      {/* Nút mở chat */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={toggleChat}
@@ -174,8 +184,10 @@ export default function FloatingChat() {
         )}
       </div>
 
+      {/* Hộp chat */}
       {isOpen && (
         <div className="fixed bottom-20 right-6 z-50 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border flex flex-col overflow-hidden">
+          {/* Header */}
           <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-full">
@@ -191,6 +203,7 @@ export default function FloatingChat() {
             </button>
           </div>
 
+          {/* Nút nhanh */}
           <div className="bg-blue-50 p-3 border-b flex gap-2">
             <button className="flex items-center gap-2 bg-white text-blue-600 px-3 py-2 rounded-lg text-sm border">
               <Clock size={16} /> Đặt lịch
@@ -200,6 +213,7 @@ export default function FloatingChat() {
             </button>
           </div>
 
+          {/* Danh sách tin nhắn */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4">
             {messages.map((msg, idx) => (
               <div
@@ -216,7 +230,7 @@ export default function FloatingChat() {
                         : 'bg-white text-gray-800 border rounded-bl-md'
                     }`}
                   >
-                    {msg.message}
+                    {msg.pending ? 'Đang gửi...' : msg.message}
                   </div>
                   <div
                     className={`text-xs text-gray-500 mt-1 ${
@@ -234,6 +248,7 @@ export default function FloatingChat() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Nhập tin nhắn */}
           <div className="border-t p-4 bg-white">
             <div className="flex space-x-3">
               <input

@@ -1,4 +1,5 @@
  // backend/routes/appointment.routes.js
+// backend/routes/appointment.routes.js
 
 const express = require('express');
 const router = express.Router();
@@ -19,8 +20,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Hàm gửi email thông báo đặt lịch thành công
-function sendBookingConfirmationEmail({ name, email, doctor, date, start, end, reason, payment }) {
+// ===== Hàm gửi email khi đặt lịch thành công =====
+function sendBookingConfirmationEmail({ name, email, doctor, room, floor, date, start, end, reason, payment }) {
   const mailOptions = {
     from: mailConfig.FROM_ADDRESS,
     to: email,
@@ -32,6 +33,8 @@ function sendBookingConfirmationEmail({ name, email, doctor, date, start, end, r
         <p>Cảm ơn bạn đã đặt lịch khám tại bệnh viện chúng tôi. Dưới đây là thông tin chi tiết:</p>
         <ul>
           <li><strong>Bác sĩ:</strong> ${doctor}</li>
+          <li><strong>Phòng:</strong> ${room || 'N/A'}</li>
+          <li><strong>Tầng:</strong> ${floor || 'N/A'}</li>
           <li><strong>Ngày khám:</strong> ${date}</li>
           <li><strong>Thời gian:</strong> ${start} - ${end}</li>
           <li><strong>Lý do khám:</strong> ${reason}</li>
@@ -41,21 +44,18 @@ function sendBookingConfirmationEmail({ name, email, doctor, date, start, end, r
         <ul>
           <li>Vui lòng đến trước 15 phút để làm thủ tục</li>
           <li>Lịch hẹn của bạn đang chờ bác sĩ xác nhận</li>
-          <li>Bạn sẽ nhận được email thông báo khi bác sĩ xác nhận lịch hẹn</li>
         </ul>
         <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
       </div>
     `
   };
-
-  transporter.sendMail(mailOptions, (err, info) => {
+  transporter.sendMail(mailOptions, (err) => {
     if (err) console.error('❌ Lỗi gửi mail đặt lịch:', err);
-    else console.log('📧 Đã gửi mail đặt lịch thành công:', info.response);
   });
 }
 
-// Hàm gửi email xác nhận lịch hẹn (khi bác sĩ xác nhận)
-function sendConfirmationEmail({ name, email, doctor, date, start, end, reason, payment }) {
+// ===== Hàm gửi email khi bác sĩ xác nhận =====
+function sendConfirmationEmail({ name, email, doctor, room, floor, date, start, end, reason, payment }) {
   const mailOptions = {
     from: mailConfig.FROM_ADDRESS,
     to: email,
@@ -67,6 +67,8 @@ function sendConfirmationEmail({ name, email, doctor, date, start, end, reason, 
         <p>Bệnh viện xin xác nhận bạn đã đặt lịch khám thành công với các thông tin sau:</p>
         <ul>
           <li><strong>Bác sĩ:</strong> ${doctor}</li>
+          <li><strong>Phòng:</strong> ${room || 'N/A'}</li>
+          <li><strong>Tầng:</strong> ${floor || 'N/A'}</li>
           <li><strong>Ngày khám:</strong> ${date}</li>
           <li><strong>Thời gian:</strong> ${start} - ${end}</li>
           <li><strong>Lý do khám:</strong> ${reason}</li>
@@ -77,25 +79,16 @@ function sendConfirmationEmail({ name, email, doctor, date, start, end, reason, 
       </div>
     `
   };
-
-  transporter.sendMail(mailOptions, (err, info) => {
+  transporter.sendMail(mailOptions, (err) => {
     if (err) console.error('❌ Lỗi gửi mail xác nhận:', err);
-    else console.log('📧 Đã gửi mail xác nhận:', info.response);
   });
 }
 
+// ====== Đặt lịch khám ======
 router.post('/', authMiddleware, (req, res) => {
   const customer_id = req.user.id;
   const { 
-    doctor_id, 
-    time_slot_id, 
-    name, 
-    age, 
-    gender, 
-    email, 
-    phone, 
-    reason, 
-    address,
+    doctor_id, time_slot_id, name, age, gender, email, phone, reason, address,
     payment_status = 'Chưa thanh toán',
     payment_method = 'cash',
     transaction_id = null,
@@ -103,26 +96,15 @@ router.post('/', authMiddleware, (req, res) => {
     payment_date = null
   } = req.body;
 
-  console.log('📝 Creating appointment with payment info:', {
-    payment_status,
-    payment_method,
-    transaction_id,
-    paid_amount,
-    payment_date
-  });
-
   if (!doctor_id || !time_slot_id || !name || !age || !phone || !email) {
-    return res.status(400).json({ message: 'Vui lòng điền đầy đủ các thông tin bắt buộc.' });
+    return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin.' });
   }
 
   const checkSql = `SELECT id FROM appointments WHERE time_slot_id = ? AND status != 'Đã hủy'`;
   db.query(checkSql, [time_slot_id], (err, existing) => {
-    if (err) {
-      console.error("Lỗi khi kiểm tra lịch hẹn:", err);
-      return res.status(500).json({ message: 'Lỗi máy chủ khi kiểm tra lịch hẹn.' });
-    }
+    if (err) return res.status(500).json({ message: 'Lỗi máy chủ khi kiểm tra lịch hẹn.' });
     if (existing.length > 0) {
-      return res.status(409).json({ message: 'Rất tiếc, khung giờ này đã có người khác đặt.' });
+      return res.status(409).json({ message: 'Khung giờ này đã có người khác đặt.' });
     }
 
     const insertSql = `
@@ -137,16 +119,13 @@ router.post('/', authMiddleware, (req, res) => {
     ];
 
     db.query(insertSql, values, (err, result) => {
-      if (err) {
-        console.error("Lỗi khi tạo lịch hẹn:", err);
-        return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
-      }
+      if (err) return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
 
       // Lấy thông tin chi tiết để gửi email
       const emailInfoSql = `
         SELECT 
           a.name, a.email, a.reason,
-          d.name AS doctor_name, 
+          d.name AS doctor_name, d.room_number, d.floor,
           DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
           TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
           TIME_FORMAT(ts.end_time, '%H:%i') as end_time
@@ -155,68 +134,39 @@ router.post('/', authMiddleware, (req, res) => {
         JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
         WHERE a.id = ?`;
 
-      db.query(emailInfoSql, [result.insertId], (emailErr, emailRows) => {
-        if (emailErr || emailRows.length === 0) {
-          console.error("Không thể lấy thông tin để gửi email:", emailErr);
-          // Vẫn trả về thành công nhưng không gửi email
-          return res.status(201).json({ 
-            message: 'Đặt lịch thành công! Vui lòng kiểm tra email để xem chi tiết.', 
-            appointmentId: result.insertId 
+      db.query(emailInfoSql, [result.insertId], (emailErr, rows) => {
+        if (!emailErr && rows.length > 0) {
+          const info = rows[0];
+          sendBookingConfirmationEmail({
+            name: info.name,
+            email: info.email,
+            doctor: info.doctor_name,
+            room: info.room_number,
+            floor: info.floor,
+            date: info.slot_date,
+            start: info.start_time,
+            end: info.end_time,
+            reason: info.reason || 'Không cung cấp',
+            payment: payment_status
           });
         }
-
-        const appointmentInfo = emailRows[0];
-        
-                 // Gửi email thông báo đặt lịch thành công
-         sendBookingConfirmationEmail({
-           name: appointmentInfo.name,
-           email: appointmentInfo.email,
-           doctor: appointmentInfo.doctor_name,
-           date: appointmentInfo.slot_date,
-           start: appointmentInfo.start_time,
-           end: appointmentInfo.end_time,
-           reason: appointmentInfo.reason || 'Không cung cấp',
-           payment: payment_status // Sử dụng trạng thái thanh toán thực tế
-         });
-
-        // Sau khi tạo appointment thành công, lấy thông tin phòng khám
-        const doctorSql = 'SELECT room_number FROM doctors WHERE id = ?';
-        db.query(doctorSql, [doctor_id], (docErr, docRows) => {
-          let room_number = 'N/A';
-          if (!docErr && docRows.length > 0) {
-            room_number = docRows[0].room_number || 'N/A';
-          }
-          res.status(201).json({
-            message: 'Đặt lịch thành công! Email xác nhận đã được gửi.',
-            appointmentId: result.insertId,
-            paymentStatus: payment_status,
-            paymentMethod: payment_method,
-            transactionId: transaction_id,
-            paidAmount: paid_amount,
-            clinic: {
-              room_number,
-              clinic_name: 'Phòng khám Đa khoa ABC', // điền tĩnh
-              address: '123 Đường Tĩnh, Quận 1, TP.HCM' // điền tĩnh
-            }
-          });
-        });
+        res.status(201).json({ message: 'Đặt lịch thành công!' });
       });
     });
   });
 });
-// ==========================================================
+
+// ====== Bác sĩ xác nhận lịch hẹn ======
 router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
   const appointmentId = req.params.id;
 
-  // Cập nhật trạng thái thành 'Đã xác nhận'
   db.query("UPDATE appointments SET status = 'Đã xác nhận' WHERE id = ?", [appointmentId], (err, result) => {
     if (err) return res.status(500).json({ message: 'Lỗi server khi xác nhận.' });
     if (result.affectedRows === 0) return res.status(404).json({ message: 'Không tìm thấy lịch hẹn.' });
 
-    // Lấy thông tin để gửi mail cho bệnh nhân
     const infoSql = `
       SELECT a.name, a.email, a.reason, a.payment_status,
-             d.name AS doctor_name, 
+             d.name AS doctor_name, d.room_number, d.floor,
              DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
              TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
              TIME_FORMAT(ts.end_time, '%H:%i') as end_time
@@ -226,21 +176,26 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
       WHERE a.id = ?`;
       
     db.query(infoSql, [appointmentId], (e, rows) => {
-        if (e || rows.length === 0) {
-            console.error("Không thể lấy thông tin để gửi mail xác nhận:", e);
-            return res.json({ message: 'Xác nhận thành công nhưng không thể gửi email!' });
-        }
-        
+      if (!e && rows.length > 0) {
         const appt = rows[0];
         sendConfirmationEmail({
-            name: appt.name, email: appt.email, doctor: appt.doctor_name, date: appt.slot_date,
-            start: appt.start_time, end: appt.end_time, reason: appt.reason, payment: appt.payment_status
+          name: appt.name,
+          email: appt.email,
+          doctor: appt.doctor_name,
+          room: appt.room_number,
+          floor: appt.floor,
+          date: appt.slot_date,
+          start: appt.start_time,
+          end: appt.end_time,
+          reason: appt.reason,
+          payment: appt.payment_status
         });
-        res.json({ message: 'Xác nhận thành công và đã gửi email thông báo.' });
+      }
+      res.json({ message: 'Xác nhận thành công!' });
     });
   });
 });
-/**
+/** 
  * ==========================================================
  * ROUTE 2: LẤY TẤT CẢ LỊCH HẸN CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
  * METHOD: GET /api/appointments/my-appointments
