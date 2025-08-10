@@ -34,25 +34,31 @@ const TopSpecialties = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {specialties.map((specialty) => (
+          {specialties.map((specialty, idx) => (
             <div
               key={specialty.id}
-              className="group text-center p-6 bg-gray-50 rounded-xl transition-all duration-300 hover:bg-blue-600 hover:shadow-2xl hover:-translate-y-2"
+              className="group text-center p-8 bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-transparent hover:border-blue-400 hover:scale-105 relative"
             >
-              <div className="mb-4 inline-block p-4 bg-white rounded-full transition-all duration-300 group-hover:bg-white/90">
-                <img
-                  src={`${API_BASE}${specialty.image ?? '/uploads/default.png'}`}
-                  alt={specialty.name ?? 'Chuyên khoa'}
-                  className="w-16 h-16 mx-auto object-contain transition-transform duration-300 group-hover:scale-110"
-                />
+              {/* Ribbon cho card đầu tiên */}
+              {idx === 0 && (
+                <span className="absolute -top-4 left-4 bg-gradient-to-r from-pink-500 to-yellow-400 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20">Hot</span>
+              )}
+              <div className="mb-6 flex items-center justify-center relative">
+                <div className="p-4 rounded-full bg-blue-50 border-4 border-blue-100 group-hover:border-blue-400 shadow-lg transition-all duration-300">
+                  <img
+                    src={`${API_BASE}${specialty.image ?? '/uploads/default.png'}`}
+                    alt={specialty.name ?? 'Chuyên khoa'}
+                    className="w-20 h-20 object-contain rounded-full transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl bg-white"
+                  />
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2 transition-colors duration-300 group-hover:text-white">
+              <h3 className="text-xl font-bold text-gray-900 mb-2 transition-colors duration-300 group-hover:text-blue-700">
                 {specialty.name}
               </h3>
-              
-              <p className="text-gray-600 mb-4 text-sm transition-colors duration-300 group-hover:text-blue-100">
+              <p className="text-gray-600 mb-2 text-sm transition-colors duration-300 group-hover:text-blue-400 group-hover:opacity-80">
                 Chăm sóc sức khỏe {specialty.name?.toLowerCase()}
               </p>
+              {/* Ẩn giá khám */}
             </div>
           ))}
         </div>

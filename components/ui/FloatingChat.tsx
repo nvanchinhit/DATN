@@ -61,7 +61,7 @@ useEffect(() => {
   useEffect(() => {
     if (!customerId) return;
 
-    socket = io('${API_URL}', {
+    socket = io(API_URL, {
       transports: ['websocket'],
     });
 
@@ -90,7 +90,7 @@ useEffect(() => {
 
     const initRoom = async () => {
       try {
-        const res = await fetch('${API_URL}/api/chat/start', {
+        const res = await fetch(`${API_URL}/api/chat/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ customerId }),

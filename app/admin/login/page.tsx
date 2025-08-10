@@ -103,18 +103,18 @@ export default function AdminLoginPage() {
       {/* Cột Phải - Form Đăng nhập */}
       <div className="flex items-center justify-center p-6 sm:p-12 lg:p-8 bg-gray-50">
         <div className="mx-auto w-full max-w-md space-y-8">
-          <div>
+          <div className="flex flex-col items-center justify-center gap-4 mt-4 mb-6">
             <Link href="/" className="inline-block">
-                <img
-                    className="mx-auto h-12 w-auto"
-                    src="https://i.imgur.com/bUBPKF9.jpeg"
-                    alt="TDCARE Logo"
-                />
+              <img
+                className="mx-auto h-20 w-auto rounded-full shadow-lg border-4 border-blue-100 bg-white"
+                src="https://i.imgur.com/bUBPKF9.jpeg"
+                alt="TDCARE Logo"
+              />
             </Link>
-            <h2 className="mt-6 text-center text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-center text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 mt-2">
               Đăng nhập hệ thống Quản trị
             </h2>
-             <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="text-center text-sm text-gray-600 max-w-xs">
               Truy cập với quyền quản trị viên.
             </p>
           </div>

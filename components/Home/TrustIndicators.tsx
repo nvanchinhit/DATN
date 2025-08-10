@@ -9,9 +9,9 @@ const TrustIndicators = () => {
       description: 'Đối tác y tế và nhà thuốc được kiểm duyệt, nguồn gốc rõ ràng.'
     },
     {
-      icon: <Truck className="h-8 w-8 text-blue-600" />,
-      title: 'Giao hàng nhanh',
-      description: 'Giao thuốc trong 2 giờ tại các thành phố lớn.'
+      icon: <Shield className="h-8 w-8 text-blue-600" />,
+      title: 'Bảo mật thông tin',
+      description: 'Thông tin cá nhân và lịch sử khám bệnh của bạn được bảo vệ tuyệt đối.'
     },
     {
       icon: <Headphones className="h-8 w-8 text-blue-600" />,

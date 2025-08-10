@@ -143,11 +143,11 @@ export default function Header() {
                     </button>
                     {isDropdownOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10">
-                        <Link href="/profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <Link href="/profile" onClick={e => { e.stopPropagation(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                           <LayoutDashboard size={16} />
                           Hồ sơ của tôi
                         </Link>
-                        <Link href="/chat" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <Link href="/chat" onClick={e => { e.stopPropagation(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                 <MessageCircle size={16} />
                  Tin nhắn
                      </Link>

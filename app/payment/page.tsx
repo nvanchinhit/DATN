@@ -506,39 +506,9 @@ const CheckoutPage = () => {
                     
                     {/* Nút kiểm tra thanh toán thủ công */}
                     <div className="mt-4">
-                        <button
-                            onClick={checkPaymentHistory}
-                            disabled={isCheckingPayment}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
-                            {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
-                        </button>
-                        
-                        {/* Nút test để simulate thanh toán thành công */}
-                        <button
-                            onClick={async () => {
-                                console.log('🧪 Testing payment success...');
-                                setPaymentStatus('success');
-                                if (paymentData?.formData && !appointmentCreated) {
-                                    console.log('🔄 Creating appointment after test payment...');
-                                    const appointmentResult = await createAppointment(paymentData.formData);
-                                    if (appointmentResult) {
-                                        console.log('✅ Test appointment created successfully');
-                                        setAppointmentCreated(true);
-                                        setTimeout(() => {
-                                            setShowSuccessPage(true);
-                                        }, 2000);
-                                    }
-                                }
-                            }}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mt-2 mx-auto"
-                        >
-                            🧪 Test Thanh toán thành công
-                        </button>
-                        
+                        {/* Nút kiểm tra thanh toán và test thanh toán thành công đã bị loại bỏ */}
                         <p className="text-xs text-gray-500 mt-2">
-                            💡 Hệ thống sẽ tự động kiểm tra mỗi 30 giây, hoặc bạn có thể bấm nút trên để kiểm tra thủ công
+                            💡 Hệ thống sẽ tự động kiểm tra mỗi 30 giây.
                         </p>
                     </div>
                 </div>
@@ -665,14 +635,7 @@ const CheckoutPage = () => {
                 >
                   Đóng
                 </button>
-                <button
-                  onClick={checkPaymentHistory}
-                  disabled={isCheckingPayment}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isCheckingPayment ? 'animate-spin' : ''}`} />
-                  {isCheckingPayment ? 'Đang kiểm tra...' : 'Kiểm tra thanh toán'}
-                </button>
+                {/* Nút kiểm tra thanh toán đã bị loại bỏ */}
               </div>
             </div>
           </div>

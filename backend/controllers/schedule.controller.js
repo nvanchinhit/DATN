@@ -14,7 +14,7 @@ const generateTimeSlots = (shift) => {
     const { id: work_shift_id, doctor_id, work_date, start_time, end_time } = shift;
     
     // Cấu hình thời gian của mỗi slot
-    const SLOT_DURATION_MINUTES = 15; 
+    const SLOT_DURATION_MINUTES = 30; 
     
     // Chuyển đổi thời gian string thành đối tượng Date để tính toán
     let currentTime = new Date(`${work_date}T${start_time}`);
