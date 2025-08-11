@@ -50,7 +50,7 @@ const adminMenuGroups = [
       },
       { 
         label: 'Doanh thu', 
-        path: '/admin/revenues', 
+        path: '/admin/paid-appointments', 
         icon: BarChart2,
         description: 'Thống kê doanh thu',
         badge: '5'
@@ -63,7 +63,7 @@ const adminMenuGroups = [
     items: [
       { 
         label: 'Lịch hẹn', 
-        path: '/admin/appointments', 
+        path: '/admin/schedules', 
         icon: CalendarClock,
         description: 'Quản lý lịch hẹn',
         badge: '12'
