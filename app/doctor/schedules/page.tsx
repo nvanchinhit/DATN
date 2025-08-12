@@ -291,6 +291,9 @@ export default function ManageWorkSchedulePage() {
                       const isBooked = slot.status === 'Booked';
                       const isActiveByDoctor = slot.is_active;
                       const isToggling = submittingActions.has(`toggle-slot-${slot.id}`);
+                      const now = new Date();
+                      const slotEnd = new Date(`${selectedDate}T${slot.end_time}`);
+                      const isPastSlot = now > slotEnd;
 
                       let slotClasses = "p-2 rounded-md text-center font-medium border-2 transition-all duration-200 ";
                       if (isBooked) {
@@ -310,9 +313,9 @@ export default function ManageWorkSchedulePage() {
                             ) : (
                               <button 
                                 onClick={() => handleToggleSlot(slot.id)} 
-                                disabled={isToggling} 
-                                title={isActiveByDoctor ? "Tạm tắt khung giờ" : "Mở lại khung giờ"} 
-                                className="disabled:opacity-50 disabled:cursor-wait"
+                                disabled={isToggling || isPastSlot} 
+                                title={isPastSlot ? "Đã qua giờ, không thể thao tác" : (isActiveByDoctor ? "Tạm tắt khung giờ" : "Mở lại khung giờ")} 
+                                className="disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {isToggling ? (
                                     <Loader2 size={18} className="animate-spin" /> 
