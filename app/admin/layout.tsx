@@ -105,6 +105,13 @@ const adminMenuGroups = [
         icon: CreditCard,
         description: 'Quản lý thanh toán'
       },
+      { 
+        label: 'Đánh giá', 
+        path: '/admin/ratings', 
+        icon: MessageCircle,
+        description: 'Quản lý đánh giá người dùng',
+        badge: 'New'
+      },
     ]
   }
 ];

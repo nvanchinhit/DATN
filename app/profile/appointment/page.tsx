@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/app/contexts/page';
-import { FaUserMd, FaCalendarAlt, FaClock, FaStar, FaCommentDots } from 'react-icons/fa';
+import { FaUserMd, FaCalendarAlt, FaClock, FaStar, FaCommentDots, FaExclamationTriangle } from 'react-icons/fa';
 
 // 1. Giao diện (interface) được cập nhật để chứa thông tin đánh giá
 interface Appointment {
@@ -19,6 +19,7 @@ interface Appointment {
   // Các trường này có thể là null nếu lịch hẹn chưa được đánh giá
   rating?: number | null;
   comment?: string | null;
+  rating_status?: 'pending' | 'approved' | 'rejected' | null;
 }
 
 // Định nghĩa kiểu dữ liệu cho dữ liệu đánh giá mới
@@ -52,7 +53,6 @@ const StarRatingDisplay: React.FC<{ rating: number }> = ({ rating }) => {
     </div>
   );
 };
-
 
 // 2. AppointmentCard được cập nhật để hiển thị đánh giá hoặc nút bấm
 const AppointmentCard: React.FC<{
@@ -104,6 +104,30 @@ const AppointmentCard: React.FC<{
                     <p className="text-gray-700 italic">"{appointment.comment}"</p>
                   </div>
                 )}
+                
+                {/* Hiển thị trạng thái duyệt */}
+                {appointment.rating_status && (
+                  <div className="mt-3">
+                    {appointment.rating_status === 'pending' && (
+                      <div className="flex items-center text-yellow-700 text-sm">
+                        <FaClock className="mr-2" />
+                        <span>Đang chờ admin duyệt</span>
+                      </div>
+                    )}
+                    {appointment.rating_status === 'approved' && (
+                      <div className="flex items-center text-green-700 text-sm">
+                        <FaStar className="mr-2" />
+                        <span>Đã được duyệt</span>
+                      </div>
+                    )}
+                    {appointment.rating_status === 'rejected' && (
+                      <div className="flex items-center text-red-700 text-sm">
+                        <FaExclamationTriangle className="mr-2" />
+                        <span>Bị từ chối - Vui lòng sửa lại</span>
+                      </div>
+                    )}
+                  </div>
+                )}
              </div>
           </div>
         )}
@@ -112,41 +136,93 @@ const AppointmentCard: React.FC<{
   );
 };
 
-// 3. ReviewModal được cập nhật để gọi callback `onSuccess`
+// 3. ReviewModal được cập nhật để gọi callback `onSuccess` và xử lý lỗi từ ngữ thô tục
 const ReviewModal: React.FC<{
   appointment: Appointment | null;
   onClose: () => void;
-  onSuccess: (reviewData: ReviewData) => void; // Prop mới để xử lý thành công
+  onSuccess: (reviewData: ReviewData) => void;
   token: string | null;
   customerId: number | null;
 }> = ({ appointment, onClose, onSuccess, token, customerId }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profanityWords, setProfanityWords] = useState<string[]>([]);
+  const [hasShownProfanityError, setHasShownProfanityError] = useState(false);
 
-  useEffect(() => { if (appointment) { setRating(0); setComment(''); } }, [appointment]);
+  // Hàm kiểm tra từ ngữ không phù hợp khi người dùng nhập
+  const checkProfanityOnInput = (text: string) => {
+    if (hasShownProfanityError) return; // Không kiểm tra nếu đã hiển thị lỗi
+    
+    // Danh sách từ ngữ không phù hợp (có thể mở rộng)
+    const inappropriateWords = [
+      'địt', 'đụ', 'đéo', 'đcm', 'đcmn', 'khốn', 'khốn nạn', 'đồ khốn', 'đồ chó', 'đồ chó má',
+      'lồn', 'cặc', 'buồi', 'dái', 'đít', 'mẹ mày', 'cha mày', 'đồ ngu', 'đồ dốt'
+    ];
+    
+    const foundWords = inappropriateWords.filter(word => 
+      text.toLowerCase().includes(word.toLowerCase())
+    );
+    
+    if (foundWords.length > 0 && !hasShownProfanityError) {
+      setProfanityWords(foundWords);
+      setError('Bình luận chứa từ ngữ không phù hợp. Vui lòng sửa lại.');
+      setHasShownProfanityError(true);
+    }
+  };
+
+  useEffect(() => { 
+    if (appointment) { 
+      setRating(0); 
+      setComment(''); 
+      setError(null);
+      setProfanityWords([]);
+      setHasShownProfanityError(false);
+    } 
+  }, [appointment]);
   
   if (!appointment) return null;
 
   const handleSubmit = async () => {
-    if (rating === 0) { alert('Vui lòng chọn số sao đánh giá.'); return; }
-    if (!token || !customerId) { alert('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.'); return; }
+    if (rating === 0) { 
+      setError('Vui lòng chọn số sao đánh giá.'); 
+      return; 
+    }
+    if (!token || !customerId) { 
+      setError('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.'); 
+      return; 
+    }
     
     setIsSubmitting(true);
+    setError(null);
+    setProfanityWords([]);
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/ratings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ rating, comment, customer_id: customerId, doctor_id: appointment.doctor_id, appointment_id: appointment.id })
       });
-      if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Gửi đánh giá thất bại.'); }
       
-      alert('Cảm ơn bạn đã đánh giá!');
-      // Gọi hàm callback từ component cha và truyền dữ liệu mới về
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.errorType === 'profanity' && !hasShownProfanityError) {
+          setProfanityWords(data.foundWords || []);
+          setError(data.message || 'Bình luận chứa từ ngữ không phù hợp. Vui lòng sửa lại.');
+          setHasShownProfanityError(true);
+        } else if (data.errorType !== 'profanity') {
+          setError(data.message || 'Gửi đánh giá thất bại.');
+        }
+        return;
+      }
+      
+      alert('Cảm ơn bạn đã đánh giá! Đánh giá của bạn đang chờ admin duyệt.');
       onSuccess({ rating, comment });
 
     } catch (error: any) { 
-      alert(`Lỗi: ${error.message}`);
+      setError(`Lỗi: ${error.message}`);
     } finally { 
       setIsSubmitting(false); 
     }
@@ -158,9 +234,76 @@ const ReviewModal: React.FC<{
         <h2 className="text-2xl font-bold mb-4">Đánh giá buổi khám</h2>
         <p className="mb-2">Bác sĩ: <strong>{appointment.doctor_name}</strong></p>
         <p className="mb-4">Chuyên khoa: {appointment.specialization_name}</p>
-        <div className="mb-4"><p className="font-semibold mb-2">Chất lượng dịch vụ:</p><div className="flex space-x-2 text-3xl">{[1, 2, 3, 4, 5].map(star => (<FaStar key={star} className={`cursor-pointer ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`} onClick={() => setRating(star)} />))}</div></div>
-        <div className="mb-6"><label htmlFor="comment" className="block font-semibold mb-2">Chia sẻ cảm nhận:</label><textarea id="comment" rows={4} value={comment} onChange={e => setComment(e.target.value)} className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500" placeholder="Bác sĩ nhiệt tình, dịch vụ tuyệt vời..." /></div>
-        <div className="flex justify-end space-x-3"><button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300" disabled={isSubmitting}>Đóng</button><button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300" disabled={isSubmitting}>{isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}</button></div>
+        
+        <div className="mb-4">
+          <p className="font-semibold mb-2">Chất lượng dịch vụ:</p>
+          <div className="flex space-x-2 text-3xl">
+            {[1, 2, 3, 4, 5].map(star => (
+              <FaStar 
+                key={star} 
+                className={`cursor-pointer ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`} 
+                onClick={() => setRating(star)} 
+              />
+            ))}
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <label htmlFor="comment" className="block font-semibold mb-2">Chia sẻ cảm nhận:</label>
+          <textarea 
+            id="comment" 
+            rows={4} 
+            value={comment} 
+            onChange={e => {
+              const newValue = e.target.value;
+              setComment(newValue);
+              checkProfanityOnInput(newValue);
+            }} 
+            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500" 
+            placeholder="Bác sĩ nhiệt tình, dịch vụ tuyệt vời..." 
+          />
+        </div>
+
+        {/* Hiển thị lỗi từ ngữ không phù hợp */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <p className="text-red-700 text-sm font-medium">{error}</p>
+                {profanityWords.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-red-600 text-xs font-semibold">Từ ngữ vi phạm:</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {profanityWords.map((word, index) => (
+                        <span key={index} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+            </div>
+          </div>
+        )}
+        
+        <div className="flex justify-end space-x-3">
+          <button 
+            onClick={onClose} 
+            className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300" 
+            disabled={isSubmitting}
+          >
+            Đóng
+          </button>
+          <button 
+            onClick={handleSubmit} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -181,7 +324,7 @@ export default function AppointmentPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // API này giờ đây trả về cả rating và comment nếu có
+      // API này giờ đây trả về cả rating, comment và rating_status
       const response = await fetch(`${API_BASE_URL}/api/appointments/my-appointments`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Không thể tải dữ liệu.'); }
       const data = await response.json();
@@ -223,8 +366,8 @@ export default function AppointmentPage() {
     setAllAppointments(prevApps => 
       prevApps.map(app => 
         app.id === selectedAppointment.id 
-          // Thêm thông tin đánh giá vào đúng lịch hẹn
-          ? { ...app, rating: reviewData.rating, comment: reviewData.comment } 
+          // Thêm thông tin đánh giá vào đúng lịch hẹn với trạng thái pending
+          ? { ...app, rating: reviewData.rating, comment: reviewData.comment, rating_status: 'pending' } 
           : app
       )
     );

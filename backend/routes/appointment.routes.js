@@ -220,7 +220,8 @@ router.get('/my-appointments', authMiddleware, (req, res) => {
        ts.slot_date,
        ts.start_time,
        r.rating,
-       r.comment
+       r.comment,
+       r.status AS rating_status
      FROM appointments a
      JOIN doctors d ON a.doctor_id = d.id
      JOIN specializations spec ON d.specialization_id = spec.id

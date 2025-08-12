@@ -132,7 +132,7 @@ export default function ProfileLayout({ children }: { children: ReactNode }) {
                       }`}
                     >
                       <Calendar size={18} />
-                      <span>Đặt lịch khám</span>
+                      <span>Lịch sử đặt lịch khám</span>
                     </Link>
                     
                     <Link 

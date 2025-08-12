@@ -1,157 +1,225 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/app/contexts/page';
-import { FaUserMd, FaCalendarAlt, FaClock, FaStar, FaCommentDots } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
 
-// Định nghĩa kiểu dữ liệu cho một đánh giá
 interface Rating {
   id: number;
   rating: number;
   comment: string;
+  created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
   doctor_name: string;
-  doctor_img: string | null;
+  doctor_img?: string;
   specialization_name: string;
   slot_date: string;
   start_time: string;
-  created_at: string;
+  customer_name: string;
 }
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-
-// Component để hiển thị các ngôi sao đánh giá (chỉ hiển thị)
-const StarRatingDisplay: React.FC<{ rating: number }> = ({ rating }) => {
-  return (
-    <div className="flex items-center">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <FaStar
-          key={star}
-          className={`mr-1 ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
-        />
-      ))}
-      <span className="ml-2 text-sm font-semibold text-gray-600">({rating}/5)</span>
-    </div>
-  );
-};
-
-
-// Component card để hiển thị thông tin chi tiết một đánh giá
-const RatingCard: React.FC<{ rating: Rating }> = ({ rating }) => {
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('vi-VN', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  });
-
-  const formatReviewDate = (dateString: string) => new Date(dateString).toLocaleDateString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric'
-  });
-
-  return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
-      <div className="p-5">
-        <div className="flex justify-between items-start flex-wrap gap-2 mb-4">
-          <div className="flex items-center space-x-4">
-            <img
-              src={rating.doctor_img ? `${API_BASE_URL}${rating.doctor_img}` : 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'}
-              alt={rating.doctor_name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
-              onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'; }}
-            />
-            <div>
-              <h3 className="text-lg font-bold text-gray-800">{rating.doctor_name}</h3>
-              <p className="text-sm text-gray-500">{rating.specialization_name}</p>
-            </div>
-          </div>
-          <span className="text-xs text-gray-500">Đã đánh giá ngày: {formatReviewDate(rating.created_at)}</span>
-        </div>
-        
-        <div className="border-t pt-4 space-y-3">
-          <div className="text-gray-600 space-y-2">
-            <div className="flex items-center"><FaCalendarAlt className="mr-2 text-blue-500" /><span>Ngày khám: <strong>{formatDate(rating.slot_date)}</strong></span></div>
-            <div className="flex items-center"><FaClock className="mr-2 text-blue-500" /><span>Giờ khám: <strong>{rating.start_time.substring(0, 5)}</strong></span></div>
-          </div>
-          
-          <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-            <p className="font-semibold text-gray-700 mb-2">Đánh giá của bạn:</p>
-            <StarRatingDisplay rating={rating.rating} />
-            {rating.comment && (
-              <div className="flex items-start mt-3">
-                <FaCommentDots className="mr-2 mt-1 text-gray-400" />
-                <p className="text-gray-600 italic">"{rating.comment}"</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// Component chính của trang
-export default function MyRatingsPage() {
-  const { token, loading: authLoading } = useAuth();
+export default function AdminRatingsPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterStar, setFilterStar] = useState<number | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
+  // Fetch all ratings
   useEffect(() => {
-    // Chỉ fetch dữ liệu khi đã có token. [1, 2, 4]
     const fetchRatings = async () => {
-      if (!token) {
-        setIsLoading(false);
-        setError("Bạn cần đăng nhập để xem các đánh giá của mình.");
-        return;
-      }
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/ratings/my-ratings`, {
-          headers: { 'Authorization': `Bearer ${token}` } // Gửi token để xác thực. [5, 11]
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/ratings/all`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || 'Không thể tải dữ liệu đánh giá.');
-        }
-        const data = await response.json();
+        if (!res.ok) throw new Error('Lỗi khi lấy danh sách bình luận');
+        const data = await res.json();
         setRatings(data);
       } catch (err: any) {
         setError(err.message);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
+    fetchRatings();
+  }, []);
 
-    if (!authLoading) {
-      fetchRatings();
+  // Xóa bình luận
+  const handleDelete = async (id: number) => {
+    if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/ratings/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Lỗi khi xóa bình luận');
+      setRatings(ratings.filter(r => r.id !== id));
+    } catch (err: any) {
+      alert(err.message);
     }
-  }, [token, authLoading]);
+  };
 
-  // Render nội dung dựa trên trạng thái loading, error, hoặc dữ liệu
-  const renderContent = () => {
-    if (isLoading || authLoading) {
-      return <p className="text-center p-8 text-gray-600">Đang tải các đánh giá của bạn...</p>;
+  // Duyệt/từ chối đánh giá
+  const handleApproveRating = async (id: number, status: 'approved' | 'rejected') => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/ratings/${id}/approve`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('Lỗi khi cập nhật trạng thái đánh giá');
+      
+      // Cập nhật trạng thái trong state
+      setRatings(ratings.map(r => 
+        r.id === id ? { ...r, status } : r
+      ));
+      
+      alert(status === 'approved' ? 'Đã duyệt đánh giá thành công!' : 'Đã từ chối đánh giá!');
+    } catch (err: any) {
+      alert(err.message);
     }
-    if (error) {
-      return <p className="text-red-500 text-center p-8">Lỗi: {error}</p>;
-    }
-    if (ratings.length > 0) {
-      return ratings.map(rating => <RatingCard key={rating.id} rating={rating} />);
-    }
-    return (
-      <div className="text-center py-10 bg-gray-50 rounded-lg">
-        <FaStar className="mx-auto text-4xl text-gray-300 mb-4" />
-        <p className="text-gray-500">Bạn chưa có đánh giá nào.</p>
-        <p className="text-sm text-gray-400 mt-2">Sau mỗi buổi khám, hãy quay lại để chia sẻ cảm nhận của bạn nhé!</p>
-      </div>
+  };
+
+  // Lọc và tìm kiếm
+  const filteredRatings = ratings.filter(r => {
+    const matchStar = filterStar ? r.rating === filterStar : true;
+    const matchStatus = filterStatus === 'all' ? true : r.status === filterStatus;
+    const matchText = searchText.trim() === '' ? true : (
+      r.comment.toLowerCase().includes(searchText.toLowerCase()) ||
+      r.customer_name.toLowerCase().includes(searchText.toLowerCase()) ||
+      r.doctor_name.toLowerCase().includes(searchText.toLowerCase())
     );
+    return matchStar && matchStatus && matchText;
+  });
+
+  // Hàm hiển thị trạng thái
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <span className="text-yellow-600 font-medium">Chờ duyệt</span>;
+      case 'approved':
+        return <span className="text-green-600 font-medium">Đã duyệt</span>;
+      case 'rejected':
+        return <span className="text-red-600 font-medium">Bị từ chối</span>;
+      default:
+        return <span className="text-gray-600">Không xác định</span>;
+    }
+  };
+
+  // Hàm hiển thị nút hành động
+  const getActionButtons = (rating: Rating) => {
+    if (rating.status === 'pending') {
+      return (
+        <div className="flex gap-2">
+          <button 
+            className="text-green-600 underline" 
+            onClick={() => handleApproveRating(rating.id, 'approved')}
+          >
+            Duyệt
+          </button>
+          <button 
+            className="text-red-600 underline" 
+            onClick={() => handleApproveRating(rating.id, 'rejected')}
+          >
+            Từ chối
+          </button>
+          <button 
+            className="text-red-600 underline" 
+            onClick={() => handleDelete(rating.id)}
+          >
+            Xóa
+          </button>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex gap-2">
+          <span className="text-gray-500">
+            {rating.status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}
+          </span>
+          <button 
+            className="text-red-600 underline" 
+            onClick={() => handleDelete(rating.id)}
+          >
+            Xóa
+          </button>
+        </div>
+      );
+    }
   };
 
   return (
-    <div className="w-full">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Đánh giá của tôi</h1>
-      <div className="space-y-0">
-        {renderContent()}
+    <div className="p-6 bg-white min-h-screen">
+      <h1 className="text-2xl font-bold mb-6">Quản lý bình luận/đánh giá người dùng</h1>
+      <div className="flex flex-wrap gap-4 mb-4 items-center">
+        <label className="flex items-center gap-2">
+          <span>Lọc theo số sao:</span>
+          <select value={filterStar ?? ''} onChange={e => setFilterStar(e.target.value ? Number(e.target.value) : null)} className="border p-1 rounded">
+            <option value="">Tất cả</option>
+            {[1,2,3,4,5].map(star => <option key={star} value={star}>{star} ⭐</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          <span>Lọc theo trạng thái:</span>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border p-1 rounded">
+            <option value="all">Tất cả</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="rejected">Bị từ chối</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          <span>Tìm kiếm:</span>
+          <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Nhập từ khóa..." className="border p-1 rounded" />
+        </label>
+        {(filterStar || filterStatus !== 'all' || searchText) && (
+          <button className="ml-2 px-3 py-1 bg-gray-200 rounded" onClick={() => { setFilterStar(null); setFilterStatus('all'); setSearchText(''); }}>Xóa lọc</button>
+        )}
       </div>
+      {loading ? <p>Đang tải...</p> : error ? <p className="text-red-500">{error}</p> : (
+        <table className="min-w-full border">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-2 py-1">ID</th>
+              <th className="border px-2 py-1">Người dùng</th>
+              <th className="border px-2 py-1">Bác sĩ</th>
+              <th className="border px-2 py-1">Chuyên khoa</th>
+              <th className="border px-2 py-1">Ngày khám</th>
+              <th className="border px-2 py-1">Số sao</th>
+              <th className="border px-2 py-1">Bình luận</th>
+              <th className="border px-2 py-1">Thời gian</th>
+              <th className="border px-2 py-1">Trạng thái</th>
+              <th className="border px-2 py-1">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRatings.map(r => (
+              <tr key={r.id}>
+                <td className="border px-2 py-1">{r.id}</td>
+                <td className="border px-2 py-1">{r.customer_name}</td>
+                <td className="border px-2 py-1">{r.doctor_name}</td>
+                <td className="border px-2 py-1">{r.specialization_name}</td>
+                <td className="border px-2 py-1">{r.slot_date} {r.start_time}</td>
+                <td className="border px-2 py-1">{r.rating} ⭐</td>
+                <td className="border px-2 py-1">{r.comment}</td>
+                <td className="border px-2 py-1">{new Date(r.created_at).toLocaleString()}</td>
+                <td className="border px-2 py-1">{getStatusDisplay(r.status)}</td>
+                <td className="border px-2 py-1">
+                  {getActionButtons(r)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
