@@ -148,7 +148,8 @@ router.get('/rooms/customer/:customerId', async (req, res) => {
 router.get('/rooms/unassigned', async (req, res) => {
   try {
     const [rows] = await promiseDb.query(`
-      SELECT cr.id, cr.updated_at, cu.name AS customer_name
+      SELECT cr.id, cr.customer_id, cr.assigned_doctor_id, cr.updated_at, 
+             cu.name AS customer_name
       FROM chat_rooms cr
       JOIN customers cu ON cr.customer_id = cu.id
       WHERE cr.assigned_doctor_id IS NULL
@@ -158,6 +159,25 @@ router.get('/rooms/unassigned', async (req, res) => {
   } catch (err) {
     console.error('❌ Lỗi khi lấy unassigned rooms:', err);
     res.status(500).json({ error: 'Không thể lấy danh sách phòng chưa gán bác sĩ' });
+  }
+});
+
+// 🔥 THÊM API LẤY TẤT CẢ PHÒNG CHAT
+router.get('/rooms/all', async (req, res) => {
+  try {
+    const [rows] = await promiseDb.query(`
+      SELECT cr.id, cr.customer_id, cr.assigned_doctor_id, cr.updated_at,
+             cu.name AS customer_name,
+             d.name AS doctor_name
+      FROM chat_rooms cr
+      JOIN customers cu ON cr.customer_id = cu.id
+      LEFT JOIN doctors d ON cr.assigned_doctor_id = d.id
+      ORDER BY cr.updated_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Lỗi khi lấy tất cả phòng chat:', err);
+    res.status(500).json({ error: 'Không thể lấy danh sách tất cả phòng chat' });
   }
 });
 // POST /api/chat/assign

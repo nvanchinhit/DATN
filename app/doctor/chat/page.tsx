@@ -50,7 +50,7 @@ export default function DoctorChatPage() {
     if (!doctorId) return;
 
     // Khởi tạo socket
-    const socket = io('${API_URL}', { transports: ['websocket'] });
+    const socket = io(`${API_URL}`, { transports: ['websocket'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -84,9 +84,18 @@ export default function DoctorChatPage() {
     if (!doctorId) return;
 
     fetch(`${API_URL}/api/chat/rooms/doctor/${doctorId}`)
-      .then((res) => res.json())
-      .then((data) => setRooms(data))
-      .catch((err) => console.error('Lỗi khi fetch rooms:', err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setRooms(data);
+      })
+      .catch((err) => {
+        console.error('❌ Lỗi khi fetch rooms:', err);
+      });
   }, [doctorId]);
 
   /* =========================================================

@@ -8,6 +8,9 @@ interface ChatRoom {
   id: number;
   customer_name: string;
   updated_at: string;
+  assigned_doctor_id?: number; // Thêm trường để theo dõi bác sĩ đã gán
+  doctor_joined?: boolean; // Bác sĩ đã join vào phòng chưa
+  doctor_name?: string; // Tên bác sĩ đã join
 }
 
 interface ChatMessage {
@@ -24,7 +27,6 @@ interface Doctor {
   name: string;
 }
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-console.log('API_URL:', API_URL);
 
 export default function AdminChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -33,15 +35,53 @@ export default function AdminChatPage() {
   const [message, setMessage] = useState('');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'unassigned' | 'all'>('unassigned');
+  const [allRooms, setAllRooms] = useState<ChatRoom[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isClient, setIsClient] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  // 🔥 ĐẢM BẢO COMPONENT CHỈ CHẠY Ở CLIENT
   useEffect(() => {
-    socketRef.current = io(`${API_URL}`);
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
+    // 🔥 KIỂM TRA SOCKET ĐÃ TỒN TẠI CHƯA
+    if (socketRef.current?.connected) {
+      console.log('🔄 Socket đã kết nối, không cần tạo mới');
+      return;
+    }
+    
+    console.log('🔌 Tạo socket connection mới...');
+    socketRef.current = io(`${API_URL}`, {
+      // 🔥 THÊM OPTIONS ĐỂ TRÁNH KẾT NỐI LIÊN TỤC
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+      forceNew: false
+    });
 
     socketRef.current.on('connect', () => {
       console.log('✅ Socket connected:', socketRef.current?.id);
       socketRef.current?.emit('registerAdmin');
+    });
+
+    socketRef.current.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnect, cần reconnect thủ công
+        socketRef.current?.connect();
+      }
+    });
+
+    socketRef.current.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+      addNotification('❌ Lỗi kết nối chat, đang thử kết nối lại...', 'error');
     });
 
     socketRef.current.on('newMessage', (msg: ChatMessage) => {
@@ -50,35 +90,199 @@ export default function AdminChatPage() {
       }
     });
 
+    // 🔥 LẮNG NGHE THÔNG BÁO TIN NHẮN MỚI
+    socketRef.current.on('newMessageNotification', (notification) => {
+      console.log('📨 Có tin nhắn mới từ phòng:', notification.room_id);
+      // Tự động refresh danh sách phòng
+      refreshRooms();
+      // Hiển thị thông báo
+      addNotification(`Tin nhắn mới từ phòng #${notification.room_id}: ${notification.message}`, 'info');
+    });
+
+    // 🔥 LẮNG NGHE CẬP NHẬT PHÒNG
+    socketRef.current.on('roomUpdated', (roomInfo) => {
+      console.log('🔄 Phòng được cập nhật:', roomInfo);
+      
+      // 🔥 CẬP NHẬT DANH SÁCH PHÒNG
+      refreshRooms();
+      
+      // 🔥 CẬP NHẬT STATE HIỆN TẠI
+      setRooms(prev => {
+        // Nếu phòng đã được gán bác sĩ, loại bỏ khỏi danh sách unassigned
+        if (roomInfo.assigned_doctor_id) {
+          return prev.filter(room => room.id !== roomInfo.id);
+        }
+        return prev;
+      });
+      
+      // Hiển thị thông báo
+      addNotification(`Phòng #${roomInfo.id} đã được cập nhật`, 'info');
+    });
+
+    // 🔥 LẮNG NGHE THÔNG BÁO GÁN BÁC SĨ
+    socketRef.current.on('doctorAssignedNotification', (notification) => {
+      console.log('👨‍⚕️ Bác sĩ được gán cho phòng:', notification.room_id);
+      // Refresh danh sách phòng
+      refreshRooms();
+      // Hiển thị thông báo
+      addNotification(`Bác sĩ đã được gán cho phòng #${notification.room_id}`, 'success');
+    });
+
+    // 🔥 LẮNG NGHE KHI BÁC SĨ JOIN VÀO PHÒNG
+    socketRef.current.on('doctorJoinedAdmin', (notification) => {
+      console.log('👨‍⚕️ Bác sĩ đã join phòng:', notification.room_id);
+      
+      // Cập nhật trạng thái phòng - admin chỉ xem thôi
+      setRooms(prev => prev.map(room => 
+        room.id === notification.room_id 
+          ? { ...room, doctor_joined: true, doctor_name: notification.doctor_name }
+          : room
+      ));
+      
+      // Hiển thị thông báo
+      addNotification(notification.message, 'success');
+      
+      // Nếu đang ở phòng này, cập nhật UI
+      if (selectedRoomId === notification.room_id) {
+        addNotification('Bác sĩ đã tham gia phòng. Bạn chỉ có thể xem tin nhắn.', 'info');
+      }
+    });
+
+    // 🔥 LẮNG NGHE ADMIN ĐĂNG KÝ THÀNH CÔNG
+    socketRef.current.on('adminRegistered', (data) => {
+      console.log('✅ Admin đã đăng ký:', data.message);
+      // Lấy danh sách phòng ngay lập tức
+      refreshRooms();
+      // Hiển thị thông báo
+      addNotification('Đã kết nối với hệ thống chat', 'success');
+    });
+
     return () => {
-      socketRef.current?.disconnect();
+      console.log('🧹 Cleanup socket connection...');
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
-  }, []);
+  }, [isClient]); // 🔥 BỎ selectedRoomId khỏi dependency
 
-  useEffect(() => {
+  // 🔥 HÀM REFRESH DANH SÁCH PHÒNG
+  const refreshRooms = () => {
+    if (!isClient) return;
+    
+    console.log('🔄 Bắt đầu refresh danh sách phòng...');
+    
+    // Lấy phòng chưa gán bác sĩ
     fetch(`${API_URL}/api/chat/rooms/unassigned`)
-      .then((res) => res.json())
-      .then((data) => setRooms(data));
-  }, []);
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log('🔄 Danh sách phòng chưa gán được cập nhật:', data);
+        setRooms(data);
+        
+        // 🔥 CẬP NHẬT SỐ LƯỢNG PHÒNG CHỜ
+        const unassignedCount = data.filter((room: ChatRoom) => !room.assigned_doctor_id).length;
+        console.log(`📊 Số phòng chưa gán bác sĩ: ${unassignedCount}`);
+      })
+      .catch((err) => {
+        console.error('❌ Lỗi refresh unassigned rooms:', err);
+        addNotification('❌ Không thể tải danh sách phòng chưa gán bác sĩ', 'error');
+      });
+
+    // Lấy tất cả phòng chat
+    fetch(`${API_URL}/api/chat/rooms/all`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log('🔄 Danh sách tất cả phòng được cập nhật:', data);
+        setAllRooms(data);
+        
+        // 🔥 CẬP NHẬT SỐ LƯỢNG TỔNG
+        console.log(`📊 Tổng số phòng chat: ${data.length}`);
+      })
+      .catch((err) => {
+        console.error('❌ Lỗi refresh all rooms:', err);
+        // Nếu API /all không hoạt động, dùng API /unassigned làm fallback
+        console.log('🔄 Sử dụng fallback: chỉ hiển thị phòng chưa gán bác sĩ');
+        setAllRooms([]);
+        addNotification('⚠️ Chế độ giới hạn: chỉ hiển thị phòng chưa gán bác sĩ', 'warning');
+      });
+  };
 
   useEffect(() => {
+    if (!isClient) return;
+    refreshRooms();
+  }, [isClient]);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
     fetch(`${API_URL}/api/doctors`)
       .then((res) => res.json())
       .then((data) => setDoctors(data));
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
-    if (!selectedRoomId) return;
+    if (!selectedRoomId || !isClient || !socketRef.current?.connected) return;
 
+    console.log(`🔔 Admin tham gia phòng ${selectedRoomId}`);
+    
+    // Lấy tin nhắn của phòng
     fetch(`${API_URL}/api/chat/${selectedRoomId}/messages`)
       .then((res) => res.json())
-      .then((data) => setMessages(data));
+      .then((data) => setMessages(data))
+      .catch((err) => {
+        console.error('❌ Lỗi lấy tin nhắn:', err);
+        addNotification('❌ Không thể tải tin nhắn của phòng', 'error');
+      });
 
-    socketRef.current?.emit('joinRoom', {
+    // Tham gia phòng chat
+    socketRef.current.emit('joinRoom', {
       room_id: selectedRoomId,
       role: 'admin',
     });
-  }, [selectedRoomId]);
+
+    return () => {
+      // Rời khỏi phòng khi component unmount hoặc đổi phòng
+      if (socketRef.current?.connected) {
+        console.log(`🔌 Admin rời khỏi phòng ${selectedRoomId}`);
+        socketRef.current.emit('leaveRoom', {
+          room_id: selectedRoomId,
+          role: 'admin',
+        });
+      }
+    };
+  }, [selectedRoomId, isClient]);
+
+  // 🔥 THÊM THÔNG BÁO MỚI
+  const addNotification = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    const newNotification = {
+      id: Date.now(),
+      message,
+      type,
+      timestamp: new Date().toISOString()
+    };
+    setNotifications(prev => [newNotification, ...prev.slice(0, 4)]); // Giữ tối đa 5 thông báo
+    
+    // Tự động xóa thông báo sau 5 giây
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+    }, 5000);
+  };
+
+  // 🔥 XÓA THÔNG BÁO
+  const removeNotification = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,6 +310,7 @@ export default function AdminChatPage() {
       message: message.trim(),
     });
 
+    addNotification('Tin nhắn đã được gửi!', 'success');
     setMessage('');
   };
 
@@ -121,18 +326,58 @@ export default function AdminChatPage() {
       }),
     })
       .then((res) => res.json())
-      .then(() => {
-        alert('✅ Gán bác sĩ thành công!');
+      .then((data) => {
+        addNotification('✅ Gán bác sĩ thành công!', 'success');
+        
+        // 🔥 TỰ ĐỘNG REFRESH DANH SÁCH PHÒNG
+        refreshRooms();
+        
+        // Xóa phòng khỏi danh sách hiện tại
         setRooms((prev) => prev.filter((r) => r.id !== selectedRoomId));
         setSelectedRoomId(null);
         setMessages([]);
+        
+        // 🔥 THÔNG BÁO CHO SOCKET VỀ VIỆC GÁN BÁC SĨ
+        socketRef.current?.emit('assignDoctor', {
+          room_id: selectedRoomId,
+          doctor_id: selectedDoctorId,
+        });
+        
+        console.log('🔄 Đã gán bác sĩ và refresh danh sách phòng');
+      })
+      .catch((err) => {
+        console.error('❌ Lỗi gán bác sĩ:', err);
+        addNotification('❌ Lỗi khi gán bác sĩ!', 'error');
       });
+  };
+
+  // 🔥 CHUYỂN ĐỔI TAB
+  const handleTabChange = (tab: 'unassigned' | 'all') => {
+    setActiveTab(tab);
+    if (tab === 'all') {
+      if (allRooms.length > 0) {
+        setRooms(allRooms);
+      } else {
+        // Nếu không có dữ liệu từ API /all, hiển thị thông báo
+        addNotification('⚠️ Không thể hiển thị tất cả phòng. Vui lòng thử lại sau.', 'warning');
+        setActiveTab('unassigned'); // Quay lại tab unassigned
+      }
+    } else {
+      // Chỉ hiển thị phòng chưa gán bác sĩ
+      const unassignedRooms = allRooms.filter(room => !room.assigned_doctor_id);
+      if (unassignedRooms.length > 0) {
+        setRooms(unassignedRooms);
+      } else {
+        // Nếu không có dữ liệu, refresh lại
+        refreshRooms();
+      }
+    }
   };
 
   const selectedRoom = rooms.find(r => r.id === selectedRoomId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6" suppressHydrationWarning>
       <div className="max-w-7xl mx-auto">
         {/* Header với gradient và glass effect */}
         <div className="mb-8">
@@ -148,9 +393,17 @@ export default function AdminChatPage() {
                 <p className="text-slate-600 mt-1">Hệ thống hỗ trợ khách hàng</p>
               </div>
               <div className="ml-auto flex items-center gap-6">
-                <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl">
-                  <Activity className="w-5 h-5 text-emerald-600" />
-                  <span className="text-emerald-700 font-medium">Online</span>
+                {/* 🔥 THÔNG BÁO REAL-TIME */}
+                <div className="relative">
+                  <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-xl">
+                    <Activity className="w-5 h-5 text-emerald-600" />
+                    <span className="text-emerald-700 font-medium">Online</span>
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {notifications.length}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-xl">
                   <Users className="w-5 h-5 text-blue-600" />
@@ -158,8 +411,62 @@ export default function AdminChatPage() {
                 </div>
               </div>
             </div>
+            
+            {/* 🔥 TAB CHUYỂN ĐỔI */}
+            <div className="mt-6 flex gap-2">
+              <button
+                onClick={() => handleTabChange('unassigned')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === 'unassigned'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Phòng chưa gán bác sĩ ({rooms.filter(r => !r.assigned_doctor_id).length})
+              </button>
+              <button
+                onClick={() => handleTabChange('all')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === 'all'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Tất cả phòng ({allRooms.length})
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* 🔥 THÔNG BÁO REAL-TIME */}
+        {notifications.length > 0 && (
+          <div className="mb-6 space-y-2">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`p-4 rounded-lg shadow-lg border-l-4 ${
+                  notification.type === 'success'
+                    ? 'bg-green-50 border-green-500 text-green-800'
+                    : notification.type === 'error'
+                    ? 'bg-red-50 border-red-500 text-red-800'
+                    : notification.type === 'warning'
+                    ? 'bg-yellow-50 border-yellow-500 text-yellow-800'
+                    : 'bg-blue-50 border-blue-500 text-blue-800'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>{notification.message}</span>
+                  <button
+                    onClick={() => removeNotification(notification.id)}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Main Chat Interface */}
         <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/30 overflow-hidden">
@@ -169,7 +476,7 @@ export default function AdminChatPage() {
               <div className="p-4 border-b border-slate-200/50 bg-white/50">
                 <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                   <Clock className="w-5 h-5 text-blue-600" />
-                  Phòng chờ ({rooms.length})
+                  {activeTab === 'unassigned' ? 'Phòng chờ' : 'Tất cả phòng'} ({rooms.length})
                 </h3>
               </div>
               
@@ -179,7 +486,12 @@ export default function AdminChatPage() {
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <MessageCircle className="w-8 h-8 text-slate-400" />
                     </div>
-                    <p className="text-slate-500">Không có phòng chờ nào</p>
+                    <p className="text-slate-500">
+                      {activeTab === 'unassigned' 
+                        ? 'Không có phòng chờ nào' 
+                        : 'Không có phòng chat nào'
+                      }
+                    </p>
                   </div>
                 ) : (
                   rooms.map((room) => (
@@ -202,7 +514,7 @@ export default function AdminChatPage() {
                         </div>
                         <div className="flex-1">
                           <p className="font-semibold text-slate-800">{room.customer_name}</p>
-                          <div className="flex items-center gap-1 mt-1">
+                          <div className="flex items-center gap-2 mt-1">
                             <Clock className="w-3 h-3 text-slate-400" />
                             <p className="text-xs text-slate-500">
                               {new Date(room.updated_at).toLocaleTimeString('vi-VN', {
@@ -210,6 +522,16 @@ export default function AdminChatPage() {
                                 minute: '2-digit',
                               })}
                             </p>
+                            {/* 🔥 HIỂN THỊ TRẠNG THÁI PHÒNG */}
+                            {room.assigned_doctor_id ? (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                {room.doctor_joined ? `Bác sĩ ${room.doctor_name} đang tư vấn` : 'Đã gán bác sĩ'}
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                                Chờ gán bác sĩ
+                              </span>
+                            )}
                           </div>
                         </div>
                         {selectedRoomId === room.id && (
@@ -246,30 +568,45 @@ export default function AdminChatPage() {
                         <span className="font-medium">Phân công bác sĩ:</span>
                       </div>
                       
-                      <select
-                        className="flex-1 max-w-xs px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
-                        value={selectedDoctorId !== null ? String(selectedDoctorId) : ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSelectedDoctorId(val ? parseInt(val) : null);
-                        }}
-                      >
-                        <option value="">-- Chọn bác sĩ --</option>
-                        {doctors.map((doc) => (
-                          <option key={doc.id} value={doc.id}>
-                            Dr. {doc.name}
-                          </option>
-                        ))}
-                      </select>
-                      
-                      <button
-                        onClick={assignDoctor}
-                        disabled={!selectedDoctorId}
-                        className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed transform hover:scale-[1.02] text-sm font-medium"
-                      >
-                        <Stethoscope className="w-4 h-4" />
-                        Gán bác sĩ
-                      </button>
+                      {/* 🔥 HIỂN THỊ TRẠNG THÁI BÁC SĨ */}
+                      {selectedRoom?.doctor_joined ? (
+                        <div className="flex-1 flex items-center gap-3">
+                          <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
+                            <Stethoscope className="w-4 h-4" />
+                            <span>Bác sĩ {selectedRoom.doctor_name} đã tham gia phòng</span>
+                          </div>
+                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                            Chỉ xem tin nhắn
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <select
+                            className="flex-1 max-w-xs px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all duration-200 text-sm"
+                            value={selectedDoctorId !== null ? String(selectedDoctorId) : ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSelectedDoctorId(val ? parseInt(val) : null);
+                            }}
+                          >
+                            <option value="">-- Chọn bác sĩ --</option>
+                            {doctors.map((doc) => (
+                              <option key={doc.id} value={doc.id}>
+                                Dr. {doc.name}
+                              </option>
+                            ))}
+                          </select>
+                          
+                          <button
+                            onClick={assignDoctor}
+                            disabled={!selectedDoctorId}
+                            className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 transition-all duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed transform hover:scale-[1.02] text-sm font-medium"
+                          >
+                            <Stethoscope className="w-4 h-4" />
+                            Gán bác sĩ
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -369,23 +706,37 @@ export default function AdminChatPage() {
               {/* Message Input */}
               {selectedRoomId && (
                 <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-slate-200/50">
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                      placeholder="Nhập tin nhắn hỗ trợ..."
-                      className="flex-1 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 shadow-sm hover:shadow-md text-sm"
-                    />
-                    <button
-                      onClick={sendMessage}
-                      disabled={!message.trim()}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-4 rounded-2xl disabled:from-gray-300 disabled:to-gray-400 transition-all duration-200 shadow-lg hover:shadow-xl disabled:cursor-not-allowed transform hover:scale-105"
-                    >
-                      <Send size={20} />
-                    </button>
-                  </div>
+                  {selectedRoom?.doctor_joined ? (
+                    // 🔥 KHI BÁC SĨ ĐÃ JOIN - CHỈ HIỂN THỊ THÔNG BÁO
+                    <div className="text-center py-4">
+                      <div className="flex items-center justify-center gap-2 text-emerald-600 mb-2">
+                        <Stethoscope className="w-5 h-5" />
+                        <span className="font-medium">Bác sĩ {selectedRoom.doctor_name} đang tư vấn</span>
+                      </div>
+                      <p className="text-sm text-slate-500">
+                        Bạn chỉ có thể xem tin nhắn. Bác sĩ sẽ trực tiếp hỗ trợ khách hàng.
+                      </p>
+                    </div>
+                  ) : (
+                    // 🔥 KHI CHƯA CÓ BÁC SĨ - CHO PHÉP CHAT
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                        placeholder="Nhập tin nhắn hỗ trợ..."
+                        className="flex-1 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+                      />
+                      <button
+                        onClick={sendMessage}
+                        disabled={!message.trim()}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-4 rounded-2xl disabled:from-gray-300 disabled:to-gray-400 transition-all duration-200 shadow-lg hover:shadow-xl disabled:cursor-not-allowed transform hover:scale-105"
+                      >
+                        <Send size={20} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

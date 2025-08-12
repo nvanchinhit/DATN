@@ -88,6 +88,16 @@ useEffect(() => {
       });
     });
 
+    // 🔥 LẮNG NGHE KHI BÁC SĨ JOIN VÀO PHÒNG
+    socket.on('doctorJoined', (data) => {
+      const doctorMsg: ChatMessage = {
+        sender_type: 'bot',
+        message: data.message,
+        created_at: data.timestamp,
+      };
+      setMessages((prev) => [...prev, doctorMsg]);
+    });
+
     const initRoom = async () => {
       try {
         const res = await fetch(`${API_URL}/api/chat/start`, {
@@ -111,6 +121,7 @@ useEffect(() => {
     return () => {
       socket.disconnect();
       socket.off('newMessage');
+      socket.off('doctorJoined');
     };
   }, [customerId]);
 

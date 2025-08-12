@@ -233,6 +233,8 @@ export default function CheckoutPage() {
     }
   };
 
+  
+
   // Hàm format giá tiền
   const formatPrice = (price: number) => {
     if (price === 0) return "Miễn phí";
@@ -265,35 +267,100 @@ export default function CheckoutPage() {
               </Link>
             </div>
           ) : submitted ? ( // Nếu đã đặt lịch thành công
-            <div className="text-center bg-green-50 border border-green-300 p-8 rounded-xl text-green-800">
-              <h3 className="text-2xl font-bold mb-4 text-green-900">✅ Đặt lịch thành công!</h3>
-              <p className="mb-6">Thông tin lịch hẹn của bạn đã được ghi nhận. Vui lòng kiểm tra email hoặc mục "Lịch hẹn của tôi" để xem chi tiết.</p>
-              <div className="space-y-1 text-left max-w-md mx-auto bg-white p-4 rounded-lg shadow-sm mb-8">
-                <li><strong>Họ tên bệnh nhân:</strong> {form.name}</li>
-                <li><strong>Bác sĩ:</strong> {bookingInfo?.doctorName}</li>
-                <li><strong>Ngày khám:</strong> {bookingInfo ? `${new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | ${bookingInfo.time.start} - ${bookingInfo.time.end}` : ''}</li>
-                {doctorInfo && doctorInfo.price > 0 && (
-                  <li><strong>Phí khám:</strong> {formatPrice(doctorInfo.price)}</li>
-                )}
-                {clinicInfo && (
-                  <>
-                    <li><strong>Tên phòng khám:</strong> {clinicInfo.clinic_name}</li>
-                    <li><strong>Số phòng:</strong> {clinicInfo.room_number}</li>
-                    <li><strong>Địa chỉ:</strong> {clinicInfo.address}</li>
-                  </>
-                )}
+            <div className="rounded-2xl overflow-hidden border border-emerald-200 bg-white shadow-xl">
+              <div className="px-6 py-8 text-center bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-200 relative overflow-hidden">
+                <div className="pointer-events-none absolute inset-0 opacity-40" style={{backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(16,185,129,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(16,185,129,0.1), transparent 35%)'}}></div>
+                <div className="relative mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center ring-8 ring-emerald-50 animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-2.41a.75.75 0 1 0-1.22-.88l-3.67 5.07-1.62-1.62a.75.75 0 0 0-1.06 1.06l2.25 2.25c.33.33.86.29 1.13-.09l4.19-5.78Z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h3 className="relative text-2xl font-bold text-emerald-900">Đặt lịch thành công!</h3>
+                <p className="relative mt-2 text-emerald-700">Thông tin lịch hẹn đã được ghi nhận. Vui lòng kiểm tra email hoặc mục "Lịch hẹn của tôi" để xem chi tiết.</p>
               </div>
-              <div className="flex justify-center gap-4">
-                <Link href="/profile/appointment" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-all">
-                  Xem Lịch hẹn của tôi
+
+              <div className="p-6">
+                <ol className="mb-6 grid grid-cols-4 gap-2">
+                  {['Đặt lịch', 'Chờ xác nhận', 'Khám', 'Bệnh án'].map((step, idx) => (
+                    <li key={step} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${idx <= 1 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                      <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold ${idx <= 1 ? 'bg-emerald-600 text-white' : 'bg-gray-300 text-gray-700'}`}>{idx+1}</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Thông tin cuộc hẹn</h4>
+                  <div className="rounded-lg border bg-white p-4 shadow-sm">
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Bệnh nhân</span>
+                      <span className="font-medium text-gray-900">{form.name}</span>
+                    </div>
+                    
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Bác sĩ</span>
+                      <span className="font-medium text-gray-900">{bookingInfo?.doctorName}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Ngày</span>
+                      <span className="font-medium text-gray-900">{new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Giờ</span>
+                      <span className="font-medium text-gray-900">{bookingInfo.time.start} - {bookingInfo.time.end}</span>
+                    </div>
+                    {doctorInfo && doctorInfo.price > 0 && (
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-500">Phí khám</span>
+                        <span className="font-semibold text-emerald-700">{formatPrice(doctorInfo.price)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Thông tin phòng khám</h4>
+                  <div className="rounded-lg border bg-white p-4 shadow-sm">
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Cơ sở</span>
+                      <span className="font-medium text-gray-900">{clinicInfo?.clinic_name || 'Phòng khám Đa khoa ABC'}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Số phòng</span>
+                      <span className="font-medium text-gray-900">{clinicInfo?.room_number || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-gray-500">Địa chỉ</span>
+                      <span className="font-medium text-gray-900 text-right max-w-[60%]">{clinicInfo?.address || '123 Đường XYZ, Quận 1, TP.HCM'}</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${paymentMethod === 'online' ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>
+                          {paymentMethod === 'online' ? 'Thanh toán online' : 'Thanh toán khi khám'}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-500">Trạng thái: <span className="font-medium text-gray-700">Chờ bác sĩ xác nhận</span></span>
+                    </div>
+                  </div>
+                </div>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6 pt-2 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/profile/appointment" className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold shadow hover:bg-blue-700 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5"><path d="M6.75 3A2.75 2.75 0 0 0 4 5.75v12.5A2.75 2.75 0 0 0 6.75 21h10.5A2.75 2.75 0 0 0 20 18.25V8.5l-5.5-5.5H6.75Z"/><path d="M14.5 3v3.25A2.25 2.25 0 0 0 16.75 8.5H20"/></svg>
+                  Lịch hẹn của tôi
                 </Link>
-                <Link href="/" className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all">
-                  Về Trang chủ
+                <Link href="/" className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 px-5 py-2.5 rounded-lg font-semibold border border-gray-200 hover:bg-gray-200 transition">
+                  Trang chủ
                 </Link>
               </div>
-              <div className="mt-4 text-center text-sm text-gray-600">
-                <span>💡 Sau khi khám xong, bạn có thể xem hồ sơ bệnh án tại mục "Hồ Sơ Bệnh Án" trong trang cá nhân.</span>
-              </div>
+
+              <p className="pb-6 text-center text-sm text-gray-600">💡 Sau khi khám xong, bạn có thể xem hồ sơ bệnh án tại mục "Hồ Sơ Bệnh Án" trong trang cá nhân.</p>
             </div>
           ) : ( // Nếu chưa đặt lịch, hiển thị form
             <>

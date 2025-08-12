@@ -121,12 +121,45 @@ router.post('/', authMiddleware, (req, res) => {
     db.query(insertSql, values, (err, result) => {
       if (err) return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
 
-      // Lấy số phòng từ bác sĩ
-      const doctorInfoSql = `SELECT room_number FROM doctors WHERE id = ?`;
-      db.query(doctorInfoSql, [doctor_id], (err2, doctorRows) => {
+      // Lấy thông tin cần thiết để gửi email và trả về thông tin phòng khám
+      const infoSql = `
+        SELECT 
+          d.name AS doctor_name, d.room_number, d.floor,
+          DATE_FORMAT(ts.slot_date, '%d-%m-%Y') AS slot_date,
+          TIME_FORMAT(ts.start_time, '%H:%i') AS start_time,
+          TIME_FORMAT(ts.end_time, '%H:%i') AS end_time
+        FROM doctors d
+        JOIN doctor_time_slot ts ON ts.id = ?
+        WHERE d.id = ?
+      `;
+
+      db.query(infoSql, [time_slot_id, doctor_id], (err2, rows) => {
+        if (err2) {
+          console.error('❌ Lỗi lấy thông tin email sau khi đặt lịch:', err2);
+        }
+
         const clinic_name = "Phòng khám Đa khoa ABC"; // hardcode
         const address = "123 Đường Tĩnh, Quận 1, TP.HCM"; // hardcode
-        const room_number = doctorRows && doctorRows.length > 0 ? doctorRows[0].room_number : "N/A";
+        const room_number = rows && rows.length > 0 ? rows[0].room_number : "N/A";
+
+        // Thử gửi email xác nhận đặt lịch cho bệnh nhân (không chặn response nếu lỗi)
+        try {
+          const mailData = rows && rows[0] ? rows[0] : {};
+          sendBookingConfirmationEmail({
+            name,
+            email,
+            doctor: mailData.doctor_name || 'Bác sĩ',
+            room: room_number,
+            floor: mailData.floor || 'N/A',
+            date: mailData.slot_date || '',
+            start: mailData.start_time || '',
+            end: mailData.end_time || '',
+            reason: reason || '',
+            payment: payment_status || 'Chưa thanh toán'
+          });
+        } catch (mailErr) {
+          console.error('❌ Lỗi khi gửi email xác nhận đặt lịch:', mailErr);
+        }
 
         res.status(201).json({
           message: 'Đặt lịch thành công!',
@@ -180,12 +213,6 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
     });
   });
 });
-/** 
- * ==========================================================
- * ROUTE 2: LẤY TẤT CẢ LỊCH HẸN CỦA NGƯỜI DÙNG ĐANG ĐĂNG NHẬP
- * METHOD: GET /api/appointments/my-appointments
- * ==========================================================
- */
 router.get('/my-appointments', authMiddleware, (req, res) => {
   const customerId = req.user.id;
      const sql = `
