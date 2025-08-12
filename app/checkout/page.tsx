@@ -217,7 +217,11 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         setSubmitted(true); // Đặt lịch thành công
-        if (resultData.clinic) setClinicInfo(resultData.clinic);
+        if (resultData.clinic) setClinicInfo({
+          clinic_name: 'Phòng khám Đa khoa ABC', // hardcode
+          room_number: resultData.clinic.room_number, // lấy từ DB
+          address: '123 Đường XYZ, Quận 1, TP.HCM' // hardcode
+        });
       } else {
         alert('Lỗi từ máy chủ: ' + (resultData.message || "Có lỗi không xác định xảy ra."));
       }
@@ -266,8 +270,8 @@ export default function CheckoutPage() {
               <p className="mb-6">Thông tin lịch hẹn của bạn đã được ghi nhận. Vui lòng kiểm tra email hoặc mục "Lịch hẹn của tôi" để xem chi tiết.</p>
               <div className="space-y-1 text-left max-w-md mx-auto bg-white p-4 rounded-lg shadow-sm mb-8">
                 <li><strong>Họ tên bệnh nhân:</strong> {form.name}</li>
-                <li><strong>Bác sĩ:</strong> {bookingInfo.doctorName}</li>
-                <li><strong>Ngày khám:</strong> {new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | {bookingInfo.time.start} - {bookingInfo.time.end}</li>
+                <li><strong>Bác sĩ:</strong> {bookingInfo?.doctorName}</li>
+                <li><strong>Ngày khám:</strong> {bookingInfo ? `${new Date(bookingInfo.date + 'T00:00:00').toLocaleDateString('vi-VN')} | ${bookingInfo.time.start} - ${bookingInfo.time.end}` : ''}</li>
                 {doctorInfo && doctorInfo.price > 0 && (
                   <li><strong>Phí khám:</strong> {formatPrice(doctorInfo.price)}</li>
                 )}
@@ -280,15 +284,15 @@ export default function CheckoutPage() {
                 )}
               </div>
               <div className="flex justify-center gap-4">
-                  <Link href="/profile/appointment" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-all">
-                    Xem Lịch hẹn của tôi
-                  </Link>
-                  <Link href="/" className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all">
-                    Về Trang chủ
-                  </Link>
+                <Link href="/profile/appointment" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold shadow hover:bg-blue-700 transition-all">
+                  Xem Lịch hẹn của tôi
+                </Link>
+                <Link href="/" className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-all">
+                  Về Trang chủ
+                </Link>
               </div>
               <div className="mt-4 text-center text-sm text-gray-600">
-                <p>💡 Sau khi khám xong, bạn có thể xem hồ sơ bệnh án tại mục "Hồ Sơ Bệnh Án" trong trang cá nhân.</p>
+                <span>💡 Sau khi khám xong, bạn có thể xem hồ sơ bệnh án tại mục "Hồ Sơ Bệnh Án" trong trang cá nhân.</span>
               </div>
             </div>
           ) : ( // Nếu chưa đặt lịch, hiển thị form

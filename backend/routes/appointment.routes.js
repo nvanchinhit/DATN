@@ -121,36 +121,21 @@ router.post('/', authMiddleware, (req, res) => {
     db.query(insertSql, values, (err, result) => {
       if (err) return res.status(500).json({ message: 'Không thể tạo lịch hẹn.' });
 
-      // Lấy thông tin chi tiết để gửi email
-      const emailInfoSql = `
-        SELECT 
-          a.name, a.email, a.reason,
-          d.name AS doctor_name, d.room_number, d.floor,
-          DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
-          TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
-          TIME_FORMAT(ts.end_time, '%H:%i') as end_time
-        FROM appointments a
-        JOIN doctors d ON a.doctor_id = d.id
-        JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
-        WHERE a.id = ?`;
+      // Lấy số phòng từ bác sĩ
+      const doctorInfoSql = `SELECT room_number FROM doctors WHERE id = ?`;
+      db.query(doctorInfoSql, [doctor_id], (err2, doctorRows) => {
+        const clinic_name = "Phòng khám Đa khoa ABC"; // hardcode
+        const address = "123 Đường Tĩnh, Quận 1, TP.HCM"; // hardcode
+        const room_number = doctorRows && doctorRows.length > 0 ? doctorRows[0].room_number : "N/A";
 
-      db.query(emailInfoSql, [result.insertId], (emailErr, rows) => {
-        if (!emailErr && rows.length > 0) {
-          const info = rows[0];
-          sendBookingConfirmationEmail({
-            name: info.name,
-            email: info.email,
-            doctor: info.doctor_name,
-            room: info.room_number,
-            floor: info.floor,
-            date: info.slot_date,
-            start: info.start_time,
-            end: info.end_time,
-            reason: info.reason || 'Không cung cấp',
-            payment: payment_status
-          });
-        }
-        res.status(201).json({ message: 'Đặt lịch thành công!' });
+        res.status(201).json({
+          message: 'Đặt lịch thành công!',
+          clinic: {
+            clinic_name,
+            room_number,
+            address
+          }
+        });
       });
     });
   });

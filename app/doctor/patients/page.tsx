@@ -45,6 +45,8 @@ export default function DoctorMedicalRecordsPage() {
   const [editNotes, setEditNotes] = useState('');
   const [editDoctorNote, setEditDoctorNote] = useState('');
   const [editFollowUpDate, setEditFollowUpDate] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'byCustomer'>('all');
 
   useEffect(() => {
     const rawData = localStorage.getItem("user");
@@ -76,15 +78,30 @@ export default function DoctorMedicalRecordsPage() {
         return res.json();
       })
       .then((data) => {
-        // Thêm số lần khám cho mỗi bệnh nhân
-        const recordsWithVisitCount = data.map((record: MedicalRecord) => {
-          const patientRecords = data.filter((r: MedicalRecord) => r.patient_name === record.patient_name);
-          return {
-            ...record,
-            visit_count: patientRecords.length
-          };
+        // Nhóm theo bệnh nhân
+        const grouped: { [patient: string]: MedicalRecord[] } = {};
+        data.forEach((record: MedicalRecord) => {
+          if (!grouped[record.patient_name]) grouped[record.patient_name] = [];
+          grouped[record.patient_name].push(record);
         });
-        setRecords(recordsWithVisitCount);
+        // Sắp xếp và gán số thứ tự lần khám
+        const recordsWithVisitOrder: MedicalRecord[] = [];
+        Object.values(grouped).forEach((patientRecords) => {
+          patientRecords.sort((a, b) => {
+            // Ưu tiên slot_date, nếu bằng thì so sánh start_time
+            const dateA = new Date(a.slot_date || a.created_at);
+            const dateB = new Date(b.slot_date || b.created_at);
+            if (dateA.getTime() !== dateB.getTime()) return dateA.getTime() - dateB.getTime();
+            if (a.start_time && b.start_time) {
+              return a.start_time.localeCompare(b.start_time);
+            }
+            return 0;
+          });
+          patientRecords.forEach((rec, idx) => {
+            recordsWithVisitOrder.push({ ...rec, visit_count: idx + 1 });
+          });
+        });
+        setRecords(recordsWithVisitOrder);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -175,6 +192,15 @@ export default function DoctorMedicalRecordsPage() {
     return new Date(dateString).toLocaleString('vi-VN');
   };
 
+  // Nhóm records theo customer_name
+  const groupedByCustomer: Record<string, MedicalRecord[]> = records.reduce((acc, record) => {
+    if (record.customer_name) {
+      if (!acc[record.customer_name]) acc[record.customer_name] = [];
+      acc[record.customer_name].push(record);
+    }
+    return acc;
+  }, {} as Record<string, MedicalRecord[]>);
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Sidebardoctor />
@@ -209,39 +235,21 @@ export default function DoctorMedicalRecordsPage() {
         </div>
 
         <div className="p-8">
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl shadow-xl text-white transform hover:scale-105 transition-all">
-              <p className="text-sm font-medium text-blue-100">Tổng hồ sơ</p>
-              <div className="flex justify-between items-end">
-                <p className="text-4xl font-bold">{totalRecords}</p>
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <span className="text-white text-2xl">📋</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-6 rounded-2xl shadow-xl text-white transform hover:scale-105 transition-all">
-              <p className="text-sm font-medium text-green-100">Tháng này</p>
-              <div className="flex justify-between items-end">
-                <p className="text-4xl font-bold">{thisMonthRecords}</p>
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <span className="text-white text-2xl">📈</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-2xl shadow-xl text-white transform hover:scale-105 transition-all">
-              <p className="text-sm font-medium text-orange-100">Chờ tái khám</p>
-              <div className="flex justify-between items-end">
-                <p className="text-4xl font-bold">{pendingFollowUp}</p>
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <span className="text-white text-2xl">⏰</span>
-                </div>
-              </div>
-            </div>
+          {/* View mode toggle */}
+          <div className="flex gap-4 mb-6">
+            <button
+              className={`px-4 py-2 rounded-xl font-semibold border transition-all ${viewMode === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-600 hover:bg-blue-50'}`}
+              onClick={() => { setViewMode('all'); setSelectedCustomer(null); setSelectedRecord(null); }}
+            >
+              Xem tất cả hồ sơ bệnh án
+            </button>
+            <button
+              className={`px-4 py-2 rounded-xl font-semibold border transition-all ${viewMode === 'byCustomer' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-600 hover:bg-blue-50'}`}
+              onClick={() => { setViewMode('byCustomer'); setSelectedCustomer(null); setSelectedRecord(null); }}
+            >
+              Xem theo tài khoản đặt lịch
+            </button>
           </div>
-
           {/* Search and Filter */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border p-6 mb-8">
             <div className="flex flex-col lg:flex-row items-center gap-4">
@@ -269,29 +277,58 @@ export default function DoctorMedicalRecordsPage() {
             </div>
           </div>
 
-          {/* Records List */}
-          {loading && (
-            <div className="text-center p-12">
-              <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-              <p className="mt-4 text-gray-600">Đang tải hồ sơ bệnh án...</p>
+          {/* Giao diện theo chế độ xem */}
+          {viewMode === 'byCustomer' && !selectedCustomer && !selectedRecord && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold mb-4">Danh sách tài khoản đặt lịch</h2>
+              {Object.keys(groupedByCustomer).length === 0 && (
+                <div className="text-gray-500">Không có dữ liệu.</div>
+              )}
+              {Object.keys(groupedByCustomer).map((customer) => (
+                <div
+                  key={customer}
+                  className="bg-white rounded-xl shadow p-4 cursor-pointer hover:bg-blue-50 border flex items-center justify-between"
+                  onClick={() => setSelectedCustomer(customer)}
+                >
+                  <span className="font-semibold text-lg">{customer}</span>
+                  <span className="text-gray-500">{groupedByCustomer[customer].length} lượt đặt</span>
+                </div>
+              ))}
             </div>
           )}
-
-          {error && (
-            <div className="text-center p-12 text-red-600">
-              <span className="text-4xl mb-2 block">⚠️</span>
-              <p>{error}</p>
+          {viewMode === 'byCustomer' && selectedCustomer && !selectedRecord && (
+            <div className="space-y-4">
+              <button className="mb-4 text-blue-600 underline" onClick={() => { setSelectedCustomer(null); setSelectedRecord(null); }}>
+                ← Quay lại danh sách tài khoản
+              </button>
+              <h2 className="text-2xl font-bold mb-4">Các bệnh nhân được tài khoản <span className='text-blue-700'>{selectedCustomer}</span> đặt lịch</h2>
+              {(groupedByCustomer[selectedCustomer as string] || []).map((record) => (
+                <div
+                  key={record.record_id}
+                  className="bg-white rounded-xl shadow p-4 border mb-2 cursor-pointer hover:bg-blue-50"
+                  onClick={() => setSelectedRecord(record)}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div>
+                      <span className="font-semibold">Tên bệnh nhân: </span>{record.patient_name}
+                    </div>
+                    <div>
+                      <span className="font-semibold">Ngày giờ: </span>{formatDate(record.slot_date)} {record.start_time} - {record.end_time}
+                    </div>
+                    <div>
+                      <span className="font-semibold">Lý do khám: </span>{record.reason || 'Không có'}
+                    </div>
+                    <div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${record.visit_count && record.visit_count > 1 ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {record.visit_count && record.visit_count > 1 ? `Khám lại lần ${record.visit_count}` : 'Lần khám: 1'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          {!loading && !error && filteredRecords.length === 0 && (
-            <div className="text-center p-12 text-gray-500">
-              <span className="text-6xl mb-4 block">📋</span>
-              <h3>Không tìm thấy hồ sơ bệnh án nào.</h3>
-            </div>
-          )}
-
-          {!loading && !error && filteredRecords.length > 0 && (
+          {viewMode === 'all' && !selectedRecord && (
             <div className="space-y-6">
               {filteredRecords.map((record) => (
                 <div 
@@ -312,6 +349,9 @@ export default function DoctorMedicalRecordsPage() {
                     <div className="text-right">
                       <p className="text-sm text-gray-500">{formatDate(record.slot_date)}</p>
                       <p className="text-sm text-gray-500">{record.start_time} - {record.end_time}</p>
+                      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${record.visit_count && record.visit_count > 1 ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {record.visit_count && record.visit_count > 1 ? `Khám lại lần ${record.visit_count}` : 'Lần khám: 1'}
+                      </span>
                     </div>
                   </div>
 
@@ -335,10 +375,6 @@ export default function DoctorMedicalRecordsPage() {
                       <span className="flex items-center">
                         <span className="mr-1">📧</span>
                         {record.patient_email || 'N/A'}
-                      </span>
-                      <span className="flex items-center">
-                        <span className="mr-1">🏥</span>
-                        Lần khám: {record.visit_count || 1}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -516,6 +552,33 @@ export default function DoctorMedicalRecordsPage() {
                       </div>
                     </>
                   )}
+                </div>
+                {/* Lịch sử khám của bệnh nhân này */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-bold mb-2 text-blue-700">Lịch sử khám của bệnh nhân này</h3>
+                  <div className="space-y-2">
+                    {records.filter(r => r.patient_name === selectedRecord.patient_name)
+                      .sort((a, b) => {
+                        const dateA = new Date(a.slot_date || a.created_at);
+                        const dateB = new Date(b.slot_date || b.created_at);
+                        if (dateA.getTime() !== dateB.getTime()) return dateA.getTime() - dateB.getTime();
+                        if (a.start_time && b.start_time) return a.start_time.localeCompare(b.start_time);
+                        return 0;
+                      })
+                      .map((rec, idx) => (
+                        <div key={rec.record_id} className={`p-3 rounded-xl border flex items-center justify-between ${rec.record_id === selectedRecord.record_id ? 'bg-blue-50 border-blue-400' : 'bg-gray-50'}`}>
+                          <div>
+                            <span className="font-semibold">Lần {idx + 1}:</span> {formatDate(rec.slot_date)} {rec.start_time} - {rec.end_time}
+                          </div>
+                          <div>
+                            <span className="text-gray-600">{rec.customer_name}</span>
+                            <span className={`ml-3 px-3 py-1 rounded-full text-sm font-medium ${idx > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                              {idx > 0 ? `Khám lại lần ${idx + 1}` : 'Lần khám: 1'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>

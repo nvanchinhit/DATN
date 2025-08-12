@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
 
           // Gửi email xác thực
           const verifyToken = jwt.sign({ id: userId }, secret, { expiresIn: "1d" });
-          const verifyUrl = `http://localhost:3000/verify-email?token=${verifyToken}`;
+          const verifyUrl = `http://nvanchinhit.id.vn/verify-email?token=${verifyToken}`;
 
 try {
   await sendMail({
@@ -146,37 +146,33 @@ exports.login = (req, res) => {
     });
   });
 };
-exports.forgotPassword = (req, res) => {
+exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   if (!email) return res.status(400).json({ msg: "Vui lòng nhập email!" });
 
-  db.query("SELECT * FROM customers WHERE email = ?", [email], (err, result) => {
-    if (err) return res.status(500).json({ msg: "Lỗi server!" });
-    if (result.length === 0) {
+  try {
+    // Kiểm tra ở bảng customers
+    const [customers] = await db.promise().query("SELECT * FROM customers WHERE email = ?", [email]);
+    if (customers.length === 0) {
       return res.status(400).json({ msg: "Email không tồn tại trong hệ thống!" });
     }
-
-    const user = result[0];
-    const resetToken = jwt.sign({ id: user.id }, secret, { expiresIn: "15m" });
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
-
-    sendMail({
+    const user = customers[0];
+    const resetToken = jwt.sign({ id: user.id, type: 'customer' }, secret, { expiresIn: "15m" });
+    const resetUrl = `http://nvanchinhit.id.vn/reset-password?token=${resetToken}`;
+    await sendMail({
       to: email,
       subject: "Đặt lại mật khẩu",
       html: `<p>Xin chào ${user.name},</p>
              <p>Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để thực hiện:</p>
              <a href="${resetUrl}">${resetUrl}</a>
              <p>Liên kết có hiệu lực trong 15 phút.</p>`
-    })
-      .then(() => {
-        res.json({ msg: "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư!" });
-      })
-      .catch((err) => {
-        console.error("❌ Gửi mail thất bại:", err);
-        res.status(500).json({ msg: "Lỗi khi gửi email!" });
-      });
-  });
+    });
+    return res.json({ msg: "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi xử lý forgotPassword:", err);
+    return res.status(500).json({ msg: "Lỗi server!" });
+  }
 };
 
 exports.resetPassword = async (req, res) => {
@@ -217,7 +213,7 @@ exports.resendVerification = (req, res) => {
     }
 
     const verifyToken = jwt.sign({ id: user.id }, secret, { expiresIn: "1d" });
-    const verifyUrl = `http://localhost:3000/verify-email?token=${verifyToken}`;
+    const verifyUrl = `http://nvanchinhit.id.vn/verify-email?token=${verifyToken}`;
 
     sendMail({
       to: user.email,
