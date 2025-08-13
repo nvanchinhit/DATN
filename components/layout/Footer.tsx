@@ -16,8 +16,7 @@ export default function Footer() {
   const quickLinks = [
     { href: "/about-us", label: "Về chúng tôi" },
     { href: "/specialty", label: "Chuyên khoa" },
-    { href: "/doctors", label: "Đội ngũ Bác sĩ" },
-    { href: "/shop", label: "Nhà thuốc online" },
+    { href: "/staff", label: "Đội ngũ Bác sĩ" },
     { href: "/faq", label: "Câu hỏi thường gặp" },
   ];
 
@@ -25,7 +24,7 @@ export default function Footer() {
     { href: "/booking", label: "Đặt lịch khám" },
     { href: "/profile", label: "Quản lý hồ sơ" },
     { href: "/contact-us", label: "Hỗ trợ khách hàng" },
-    { href: "/privacy-policy", label: "Chính sách bảo mật" },
+    { href: "/refund-policy", label: "Chính sách hoàn tiền" },
   ];
 
   return (

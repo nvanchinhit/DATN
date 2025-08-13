@@ -59,7 +59,6 @@ export default function Header() {
 
   const navLinks = [
     { href: "/", label: "Trang chủ" },
-    { href: "/shop", label: "Sản phẩm" },
     { href: "/specialty", label: "Chuyên khoa" },
     { href: "/staff", label: "Bác Sĩ"},
     { href: "/about-us", label: "Về chúng tôi" },

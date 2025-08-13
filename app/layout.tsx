@@ -11,8 +11,13 @@ import { AuthProvider } from '@/app/contexts/page';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TDCARE',
+  title: 'Hệ thống đặt lịch khám chất lượng số 1',
   description: 'Xây dựng hệ thống bán thuốc & đặt lịch khám trực tuyến',
+  icons: {
+    icon: 'https://png.pngtree.com/png-clipart/20230812/original/pngtree-clinic-logo-healthy-construction-vector-picture-image_10448239.png',
+    shortcut: 'https://png.pngtree.com/png-clipart/20230812/original/pngtree-clinic-logo-healthy-construction-vector-picture-image_10448239.png',
+    apple: 'https://png.pngtree.com/png-clipart/20230812/original/pngtree-clinic-logo-healthy-construction-vector-picture-image_10448239.png',
+  },
 };
 
 export default function RootLayout({
