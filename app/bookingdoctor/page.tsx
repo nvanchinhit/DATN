@@ -84,7 +84,10 @@ function DoctorSelectionModal({
                           <p className="text-sm text-gray-600">Bác sĩ chuyên khoa</p>
                           {typeof slot.doctor.price !== 'undefined' && (
                             <p className="text-sm text-green-600 font-bold mt-1">
-                              Giá khám: {Number(slot.doctor.price).toLocaleString('vi-VN', { minimumFractionDigits: 0 })} VND
+                              Giá khám: {Number(slot.doctor.price).toLocaleString('vi-VN', { 
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0 
+                })} VND
                             </p>
                           )}
                         </div>

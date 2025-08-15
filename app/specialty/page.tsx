@@ -44,7 +44,10 @@ function SpecialtyCard({ name, image, price, onClick }: Specialization & { onCli
         {price > 0 && (
           <div className="mb-3">
             <span className="text-lg font-bold text-green-600">
-              {Number(price).toLocaleString('vi-VN')} VND
+                              {Number(price).toLocaleString('vi-VN', { 
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0 
+                })} VND
             </span>
             <span className="text-sm text-gray-500 ml-1">/lần khám</span>
           </div>

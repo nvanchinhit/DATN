@@ -131,6 +131,34 @@ router.get('/all', authMiddleware, isAdmin, (req, res) => {
     });
 });
 
+// API: Lấy đánh giá của một bác sĩ cụ thể (công khai)
+router.get('/doctor/:doctorId', (req, res) => {
+    const doctorId = req.params.doctorId;
+    
+    const sql = `
+        SELECT
+            r.id,
+            r.rating,
+            r.comment,
+            r.created_at,
+            r.status,
+            c.name AS customer_name,
+            c.email AS customer_email
+        FROM ratings AS r
+        JOIN customers AS c ON r.customer_id = c.id
+        WHERE r.doctor_id = ? AND r.status = 'approved'
+        ORDER BY r.created_at DESC
+    `;
+    
+    db.query(sql, [doctorId], (err, results) => {
+        if (err) {
+            console.error("Lỗi khi lấy đánh giá của bác sĩ:", err);
+            return res.status(500).json({ message: "Lỗi máy chủ khi lấy dữ liệu." });
+        }
+        res.status(200).json(results);
+    });
+});
+
 // API: Duyệt đánh giá (chỉ admin)
 router.put('/:id/approve', authMiddleware, isAdmin, (req, res) => {
     const ratingId = req.params.id;

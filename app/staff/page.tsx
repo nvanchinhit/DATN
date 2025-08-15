@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Stethoscope, Star, ArrowRight, Loader2, AlertTriangle, ChevronLeft, ChevronRight, SlidersHorizontal, FilterX } from 'lucide-react';
-import DoctorDetailsModal from './DoctorDetailsModal';
+
 import { Doctor, Specialization } from '@/types'; // <<< IMPORT TỪ FILE CHUNG
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
 // <<< XÓA BỎ CÁC INTERFACE CỤC BỘ Ở ĐÂY >>>
 
 // === Component: Thẻ Bác sĩ (Card) ===
-const DoctorCard = ({ doctor, onSelect, onBook }: { doctor: Doctor, onSelect: (doc: Doctor) => void, onBook: (docId: number, specialtyName: string) => void }) => {
+const DoctorCard = ({ doctor, onBook, router }: { doctor: Doctor, onBook: (docId: number, specialtyName: string) => void, router: any }) => {
   const imageUrl = doctor.img && doctor.img.startsWith('http') ? doctor.img : doctor.img ? `${API_URL}${doctor.img}` : '/default-avatar.png';
   return (
     <div className="group flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 overflow-hidden border border-gray-100">
@@ -35,13 +35,16 @@ const DoctorCard = ({ doctor, onSelect, onBook }: { doctor: Doctor, onSelect: (d
         {doctor.price && doctor.price > 0 && (
           <div className="mb-4">
             <span className="text-lg font-bold text-green-600">
-              {doctor.price.toLocaleString('vi-VN')} VNĐ
+              {doctor.price.toLocaleString('vi-VN', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0 
+              })} VNĐ
             </span>
             <span className="text-sm text-gray-500 ml-1">/lần khám</span>
           </div>
         )}
         <div className="mt-auto flex gap-3">
-          <button onClick={() => onSelect(doctor)} className="flex-1 text-center bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-200 transition">Xem hồ sơ</button>
+          <button onClick={() => router.push(`/doctors/${doctor.id}`)} className="flex-1 text-center bg-gray-100 text-gray-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-200 transition">Xem hồ sơ</button>
           <button onClick={() => onBook(doctor.id, doctor.specialty_name || '')} className="flex-1 text-center bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">Đặt lịch <ArrowRight size={16}/></button>
         </div>
       </div>
@@ -71,7 +74,7 @@ export default function DoctorsListPage() {
   const [filterSpecialty, setFilterSpecialty] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
   const router = useRouter();
@@ -185,7 +188,7 @@ export default function DoctorsListPage() {
             <p className="text-sm text-gray-600 mb-4">Tìm thấy <span className="font-bold text-blue-600">{filteredAndSortedDoctors.length}</span> bác sĩ.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {paginatedDoctors.map(doc => (
-                <DoctorCard key={doc.id} doctor={doc} onSelect={setSelectedDoctor} onBook={handleBookAppointment} />
+                <DoctorCard key={doc.id} doctor={doc} onBook={handleBookAppointment} router={router} />
               ))}
             </div>
             {totalPages > 1 && (
@@ -201,7 +204,7 @@ export default function DoctorsListPage() {
         )}
       </main>
 
-      {selectedDoctor && <DoctorDetailsModal doctor={selectedDoctor} specialtyName={selectedDoctor.specialty_name || ''} onClose={() => setSelectedDoctor(null)} />}
+
     </div>
   );
 }

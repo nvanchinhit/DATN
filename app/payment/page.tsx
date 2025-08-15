@@ -292,7 +292,10 @@ const CheckoutPage = () => {
   };
 
   const formatVND = (number: number) => {
-    return isClient ? number.toLocaleString('vi-VN') + ' đ' : number + ' đ';
+    return isClient ? number.toLocaleString('vi-VN', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    }) + ' đ' : number + ' đ';
   };
 
   const getStatusDisplay = () => {
