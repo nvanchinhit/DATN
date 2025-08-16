@@ -128,10 +128,7 @@ export default function DoctorDetailsModal({ doctorId, isOpen, onClose }: Doctor
                           <p className="text-blue-200 font-medium mt-1 flex items-center justify-center sm:justify-start gap-2"><Stethoscope size={18}/> {doctor.specialization_name}</p>
                           {doctor.specialty_price && (
                             <p className="text-green-200 font-semibold mt-2 text-lg">
-                              Giá khám: {Number(doctor.specialty_price).toLocaleString('vi-VN', { 
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0 
-                })} VND
+                              Giá khám: {Number(doctor.specialty_price).toLocaleString('vi-VN')} VND
                             </p>
                           )}
                       </div>

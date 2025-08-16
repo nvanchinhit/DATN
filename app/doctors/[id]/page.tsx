@@ -327,10 +327,7 @@ export default function DoctorDetailPage() {
                         </h3>
                         <div className="text-center">
                           <p className="text-4xl font-bold text-emerald-600 mb-2">
-                            {doctor.price.toLocaleString('vi-VN', { 
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0 
-                            })} VNĐ
+                            {doctor.price.toLocaleString('vi-VN')} VNĐ
                           </p>
                           <p className="text-gray-600 text-lg">/lần khám</p>
                         </div>

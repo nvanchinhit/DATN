@@ -292,10 +292,7 @@ export default function SpecialtiesAdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sp.id}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{sp.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {sp.price !== null && sp.price !== undefined ? `${sp.price.toLocaleString('vi-VN', { 
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0 
-                })} VNĐ` : 'Chưa cập nhật'}
+                           {sp.price !== null && sp.price !== undefined ? `${sp.price.toLocaleString('vi-VN')} VNĐ` : 'Chưa cập nhật'}
                         </td>
                         <td className="px-6 py-4">
                             <img src={`${API_URL}${sp.image}`} alt={sp.name} className="w-24 h-14 object-cover rounded-md border" />

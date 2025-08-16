@@ -23,10 +23,8 @@ const CartPage: React.FC = () => {
 
   const formatCurrency = (amount: number) => {
     if (typeof window === 'undefined') return amount.toString();
-    return amount.toLocaleString('vi-VN', { 
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0 
-    }) + ' VND';
+    return amount.toLocaleString('vi-VN') + ' VND';
+
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
