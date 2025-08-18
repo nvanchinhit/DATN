@@ -56,6 +56,7 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       a.doctor_note,
       a.follow_up_date,
       a.is_examined,
+      a.address,
       c.name AS customer_name,
       c.email AS customer_email,
       dts.slot_date,
