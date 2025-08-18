@@ -34,6 +34,7 @@ const scheduleRoutes = require('./schedule.routes');
 const paymentRoutes = require('./payment.routes');
 const chatRoutes = require('./chatRoutes');
 const examinationRoutes = require('./examination.routes');
+const { sendRejectionEmail } = require('../utils/email');
 
 
 
@@ -258,16 +259,58 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
 
 router.put('/appointments/:id/reject', (req, res) => {
   const { id } = req.params;
+  const { reject_reason } = req.body; // nhận lý do từ client
+
+  // 1. Cập nhật trạng thái và lý do từ chối
   const sql = `
     UPDATE appointments
-    SET status = 'Từ chối'
+    SET status = 'Từ chối', reject_reason = ?
     WHERE id = ?`;
-  db.query(sql, [id], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Lỗi khi từ chối lịch hẹn.' });
-    if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
-    res.json({ message: 'Đã từ chối lịch hẹn.' });
+
+  db.query(sql, [reject_reason, id], (err, result) => {
+    if (err) {
+      console.error("❌ Lỗi khi từ chối lịch hẹn:", err);
+      return res.status(500).json({ error: 'Lỗi khi từ chối lịch hẹn.' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy lịch hẹn.' });
+    }
+
+    // 2. Lấy thêm thông tin lịch hẹn để gửi mail
+    const getAppointmentSql = `
+      SELECT a.*, d.name AS doctor_name,
+             dts.slot_date, dts.start_time, dts.end_time
+      FROM appointments a
+      JOIN doctors d ON a.doctor_id = d.id
+      JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+      WHERE a.id = ?`;
+
+    db.query(getAppointmentSql, [id], (err2, rows) => {
+      if (err2 || rows.length === 0) {
+        console.error('❌ Không lấy được dữ liệu để gửi mail từ chối:', err2);
+        return res.json({ message: 'Đã từ chối lịch hẹn (không gửi mail).' });
+      }
+
+      const appt = rows[0];
+
+      // 3. Gửi email kèm lý do từ chối
+      sendRejectionEmail({
+        name: appt.name,
+        email: appt.email,
+        doctor: appt.doctor_name,
+        date: appt.slot_date,
+        start: appt.start_time,
+        end: appt.end_time,
+        reason: appt.reason,
+        payment: appt.payment_status,
+        reject_reason: reject_reason || "Không có lý do cụ thể"
+      });
+
+      res.json({ message: 'Đã từ chối lịch hẹn và gửi email.', reject_reason });
+    });
   });
 });
+
 
 
 router.get('/specializations', (req, res) => {

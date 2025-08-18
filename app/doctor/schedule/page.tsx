@@ -34,6 +34,106 @@ import {
   CreditCard // Icon cho thanh toán
 } from "lucide-react";
 
+// Form chọn lý do từ chối
+interface RejectReasonProps {
+  appointmentId: number;
+  onRejected: () => void;
+  onCancel: () => void;
+}
+
+const RejectReasonForm: React.FC<RejectReasonProps> = ({ appointmentId, onRejected, onCancel }) => {
+  const reasons = [
+    "Bác sĩ bận đột xuất",
+    "Bệnh nhân cung cấp thông tin chưa đầy đủ",
+    "Lịch trùng với ca khác",
+    "Không phù hợp chuyên khoa",
+    "Khác"
+  ];
+
+  const [selectedReason, setSelectedReason] = React.useState("");
+  const [customReason, setCustomReason] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const handleReject = async () => {
+    if (!selectedReason) {
+      alert("Vui lòng chọn lý do từ chối");
+      return;
+    }
+
+    let finalReason = selectedReason;
+    if (selectedReason === "Khác") {
+      finalReason = customReason.trim() || "Không có lý do cụ thể";
+    }
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments/${appointmentId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reject_reason: finalReason })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Lỗi khi từ chối lịch hẹn");
+      alert(data.message || "Đã từ chối lịch hẹn");
+      onRejected();
+    } catch (error: any) {
+      console.error("Lỗi khi từ chối:", error);
+      alert(`❌ ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 border rounded-lg bg-white shadow-md">
+      <h3 className="font-bold mb-2 text-red-600">Chọn lý do từ chối</h3>
+      {reasons.map((reason, idx) => (
+        <div key={idx} className="flex items-center mb-2">
+          <input
+            type="radio"
+            id={`reason-${idx}`}
+            name="rejectReason"
+            value={reason}
+            checked={selectedReason === reason}
+            onChange={(e) => setSelectedReason(e.target.value)}
+            className="mr-2"
+          />
+          <label className="text-black" htmlFor={`reason-${idx}`}>{reason}</label>
+        </div>
+      ))}
+
+      {selectedReason === "Khác" && (
+        <textarea
+          className="w-full p-2 border rounded mt-2"
+          rows={3}
+          placeholder="Nhập lý do khác..."
+          value={customReason}
+          onChange={(e) => setCustomReason(e.target.value)}
+        />
+      )}
+
+      <div className="mt-3 flex gap-3">
+        <button
+          onClick={handleReject}
+          disabled={submitting || !selectedReason}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400"
+        >
+          {submitting ? "Đang xử lý..." : "Xác nhận từ chối"}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={submitting}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 disabled:bg-gray-400"
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+};
+
 interface BookingDetail {
   id: number;
   patientName: string;
@@ -95,6 +195,7 @@ export default function DoctorSchedulePage() {
   const [startDate, setStartDate] = useState(''); // Ngày bắt đầu cho bộ lọc tùy chỉnh
   const [endDate, setEndDate] = useState(''); // Ngày kết thúc cho bộ lọc tùy chỉnh
   const [showHistoricalData, setShowHistoricalData] = useState(false); // Hiển thị dữ liệu lịch sử
+  const [showRejectForm, setShowRejectForm] = useState(false); // Hiển thị form lý do từ chối
   
 
   
@@ -304,6 +405,7 @@ export default function DoctorSchedulePage() {
   const handleCloseModal = () => {
       setSelectedSlot(null);
       setShowMedicalForm(false); // Reset state khi đóng
+      setShowRejectForm(false);
   }
 
   const handleStatusUpdate = async (newStatus: "Đang khám" | "Đã khám xong" | "Đã xác nhận") => {
@@ -1110,7 +1212,7 @@ export default function DoctorSchedulePage() {
                       </p>
 
                       {/* Actions for "Chưa xác nhận" */}
-                      {selectedSlot.booking?.status === "Chưa xác nhận" && (
+                      {selectedSlot.booking?.status === "Chưa xác nhận" && !showRejectForm && (
                         <div className="flex gap-4">
                           <button 
                             onClick={() => handleAppointmentAction("confirm")} 
@@ -1120,7 +1222,7 @@ export default function DoctorSchedulePage() {
                             Xác nhận
                           </button>
                           <button 
-                            onClick={() => handleAppointmentAction("reject")} 
+                            onClick={() => setShowRejectForm(true)} 
                             disabled={submitting || showHistoricalData} 
                             className="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
                           >
@@ -1129,12 +1231,29 @@ export default function DoctorSchedulePage() {
                         </div>
                       )}
 
+                      {/* Reject Reason Form */}
+                      {selectedSlot.booking?.status === "Chưa xác nhận" && showRejectForm && selectedSlot.booking?.id && (
+                        <RejectReasonForm
+                          appointmentId={selectedSlot.booking.id}
+                          onRejected={() => {
+                            setShowRejectForm(false);
+                            handleCloseModal();
+                            fetchDoctorSlots();
+                          }}
+                          onCancel={() => setShowRejectForm(false)}
+                        />
+                      )}
+
                       {/* Action for "Đã xác nhận" */}
                       {selectedSlot.booking?.status === 'Đã xác nhận' && (
                          <button 
                            onClick={() => {
-                             // Chuyển sang trang khám bệnh mới
-                             router.push(`/doctor/examination?id=${selectedSlot.booking?.id}&patientId=${selectedSlot.booking?.customer_id}`);
+                             const todayStr = new Date().toISOString().split('T')[0];
+                             if (selectedSlot.date !== todayStr) {
+                               alert('Chỉ được bắt đầu khám đúng ngày hẹn.');
+                               return;
+                             }
+                             handleStatusUpdate('Đang khám');
                            }} 
                            disabled={submitting || showHistoricalData} 
                            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
@@ -1169,7 +1288,7 @@ export default function DoctorSchedulePage() {
                   </div>
 
                   {/* Medical Record Section */}
-                  {selectedSlot.booking?.status === "Đã khám xong" && (
+                  {selectedSlot.booking && (selectedSlot.booking.status === "Đã khám xong" || showMedicalForm) && (
                      <div className="bg-gray-50 p-6 rounded-2xl border">
                         <h3 className="text-xl font-bold text-gray-800 mb-4">Hồ sơ bệnh án</h3>
                         
