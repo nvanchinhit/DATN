@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Examination API</title>
+</head>
+<body>
+    <h1>Test Examination API</h1>
+    
+    <div>
+        <h3>Test Save Examination</h3>
+        <button onclick="testSave()">Test Save</button>
+        <div id="saveResult"></div>
+    </div>
+
+    <div>
+        <h3>Test Get Examination</h3>
+        <input type="number" id="appointmentId" placeholder="Appointment ID" value="68">
+        <button onclick="testGet()">Test Get</button>
+        <div id="getResult"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        async function testSave() {
+            const data = {
+                appointmentId: 68,
+                patientId: 15,
+                vitalSigns: {
+                    temperature: 36.5,
+                    bloodPressure: "120/80",
+                    heartRate: 72,
+                    weight: 65,
+                    height: 170
+                },
+                symptoms: ["Sốt", "Ho"],
+                allergies: ["Không có"],
+                medications: ["Không có"],
+                notes: "Test note",
+                diagnosis: "Cảm cúm",
+                recommendations: "Nghỉ ngơi, uống nhiều nước",
+                followUpDate: "2025-08-15",
+                status: "draft"
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/examination/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                document.getElementById('saveResult').innerHTML = `
+                    <pre>Status: ${response.status}</pre>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('saveResult').innerHTML = `
+                    <pre style="color: red;">Error: ${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testGet() {
+            const appointmentId = document.getElementById('appointmentId').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/examination/${appointmentId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE'
+                    }
+                });
+
+                const result = await response.json();
+                document.getElementById('getResult').innerHTML = `
+                    <pre>Status: ${response.status}</pre>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('getResult').innerHTML = `
+                    <pre style="color: red;">Error: ${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

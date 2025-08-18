@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Sidebardoctor from "@/components/layout/Sidebardoctor";
 import {
   Calendar,
@@ -67,6 +68,7 @@ interface GroupedSlotsApiResponse {
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function DoctorSchedulePage() {
+  const router = useRouter();
   const [doctorId, setDoctorId] = useState<number | null>(null);
   const [allSlots, setAllSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -214,6 +216,58 @@ export default function DoctorSchedulePage() {
       fetchDoctorSlots();
     }
   }, [startDate, endDate, doctorId, fetchDoctorSlots]);
+
+  // Refresh data when page becomes visible (e.g., returning from examination page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && doctorId) {
+        console.log("🔍 [DEBUG] Page became visible, refreshing data...");
+        fetchDoctorSlots();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh when window gains focus
+    const handleFocus = () => {
+      if (doctorId) {
+        console.log("🔍 [DEBUG] Window gained focus, refreshing data...");
+        fetchDoctorSlots();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [doctorId, fetchDoctorSlots]);
+
+  // Refresh data when returning from examination page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Set a flag in sessionStorage to indicate we're going to examination page
+      sessionStorage.setItem('returningFromExamination', 'true');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Check if we're returning from examination page
+    const returningFromExamination = sessionStorage.getItem('returningFromExamination');
+    if (returningFromExamination === 'true' && doctorId) {
+      console.log("🔍 [DEBUG] Returning from examination page, refreshing data...");
+      sessionStorage.removeItem('returningFromExamination');
+      // Small delay to ensure the page is fully loaded
+      setTimeout(() => {
+        fetchDoctorSlots();
+      }, 100);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [doctorId, fetchDoctorSlots]);
 
   // Load payment settings
   useEffect(() => {
@@ -1079,9 +1133,8 @@ export default function DoctorSchedulePage() {
                       {selectedSlot.booking?.status === 'Đã xác nhận' && (
                          <button 
                            onClick={() => {
-                             console.log("🔍 [DEBUG] Bắt đầu khám button clicked");
-                             console.log("🔍 [DEBUG] Selected slot:", selectedSlot);
-                             handleStatusUpdate('Đang khám');
+                             // Chuyển sang trang khám bệnh mới
+                             router.push(`/doctor/examination?id=${selectedSlot.booking?.id}&patientId=${selectedSlot.booking?.customer_id}`);
                            }} 
                            disabled={submitting || showHistoricalData} 
                            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"

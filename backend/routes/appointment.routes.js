@@ -388,4 +388,74 @@ router.put('/:id/payment', (req, res) => {
   });
 });
 
+/**
+ * ==========================================================
+ * ROUTE 6: LẤY THÔNG TIN CHI TIẾT CUỘC HẸN (Dành cho bác sĩ)
+ * METHOD: GET /api/appointments/:id/details
+ * ==========================================================
+ */
+router.get('/:id/details', [authMiddleware, isDoctor], (req, res) => {
+  const { id: appointmentId } = req.params;
+  const doctorId = req.user.id;
+
+  const sql = `
+    SELECT 
+      a.id,
+      a.customer_id,
+      a.name,
+      a.age,
+      a.gender,
+      a.email,
+      a.phone,
+      a.address,
+      a.reason,
+      a.status,
+      a.payment_status,
+      a.payment_method,
+      a.paid_amount,
+      a.payment_date,
+      a.transaction_id,
+      d.name AS doctor_name,
+      d.room_number,
+      ts.slot_date,
+      ts.start_time,
+      ts.end_time
+    FROM appointments a
+    JOIN doctors d ON a.doctor_id = d.id
+    JOIN doctor_time_slot ts ON a.time_slot_id = ts.id
+    WHERE a.id = ? AND a.doctor_id = ?
+  `;
+
+  db.query(sql, [appointmentId, doctorId], (err, results) => {
+    if (err) {
+      console.error("❌ Lỗi khi lấy thông tin cuộc hẹn:", err);
+      return res.status(500).json({ message: 'Lỗi máy chủ khi lấy thông tin cuộc hẹn.' });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy cuộc hẹn hoặc bạn không có quyền xem.' });
+    }
+
+    const appointment = results[0];
+    
+    // Format dates and times
+    const appointmentDate = new Date(appointment.slot_date);
+    const formattedDate = appointmentDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+
+    const formattedStartTime = appointment.start_time.substring(0, 5);
+    const formattedEndTime = appointment.end_time.substring(0, 5);
+
+    res.json({
+      ...appointment,
+      slot_date: formattedDate,
+      start_time: formattedStartTime,
+      end_time: formattedEndTime
+    });
+  });
+});
+
 module.exports = router;

@@ -33,6 +33,7 @@ const adminRoutes = require('./admin.routes');
 const scheduleRoutes = require('./schedule.routes');
 const paymentRoutes = require('./payment.routes');
 const chatRoutes = require('./chatRoutes');
+const examinationRoutes = require('./examination.routes');
 
 
 
@@ -46,7 +47,8 @@ router.use('/dashboard', dashboardRoutes); // Gắn đúng path /dashboard/:
 router.use('/medical-records', medicalRecordRoutes);
 router.use('/ratings', ratingRoutes);
 router.use('/schedules', scheduleRoutes);
-router.use('/payment', paymentRoutes); 
+router.use('/payment', paymentRoutes);
+router.use('/examination', examinationRoutes); 
 
 // Các route khác (sản phẩm, chuyên khoa, slot, v.v... giữ nguyên như cũ)
 
