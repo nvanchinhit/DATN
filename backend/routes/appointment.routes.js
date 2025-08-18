@@ -124,7 +124,7 @@ router.post('/', authMiddleware, (req, res) => {
       // Lấy thông tin cần thiết để gửi email và trả về thông tin phòng khám
       const infoSql = `
         SELECT 
-          d.name AS doctor_name, d.room_number, d.floor,
+          d.name AS doctor_name, d.room_number,
           DATE_FORMAT(ts.slot_date, '%d-%m-%Y') AS slot_date,
           TIME_FORMAT(ts.start_time, '%H:%i') AS start_time,
           TIME_FORMAT(ts.end_time, '%H:%i') AS end_time
@@ -150,7 +150,7 @@ router.post('/', authMiddleware, (req, res) => {
             email,
             doctor: mailData.doctor_name || 'Bác sĩ',
             room: room_number,
-            floor: mailData.floor || 'N/A',
+            floor: 'N/A',
             date: mailData.slot_date || '',
             start: mailData.start_time || '',
             end: mailData.end_time || '',
@@ -184,7 +184,7 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
 
     const infoSql = `
       SELECT a.name, a.email, a.reason, a.payment_status,
-             d.name AS doctor_name, d.room_number, d.floor,
+             d.name AS doctor_name, d.room_number,
              DATE_FORMAT(ts.slot_date, '%d-%m-%Y') as slot_date, 
              TIME_FORMAT(ts.start_time, '%H:%i') as start_time, 
              TIME_FORMAT(ts.end_time, '%H:%i') as end_time
@@ -201,7 +201,7 @@ router.put('/:id/confirm', [authMiddleware, isDoctor], (req, res) => {
           email: appt.email,
           doctor: appt.doctor_name,
           room: appt.room_number,
-          floor: appt.floor,
+          floor: 'N/A',
           date: appt.slot_date,
           start: appt.start_time,
           end: appt.end_time,
