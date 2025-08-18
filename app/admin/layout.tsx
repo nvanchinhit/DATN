@@ -87,6 +87,12 @@ const adminMenuGroups = [
         description: 'Danh mục chuyên khoa'
       },
       { 
+        label: 'Hồ sơ bệnh án', 
+        path: '/admin/medical-records', 
+        icon: ClipboardList,
+        description: 'Quản lý hồ sơ bệnh án'
+      },
+      { 
         label: 'Người dùng', 
         path: '/admin/accounts', 
         icon: Users,
