@@ -82,11 +82,6 @@ function DoctorSelectionModal({
                         <div>
                           <p className="text-lg font-semibold text-gray-800">{slot.doctor.name}</p>
                           <p className="text-sm text-gray-600">Bác sĩ chuyên khoa</p>
-                          {typeof slot.doctor.price !== 'undefined' && (
-                            <p className="text-sm text-green-600 font-bold mt-1">
-    Giá khám: {Number(slot.doctor.price).toLocaleString('vi-VN', { minimumFractionDigits: 0 })} VND
-                            </p>
-                          )}
                         </div>
                       </div>
                       <div className="flex w-full sm:w-auto gap-2">
