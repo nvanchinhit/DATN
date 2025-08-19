@@ -210,6 +210,7 @@ exports.updateDoctor = async (req, res) => {
         graduation_date,
         degree_type,
         certificate_authorities,
+        room_number,
     } = req.body;
 
     const imgFile = req.files?.img?.[0];
@@ -225,6 +226,7 @@ exports.updateDoctor = async (req, res) => {
         if (university !== undefined) fieldsToUpdate.university = university;
         if (graduation_date !== undefined) fieldsToUpdate.graduation_date = graduation_date;
         if (degree_type !== undefined) fieldsToUpdate.degree_type = degree_type;
+        if (room_number !== undefined) fieldsToUpdate.room_number = room_number;
 
         if (imgFile) fieldsToUpdate.img = imgFile.filename;
         if (degreeFile) fieldsToUpdate.degree_image = degreeFile.filename;

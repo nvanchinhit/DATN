@@ -17,6 +17,7 @@ interface Doctor {
   experience: string | null;
   account_status: string;
   specialty_name: string;
+  room_number?: string | null;
   degree: {
     image: string | null;
     gpa: string | null;
@@ -47,6 +48,7 @@ interface DoctorFromAPI {
   university: string | null;
   graduation_date: string | null;
   degree_type: string | null;
+  room_number?: string | null;
 }
 
 interface Specialty {
@@ -227,6 +229,7 @@ export default function DoctorsPage() {
               img: getFullUrl(doc.img), introduction: doc.introduction, experience: doc.experience,
               account_status: doc.account_status,
               specialty_name: doc.specialty_name || 'Chưa cập nhật',
+              room_number: doc.room_number || null,
               degree: doc.degree_image ? {
                   image: getFullUrl(doc.degree_image), gpa: doc.gpa, university: doc.university,
                   graduation_date: doc.graduation_date, degree_type: doc.degree_type,
@@ -286,6 +289,38 @@ export default function DoctorsPage() {
     }), [doctors, filterStatus, filterSpecialization, searchTerm]);
   
   const handleViewDetails = (doctor: Doctor) => setSelectedDoctor(doctor);
+  const [savingRoom, setSavingRoom] = useState<boolean>(false);
+  const [roomInput, setRoomInput] = useState<string>('');
+
+  useEffect(() => {
+    if (selectedDoctor) {
+      setRoomInput(selectedDoctor.room_number || '');
+    }
+  }, [selectedDoctor]);
+
+  const handleSaveRoom = async () => {
+    if (!selectedDoctor) return;
+    try {
+      setSavingRoom(true);
+      const formData = new FormData();
+      formData.append('room_number', roomInput);
+      const res = await fetch(`${API_URL}/api/doctors/${selectedDoctor.id}`, {
+        method: 'PUT',
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ msg: 'Cập nhật số phòng thất bại' }));
+        throw new Error(err.msg || 'Cập nhật số phòng thất bại');
+      }
+      setDoctors(prev => prev.map(d => d.id === selectedDoctor.id ? { ...d, room_number: roomInput } : d));
+      setSelectedDoctor(prev => prev ? { ...prev, room_number: roomInput } as Doctor : prev);
+      alert('Đã lưu số phòng.');
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setSavingRoom(false);
+    }
+  };
   const handleCloseModal = () => setSelectedDoctor(null);
 
   return (
@@ -362,6 +397,28 @@ export default function DoctorsPage() {
                         </div>
                     </div>
                     <div className="md:col-span-2 space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-gray-700 flex items-center gap-2">Phòng khám</h4>
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={roomInput}
+                              onChange={(e) => setRoomInput(e.target.value)}
+                              placeholder="Nhập số phòng (VD: P101)"
+                              className="w-full p-2 border rounded-md border-gray-300"
+                            />
+                            <button
+                              onClick={handleSaveRoom}
+                              disabled={savingRoom}
+                              className="px-3 py-2 bg-blue-600 text-white rounded-md disabled:bg-blue-300"
+                            >
+                              {savingRoom ? 'Đang lưu...' : 'Lưu'}
+                            </button>
+                          </div>
+                          {selectedDoctor.room_number && (
+                            <p className="text-xs text-gray-500 mt-1">Hiện tại: {selectedDoctor.room_number}</p>
+                          )}
+                        </div>
                         <div><h4 className="font-semibold text-gray-700 flex items-center gap-2"><Info size={16}/>Giới thiệu</h4><p className="text-gray-600 text-sm mt-1 pl-2 border-l-2 border-blue-200">{selectedDoctor.introduction || 'Chưa có.'}</p></div>
                         <div><h4 className="font-semibold text-gray-700 flex items-center gap-2"><Briefcase size={16}/>Kinh nghiệm</h4><p className="text-gray-600 text-sm mt-1 pl-2 border-l-2 border-blue-200">{selectedDoctor.experience || 'Chưa có.'}</p></div>
                     </div>
