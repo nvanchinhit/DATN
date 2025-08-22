@@ -59,28 +59,60 @@ function sendConfirmationEmail({ name, email, doctor, room, floor, date, start, 
   const mailOptions = {
     from: mailConfig.FROM_ADDRESS,
     to: email,
-    subject: '✅ Lịch hẹn khám đã được xác nhận',
+    subject: '✅ Xác nhận lịch hẹn khám tại bệnh viện',
     html: `
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h2 style="color: #007bff;">XÁC NHẬN LỊCH KHÁM</h2>
+      <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; padding: 20px; background: #f9f9f9;">
+        
+        <!-- Logo -->
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="cid:logo" alt="TDCARE Logo" style="height: 80px;" />
+        </div>
+
+        <!-- Title -->
+        <h2 style="color: #007bff; text-align: center;">XÁC NHẬN LỊCH KHÁM</h2>
+
+        <!-- Greeting -->
         <p>Chào <strong>${name}</strong>,</p>
-        <p>Bệnh viện xin xác nhận bạn đã đặt lịch khám thành công với các thông tin sau:</p>
-        <ul>
-          <li><strong>Bác sĩ:</strong> ${doctor}</li>
-          <li><strong>Phòng:</strong> ${room || 'N/A'}</li>
-          <li><strong>Tầng:</strong> ${floor || 'N/A'}</li>
-          <li><strong>Ngày khám:</strong> ${date}</li>
-          <li><strong>Thời gian:</strong> ${start} - ${end}</li>
-          <li><strong>Lý do khám:</strong> ${reason}</li>
-          <li><strong>Thanh toán:</strong> ${payment}</li>
+
+        <!-- Intro -->
+        <p>Bệnh viện xin trân trọng thông báo rằng lịch hẹn khám của bạn đã được xác nhận thành công với các thông tin chi tiết sau:</p>
+
+        <!-- Details -->
+        <ul style="line-height: 1.6;">
+          <li><strong>Bác sĩ phụ trách khám cho quý khách là:</strong> ${doctor}</li>
+          <li><strong>Phòng khám được sắp xếp cho quý khách là:</strong> ${room || 'Chưa cập nhật'}</li>
+          <li><strong>Tầng mà quý khách sẽ đến khám là:</strong> ${floor || 'Chưa cập nhật'}</li>
+          <li><strong>Ngày khám đã được ấn định là:</strong> ${date}</li>
+          <li><strong>Thời gian khám sẽ diễn ra từ:</strong> ${start} đến ${end}</li>
+          <li><strong>Lý do khám mà quý khách đã đăng ký là:</strong> ${reason}</li>
+          <li><strong>Hình thức thanh toán mà quý khách đã lựa chọn là:</strong> ${payment}</li>
         </ul>
-        <p>Vui lòng đến trước 15 phút để làm thủ tục.</p>
+
+        <!-- Note -->
+        <p>Quý khách vui lòng có mặt tại bệnh viện trước <strong>15 phút</strong> để hoàn tất các thủ tục cần thiết.</p>
+        
+        <!-- Thank you -->
+        <p>Xin cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.</p>
+
+        <!-- Signature -->
         <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
       </div>
-    `
+    `,
+    attachments: [
+      {
+        filename: 'logo.jpeg',
+        path: 'https://i.imgur.com/bUBPKF9.jpeg', // link logo của bạn
+        cid: 'logo' // trùng với src="cid:logo"
+      }
+    ]
   };
+
   transporter.sendMail(mailOptions, (err) => {
-    if (err) console.error('❌ Lỗi gửi mail xác nhận:', err);
+    if (err) {
+      console.error('❌ Lỗi gửi mail xác nhận:', err);
+    } else {
+      console.log('✅ Email xác nhận đã được gửi thành công!');
+    }
   });
 }
 

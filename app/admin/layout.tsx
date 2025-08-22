@@ -217,7 +217,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           {!isCompactMode && (
             <div>
-              <h1 className="text-white font-bold text-lg">MediCare</h1>
+              <h1 className="text-white font-bold text-lg">HEAL THFIRST</h1>
               <p className="text-slate-400 text-xs">Admin Panel</p>
             </div>
           )}

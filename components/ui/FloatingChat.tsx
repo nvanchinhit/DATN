@@ -279,7 +279,7 @@ useEffect(() => {
               </button>
             </div>
             <div className="mt-2 text-center text-xs text-gray-500">
-              Được hỗ trợ bởi Bệnh viện ABC
+              Được hỗ trợ bởi Bệnh viện HEAL THFIRST
             </div>
           </div>
         </div>

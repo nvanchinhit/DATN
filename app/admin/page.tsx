@@ -9,6 +9,8 @@ import { motion } from 'framer-motion'
 
 import { Users, UserCheck, CalendarCheck, Stethoscope, AlertCircle } from 'lucide-react'
 
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 interface StatResponse {
   users: number
   doctors: number
@@ -52,54 +54,73 @@ export default function AdminDashboard() {
         }
 
         // Fetch stats
-        const statsRes = await fetch('/api/admin/stats', { headers })
+        const statsRes = await fetch(`${API_URL}/api/admin/stats`, { headers })
         if (statsRes.ok) {
           const statsData = await statsRes.json()
           setStats(statsData)
         } else {
-          console.error('Lỗi fetch stats:', statsRes.status)
+          const errorText = await statsRes.text();
+          console.error('Lỗi fetch stats:', statsRes.status, errorText);
         }
 
         // Fetch booking ratio
-        const bookingRes = await fetch('/api/admin/booking-ratio-monthly', { headers })
+        const bookingRes = await fetch(`${API_URL}/api/admin/booking-ratio-monthly`, { headers })
         if (bookingRes.ok) {
           const bookingData = await bookingRes.json()
           setBookingRatioByMonth(Array.isArray(bookingData) ? bookingData : [])
+        } else {
+          const errorText = await bookingRes.text();
+          console.error('Lỗi fetch booking ratio:', bookingRes.status, errorText);
         }
 
         // Fetch revenue daily
-        const revenueDailyRes = await fetch('/api/admin/revenue/daily', { headers })
+        const revenueDailyRes = await fetch(`${API_URL}/api/admin/revenue/daily`, { headers })
         if (revenueDailyRes.ok) {
           const revenueDailyData = await revenueDailyRes.json()
           setRevenueByDay(Array.isArray(revenueDailyData) ? revenueDailyData : [])
+        } else {
+          const errorText = await revenueDailyRes.text();
+          console.error('Lỗi fetch revenue daily:', revenueDailyRes.status, errorText);
         }
 
         // Fetch revenue yearly
-        const revenueYearlyRes = await fetch('/api/admin/revenue/yearly', { headers })
+        const revenueYearlyRes = await fetch(`${API_URL}/api/admin/revenue/yearly`, { headers })
         if (revenueYearlyRes.ok) {
           const revenueYearlyData = await revenueYearlyRes.json()
           setRevenueByYear(Array.isArray(revenueYearlyData) ? revenueYearlyData : [])
+        } else {
+          const errorText = await revenueYearlyRes.text();
+          console.error('Lỗi fetch revenue yearly:', revenueYearlyRes.status, errorText);
         }
 
         // Fetch pie stats
-        const pieRes = await fetch('/api/admin/pie-stats', { headers })
+        const pieRes = await fetch(`${API_URL}/api/admin/pie-stats`, { headers })
         if (pieRes.ok) {
           const pieData = await pieRes.json()
           setPieStats(pieData)
+        } else {
+          const errorText = await pieRes.text();
+          console.error('Lỗi fetch pie stats:', pieRes.status, errorText);
         }
 
         // Fetch specialty list
-        const specialtyListRes = await fetch('/api/admin/specialty-list', { headers })
+        const specialtyListRes = await fetch(`${API_URL}/api/admin/specialty-list`, { headers })
         if (specialtyListRes.ok) {
           const specialtyListData = await specialtyListRes.json()
           setAllSpecializations(Array.isArray(specialtyListData) ? specialtyListData.map((s: any) => s.name) : [])
+        } else {
+          const errorText = await specialtyListRes.text();
+          console.error('Lỗi fetch specialty list:', specialtyListRes.status, errorText);
         }
 
         // Fetch specialty stats
-        const specialtyStatsRes = await fetch('/api/admin/specialty-stats', { headers })
+        const specialtyStatsRes = await fetch(`${API_URL}/api/admin/specialty-stats`, { headers })
         if (specialtyStatsRes.ok) {
           const specialtyStatsData = await specialtyStatsRes.json()
           setSpecialtyData(Array.isArray(specialtyStatsData) ? specialtyStatsData : [])
+        } else {
+          const errorText = await specialtyStatsRes.text();
+          console.error('Lỗi fetch specialty stats:', specialtyStatsRes.status, errorText);
         }
 
       } catch (err) {
@@ -439,16 +460,12 @@ export default function AdminDashboard() {
         {/* Titre pour les graphiques */}
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Biểu đồ thống kê chi tiết</h2>
-          <p className="text-gray-600">Phân tích dữ liệu theo thời gian và chuyên khoa</p>
+          <p className="text-gray-600">Phân tích dữ liệu đặt lịch các tháng trong năm</p>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="month" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="month">Theo tháng</TabsTrigger>
-            <TabsTrigger value="day">Theo ngày</TabsTrigger>
-            <TabsTrigger value="year">Theo năm</TabsTrigger>
-          </TabsList>
+       
 
           {/* Month (Line) */}
           <TabsContent value="month">

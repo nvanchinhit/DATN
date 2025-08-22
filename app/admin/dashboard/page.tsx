@@ -460,16 +460,12 @@ export default function AdminDashboard() {
         {/* Titre pour les graphiques */}
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Biểu đồ thống kê chi tiết</h2>
-          <p className="text-gray-600">Phân tích dữ liệu theo thời gian và chuyên khoa</p>
+          <p className="text-gray-600">Phân tích dữ liệu đặt lịch các tháng trong năm</p>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="month" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="month">Theo tháng</TabsTrigger>
-            <TabsTrigger value="day">Theo ngày</TabsTrigger>
-            <TabsTrigger value="year">Theo năm</TabsTrigger>
-          </TabsList>
+       
 
           {/* Month (Line) */}
           <TabsContent value="month">

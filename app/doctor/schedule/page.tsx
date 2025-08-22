@@ -31,7 +31,8 @@ import {
   Heart,
   Star,
   PlayCircle, // Icon cho "Đang khám"
-  CreditCard // Icon cho thanh toán
+  CreditCard, // Icon cho thanh toán
+  XCircle // Icon cho nút từ chối
 } from "lucide-react";
 
 // Form chọn lý do từ chối
@@ -47,6 +48,7 @@ const RejectReasonForm: React.FC<RejectReasonProps> = ({ appointmentId, onReject
     "Bệnh nhân cung cấp thông tin chưa đầy đủ",
     "Lịch trùng với ca khác",
     "Không phù hợp chuyên khoa",
+    "Bệnh nhân không đến",
     "Khác"
   ];
 
@@ -191,7 +193,7 @@ export default function DoctorSchedulePage() {
   const [paymentSettings, setPaymentSettings] = useState<any>(null); // Cài đặt thanh toán
   const [qrCodeUrl, setQrCodeUrl] = useState<string>(''); // URL QR code được tạo
   const [generatingQR, setGeneratingQR] = useState(false); // Đang tạo QR code
-  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'custom'>('today'); // Bộ lọc thời gian
+  const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | 'custom'>('all'); // Bộ lọc thời gian
   const [startDate, setStartDate] = useState(''); // Ngày bắt đầu cho bộ lọc tùy chỉnh
   const [endDate, setEndDate] = useState(''); // Ngày kết thúc cho bộ lọc tùy chỉnh
   const [showHistoricalData, setShowHistoricalData] = useState(false); // Hiển thị dữ liệu lịch sử
@@ -240,12 +242,7 @@ export default function DoctorSchedulePage() {
     const params = new URLSearchParams();
     
     // Thêm tham số bộ lọc thời gian
-    if (dateRange === 'today') {
-      const today = new Date().toISOString().split('T')[0];
-      params.append('start_date', today);
-      params.append('end_date', today);
-      console.log("🔍 [DEBUG] Fetching today's data:", today);
-    } else if (dateRange === 'week') {
+    if (dateRange === 'week') {
       const today = new Date();
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
@@ -305,7 +302,7 @@ export default function DoctorSchedulePage() {
 
   // Auto-fetch when date range changes
   useEffect(() => {
-    if (doctorId && (dateRange === 'today' || dateRange === 'week' || dateRange === 'month')) {
+    if (doctorId && (dateRange === 'all' || dateRange === 'week' || dateRange === 'month')) {
       fetchDoctorSlots();
     }
   }, [dateRange, doctorId, fetchDoctorSlots]);
@@ -749,8 +746,8 @@ export default function DoctorSchedulePage() {
   // Hàm tạo tiêu đề cho khoảng thời gian
   const getDateRangeTitle = () => {
     switch(dateRange) {
-      case 'today':
-        return 'Hôm nay';
+      case 'all':
+        return 'Tất cả lịch hẹn';
       case 'week':
         const today = new Date();
         const startOfWeek = new Date(today);
@@ -899,14 +896,14 @@ export default function DoctorSchedulePage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setDateRange('today')}
+                    onClick={() => setDateRange('all')}
                     className={`px-4 py-2 rounded-lg font-medium transition ${
-                      dateRange === 'today'
+                      dateRange === 'all'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Hôm nay
+                    Tất cả
                   </button>
                   <button
                     onClick={() => setDateRange('week')}
@@ -1029,14 +1026,14 @@ export default function DoctorSchedulePage() {
                   </button>
                   <button
                     onClick={() => {
-                      setDateRange('today');
+                      setDateRange('all');
                       setStartDate('');
                       setEndDate('');
                       setShowHistoricalData(false);
                     }}
                     className="px-6 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition"
                   >
-                    Về hôm nay
+                    Về tất cả
                   </button>
                 </div>
               )}
@@ -1232,7 +1229,7 @@ export default function DoctorSchedulePage() {
                       )}
 
                       {/* Reject Reason Form */}
-                      {selectedSlot.booking?.status === "Chưa xác nhận" && showRejectForm && selectedSlot.booking?.id && (
+                      {((selectedSlot.booking?.status === "Chưa xác nhận" || selectedSlot.booking?.status === "Đã xác nhận") && showRejectForm && selectedSlot.booking?.id) && (
                         <RejectReasonForm
                           appointmentId={selectedSlot.booking.id}
                           onRejected={() => {
@@ -1246,20 +1243,39 @@ export default function DoctorSchedulePage() {
 
                       {/* Action for "Đã xác nhận" */}
                       {selectedSlot.booking?.status === 'Đã xác nhận' && (
-                         <button 
-                           onClick={() => {
-                             const todayStr = new Date().toISOString().split('T')[0];
-                             if (selectedSlot.date !== todayStr) {
-                               alert('Chỉ được bắt đầu khám đúng ngày hẹn.');
-                               return;
-                             }
-                             handleStatusUpdate('Đang khám');
-                           }} 
-                           disabled={submitting || showHistoricalData} 
-                           className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
-                         >
-                           <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
-                         </button>
+                         <div className="space-y-3">
+                            <button 
+                               onClick={() => {
+                                 // Lấy ngày hôm nay theo múi giờ Việt Nam
+                                 const today = new Date();
+                                 const todayStr = today.toLocaleDateString('en-CA'); // Format: YYYY-MM-DD
+                                 
+                                 console.log('🔍 [DEBUG] Today:', todayStr);
+                                 console.log('🔍 [DEBUG] Appointment date:', selectedSlot.date);
+                                 
+                                 // Cho phép khám vào ngày hẹn hoặc sau ngày hẹn (không phải trước ngày hẹn)
+                                 if (selectedSlot.date > todayStr) {
+                                   alert(`Chỉ được bắt đầu khám vào ngày hẹn hoặc sau đó. Hôm nay: ${todayStr}, Ngày hẹn: ${selectedSlot.date}`);
+                                   return;
+                                 }
+                                 
+                                 // Chuyển sang trang examination
+                                 router.push(`/doctor/examination?id=${selectedSlot.booking?.id}&patientId=${selectedSlot.booking?.customer_id}`);
+                               }} 
+                               disabled={submitting || showHistoricalData} 
+                               className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                            >
+                               <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
+                            </button>
+                            
+                            <button
+                               onClick={() => setShowRejectForm(true)}
+                               disabled={submitting}
+                               className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                            >
+                               <XCircle className="w-5 h-5" /><span>Từ chối</span>
+                            </button>
+                         </div>
                       )}
 
                       {/* Action for "Đang khám" */}
@@ -1287,48 +1303,7 @@ export default function DoctorSchedulePage() {
                       )}
                   </div>
 
-                  {/* Medical Record Section */}
-                  {selectedSlot.booking && (selectedSlot.booking.status === "Đã khám xong" || showMedicalForm) && (
-                     <div className="bg-gray-50 p-6 rounded-2xl border">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">Hồ sơ bệnh án</h3>
-                        
-                        {selectedSlot.booking.isExamined ? (
-                            // Display completed record
-                             <div className="space-y-4 text-gray-800">
-                                <div><strong className="text-gray-500 block">Chẩn đoán:</strong><p className="font-semibold text-lg">{selectedSlot.booking.diagnosis}</p></div>
-                                <div><strong className="text-gray-500 block">Ghi chú bác sĩ:</strong><p>{selectedSlot.booking.doctorNote || "Không có"}</p></div>
-                                {selectedSlot.booking.followUpDate && (
-                                     <div><strong className="text-gray-500 block">Lịch tái khám:</strong><p className="font-semibold">{new Date(selectedSlot.booking.followUpDate).toLocaleDateString('vi-VN')}</p></div>
-                                )}
-                            </div>
-                        ) : showMedicalForm ? (
-                            // Show form to create record
-                            <div className="space-y-4">
-                                <div>
-                                   <label className="block text-sm font-medium text-gray-700 mb-1">Chẩn đoán *</label>
-                                   <input type="text" value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="VD: Viêm họng cấp" className="w-full p-3 border-gray-300 rounded-lg"/>
-                                </div>
-                                 <div>
-                                   <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú và hướng dẫn</label>
-                                   <textarea value={doctorNote} onChange={(e) => setDoctorNote(e.target.value)} placeholder="Kê đơn thuốc, lời khuyên..." className="w-full p-3 border-gray-300 rounded-lg" rows={4}/>
-                                </div>
-                                 <div>
-                                   <label className="block text-sm font-medium text-gray-700 mb-1">Ngày tái khám (nếu có)</label>
-                                   <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full p-3 border-gray-300 rounded-lg"/>
-                                </div>
-                                <div className="flex gap-4 pt-4 border-t">
-                                    <button onClick={handleSaveDiagnosis} disabled={submitting || !diagnosis.trim()} className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400">Lưu bệnh án</button>
-                                    <button onClick={() => setShowMedicalForm(false)} className="flex-1 bg-gray-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-600 transition">Hủy</button>
-                                </div>
-                            </div>
-                        ) : (
-                             // Button to show the form
-                            <button onClick={() => setShowMedicalForm(true)} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center space-x-2">
-                                <Plus className="w-5 h-5"/><span>Tạo bệnh án</span>
-                            </button>
-                        )}
-                     </div>
-                  )}
+                  {/* Medical Record Section removed as requested */}
 
                   {/* Payment Section */}
                   {selectedSlot.booking?.status === "Đã khám xong" && selectedSlot.booking?.paymentStatus !== "Đã thanh toán" && (
