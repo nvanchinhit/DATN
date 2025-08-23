@@ -45,6 +45,7 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       mr.treatment,
       mr.notes,
       mr.created_at,
+      mr.updated_at,
       a.id AS appointment_id,
       a.name AS patient_name,
       a.age,
@@ -61,7 +62,15 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       c.email AS customer_email,
       dts.slot_date,
       dts.start_time,
-      dts.end_time
+      dts.end_time,
+      mr.temperature,
+      mr.blood_pressure,
+      mr.heart_rate,
+      mr.weight,
+      mr.height,
+      mr.symptoms,
+      mr.allergies,
+      mr.medications
     FROM medical_records mr
     JOIN appointments a ON mr.appointment_id = a.id
     JOIN customers c ON a.customer_id = c.id
@@ -75,7 +84,29 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       console.error("❌ Lỗi truy vấn SQL hồ sơ bệnh án:", err);
       return res.status(500).json({ error: 'Lỗi máy chủ khi lấy dữ liệu hồ sơ bệnh án.' });
     }
-    res.status(200).json(results);
+    
+    // Parse JSON cho các trường dữ liệu
+    const processedResults = results.map(record => {
+      try {
+        if (record.symptoms) {
+          record.symptoms = JSON.parse(record.symptoms);
+        }
+        if (record.allergies) {
+          record.allergies = JSON.parse(record.allergies);
+        }
+        if (record.medications) {
+          record.medications = JSON.parse(record.medications);
+        }
+      } catch (e) {
+        // Nếu parse JSON thất bại, gán mảng rỗng
+        record.symptoms = [];
+        record.allergies = [];
+        record.medications = [];
+      }
+      return record;
+    });
+    
+    res.status(200).json(processedResults);
   });
 });
 
@@ -94,7 +125,16 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
     doctor_note, 
     follow_up_date,
     treatment = null,
-    notes = null
+    notes = null,
+    // Các trường dữ liệu mới
+    temperature = null,
+    blood_pressure = null,
+    heart_rate = null,
+    weight = null,
+    height = null,
+    symptoms = null,
+    allergies = null,
+    medications = null
   } = req.body;
 
   if (!appointment_id || !doctor_id || !customer_id || !diagnosis) {
@@ -119,12 +159,21 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
       // Cập nhật hồ sơ đã tồn tại
       const updateSql = `
         UPDATE medical_records 
-        SET diagnosis = ?, treatment = ?, notes = ?
+        SET diagnosis = ?, treatment = ?, notes = ?, 
+            temperature = ?, blood_pressure = ?, heart_rate = ?, 
+            weight = ?, height = ?, symptoms = ?, allergies = ?, medications = ?,
+            updated_at = NOW()
         WHERE appointment_id = ?
       `;
       
       db.query(updateSql, [
-        diagnosis, treatment, notes, appointment_id
+        diagnosis, treatment, notes, 
+        temperature, blood_pressure, heart_rate, 
+        weight, height, 
+        symptoms ? JSON.stringify(symptoms) : null, 
+        allergies ? JSON.stringify(allergies) : null, 
+        medications ? JSON.stringify(medications) : null,
+        appointment_id
       ], (updateErr, updateResult) => {
         if (updateErr) {
           console.error("❌ Lỗi cập nhật hồ sơ bệnh án:", updateErr);
@@ -157,13 +206,17 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
       const insertSql = `
         INSERT INTO medical_records (
           appointment_id, doctor_id, customer_id, diagnosis, treatment, 
-          notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+          notes, temperature, blood_pressure, heart_rate, weight, height,
+          symptoms, allergies, medications, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       `;
       
       db.query(insertSql, [
         appointment_id, doctor_id, customer_id, diagnosis, treatment,
-        notes
+        notes, temperature, blood_pressure, heart_rate, weight, height,
+        symptoms ? JSON.stringify(symptoms) : null, 
+        allergies ? JSON.stringify(allergies) : null, 
+        medications ? JSON.stringify(medications) : null
       ], (insertErr, insertResult) => {
         if (insertErr) {
           console.error("❌ Lỗi tạo hồ sơ bệnh án:", insertErr);
