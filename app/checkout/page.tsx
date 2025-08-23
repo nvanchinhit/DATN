@@ -139,7 +139,15 @@ export default function CheckoutPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!form.name.trim()) newErrors.name = 'Vui lòng nhập họ tên.';
-    if (!form.age.trim() || isNaN(parseInt(form.age)) || parseInt(form.age) <= 0) newErrors.age = 'Vui lòng nhập tuổi hợp lệ.';
+    // Validate tuổi: phải là số nguyên từ 0 đến 120, không âm, không thập phân
+    if (!form.age.trim()) {
+      newErrors.age = 'Vui lòng nhập tuổi.';
+    } else {
+      const ageNum = Number(form.age);
+      if (!Number.isInteger(ageNum) || ageNum < 0 || ageNum > 120) {
+        newErrors.age = 'Tuổi phải là số nguyên từ 0 đến 120 và không được âm.';
+      }
+    }
     if (!form.phone.trim() || !/^[0-9]{9,11}$/.test(form.phone)) newErrors.phone = 'Số điện thoại không hợp lệ.';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) newErrors.email = 'Email không hợp lệ.';
     if (!form.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ.';

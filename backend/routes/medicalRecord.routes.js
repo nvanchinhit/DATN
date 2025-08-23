@@ -45,6 +45,17 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       mr.treatment,
       mr.notes,
       mr.created_at,
+      mr.temperature,
+      mr.blood_pressure,
+      mr.heart_rate,
+      mr.weight,
+      mr.height,
+      mr.symptoms,
+      mr.allergies,
+      mr.medications,
+      mr.recommendations,
+      mr.status AS medical_record_status,
+      mr.follow_up_date AS follow_up_date,
       a.id AS appointment_id,
       a.name AS patient_name,
       a.age,
@@ -53,8 +64,6 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       a.phone AS patient_phone,
       a.reason,
       a.status AS appointment_status,
-      a.doctor_note,
-      a.follow_up_date,
       a.is_examined,
       a.address,
       c.name AS customer_name,
@@ -75,7 +84,26 @@ router.get('/doctor/:doctorId/all-records', (req, res) => {
       console.error("❌ Lỗi truy vấn SQL hồ sơ bệnh án:", err);
       return res.status(500).json({ error: 'Lỗi máy chủ khi lấy dữ liệu hồ sơ bệnh án.' });
     }
-    res.status(200).json(results);
+    
+    // Parse JSON cho các trường dữ liệu, luôn trả về mảng an toàn
+    const safeParseArray = (val) => {
+      if (!val) return [];
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed;
+        return [parsed];
+      } catch {
+        return [val];
+      }
+    };
+    const processedResults = results.map(record => {
+      record.symptoms = safeParseArray(record.symptoms);
+      record.allergies = safeParseArray(record.allergies);
+      record.medications = safeParseArray(record.medications);
+      return record;
+    });
+    
+    res.status(200).json(processedResults);
   });
 });
 
@@ -94,7 +122,16 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
     doctor_note, 
     follow_up_date,
     treatment = null,
-    notes = null
+    notes = null,
+    // Các trường dữ liệu mới
+    temperature = null,
+    blood_pressure = null,
+    heart_rate = null,
+    weight = null,
+    height = null,
+    symptoms = null,
+    allergies = null,
+    medications = null
   } = req.body;
 
   if (!appointment_id || !doctor_id || !customer_id || !diagnosis) {
@@ -119,12 +156,23 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
       // Cập nhật hồ sơ đã tồn tại
       const updateSql = `
         UPDATE medical_records 
-        SET diagnosis = ?, treatment = ?, notes = ?
+        SET diagnosis = ?, treatment = ?, notes = ?, 
+            temperature = ?, blood_pressure = ?, heart_rate = ?, 
+            weight = ?, height = ?, symptoms = ?, allergies = ?, medications = ?,
+            follow_up_date = ?,
+            updated_at = NOW()
         WHERE appointment_id = ?
       `;
       
       db.query(updateSql, [
-        diagnosis, treatment, notes, appointment_id
+        diagnosis, treatment, notes, 
+        temperature, blood_pressure, heart_rate, 
+        weight, height, 
+        symptoms ? JSON.stringify(symptoms) : null, 
+        allergies ? JSON.stringify(allergies) : null, 
+        medications ? JSON.stringify(medications) : null,
+        follow_up_date, // thêm dòng này
+        appointment_id
       ], (updateErr, updateResult) => {
         if (updateErr) {
           console.error("❌ Lỗi cập nhật hồ sơ bệnh án:", updateErr);
@@ -136,10 +184,10 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
         // Cập nhật trạng thái appointment và thông tin bổ sung
         const updateAppointmentSql = `
           UPDATE appointments 
-          SET is_examined = 1, doctor_note = ?, follow_up_date = ?
+          SET is_examined = 1
           WHERE id = ?
         `;
-        db.query(updateAppointmentSql, [doctor_note, follow_up_date || null, appointment_id], (appointmentErr, appointmentResult) => {
+        db.query(updateAppointmentSql, [appointment_id], (appointmentErr, appointmentResult) => {
           if (appointmentErr) {
             console.error("❌ Lỗi cập nhật appointment:", appointmentErr);
           } else {
@@ -157,13 +205,17 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
       const insertSql = `
         INSERT INTO medical_records (
           appointment_id, doctor_id, customer_id, diagnosis, treatment, 
-          notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+          notes, temperature, blood_pressure, heart_rate, weight, height,
+          symptoms, allergies, medications, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       `;
       
       db.query(insertSql, [
         appointment_id, doctor_id, customer_id, diagnosis, treatment,
-        notes
+        notes, temperature, blood_pressure, heart_rate, weight, height,
+        symptoms ? JSON.stringify(symptoms) : null, 
+        allergies ? JSON.stringify(allergies) : null, 
+        medications ? JSON.stringify(medications) : null
       ], (insertErr, insertResult) => {
         if (insertErr) {
           console.error("❌ Lỗi tạo hồ sơ bệnh án:", insertErr);
@@ -175,10 +227,10 @@ router.post('/save-from-schedule', authMiddleware, isDoctor, (req, res) => {
         // Cập nhật trạng thái appointment và thông tin bổ sung
         const updateAppointmentSql = `
           UPDATE appointments 
-          SET is_examined = 1, doctor_note = ?, follow_up_date = ?
+          SET is_examined = 1
           WHERE id = ?
         `;
-        db.query(updateAppointmentSql, [doctor_note, follow_up_date || null, appointment_id], (appointmentErr, appointmentResult) => {
+        db.query(updateAppointmentSql, [appointment_id], (appointmentErr, appointmentResult) => {
           if (appointmentErr) {
             console.error("❌ Lỗi cập nhật appointment:", appointmentErr);
           } else {
@@ -232,7 +284,7 @@ router.get('/my-records', authMiddleware, (req, res) => {
             mr.diagnosis,
             mr.treatment,
             mr.notes AS doctor_note,
-            a.follow_up_date,
+            mr.follow_up_date,
             mr.created_at AS record_created_at,
             mr.updated_at AS record_updated_at,
             d.name AS doctor_name,

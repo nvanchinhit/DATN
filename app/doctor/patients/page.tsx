@@ -27,6 +27,24 @@ interface MedicalRecord {
   start_time: string | null;
   end_time: string | null;
   visit_count?: number; // Số lần khám
+  // Thêm các trường dữ liệu mới
+  temperature: number | null; // Nhiệt độ (°C)
+  blood_pressure: number | null; // Huyết áp (mmHg)
+  heart_rate: number | null; // Nhịp tim (lần/phút)
+  weight: number | null; // Cân nặng (kg)
+  height: number | null; // Chiều cao (cm)
+  symptoms: string[] | null; // Danh sách triệu chứng
+  allergies: string[] | null; // Danh sách dị ứng
+  medications: string[] | null; // Danh sách thuốc đang dùng
+  // Thêm các trường alternative có thể có trong database
+  temp?: number | null; // Alternative cho temperature
+  bp?: number | null; // Alternative cho blood_pressure
+  hr?: number | null; // Alternative cho heart_rate
+  w?: number | null; // Alternative cho weight
+  h?: number | null; // Alternative cho height
+  symptom?: string[] | null; // Alternative cho symptoms
+  allergy?: string[] | null; // Alternative cho allergies
+  medication?: string[] | null; // Alternative cho medications
 }
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -45,6 +63,59 @@ function getISODate(dateStr: string | null): string {
   return '';
 }
 
+// Helper functions để lấy giá trị từ các trường có thể có
+function getMedicalValue(record: MedicalRecord, field: string, alternativeField?: string): any {
+  return record[field as keyof MedicalRecord] || record[alternativeField as keyof MedicalRecord] || null;
+}
+
+function getTemperature(record: MedicalRecord): number | null {
+  return getMedicalValue(record, 'temperature', 'temp');
+}
+
+function getBloodPressure(record: MedicalRecord): number | null {
+  return getMedicalValue(record, 'blood_pressure', 'bp');
+}
+
+function getHeartRate(record: MedicalRecord): number | null {
+  return getMedicalValue(record, 'heart_rate', 'hr');
+}
+
+function getWeight(record: MedicalRecord): number | null {
+  return getMedicalValue(record, 'weight', 'w');
+}
+
+function getHeight(record: MedicalRecord): number | null {
+  return getMedicalValue(record, 'height', 'h');
+}
+
+function getSymptoms(record: MedicalRecord): string[] | null {
+  return getMedicalValue(record, 'symptoms', 'symptom');
+}
+
+function getAllergies(record: MedicalRecord): string[] | null {
+  return getMedicalValue(record, 'allergies', 'allergy');
+}
+
+function getMedications(record: MedicalRecord): string[] | null {
+  return getMedicalValue(record, 'medications', 'medication');
+}
+
+// Helper để đảm bảo luôn trả về mảng string cho các trường này
+function ensureArray(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      return [val];
+    } catch {
+      return [val];
+    }
+  }
+  return [val];
+}
+
 export default function DoctorMedicalRecordsPage() {
   const [doctorId, setDoctorId] = useState<number | null>(null);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
@@ -60,6 +131,15 @@ export default function DoctorMedicalRecordsPage() {
   const [editNotes, setEditNotes] = useState('');
   const [editDoctorNote, setEditDoctorNote] = useState('');
   const [editFollowUpDate, setEditFollowUpDate] = useState('');
+  // Thêm state cho các trường mới
+  const [editTemperature, setEditTemperature] = useState('');
+  const [editBloodPressure, setEditBloodPressure] = useState('');
+  const [editHeartRate, setEditHeartRate] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editHeight, setEditHeight] = useState('');
+  const [editSymptoms, setEditSymptoms] = useState('');
+  const [editAllergies, setEditAllergies] = useState('');
+  const [editMedications, setEditMedications] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   // Thêm lại viewMode và groupedByCustomer
   const [viewMode, setViewMode] = useState<'all' | 'byCustomer'>('all');
@@ -102,6 +182,13 @@ export default function DoctorMedicalRecordsPage() {
         return res.json();
       })
       .then((data) => {
+        // Debug: log ra để xem dữ liệu thực tế
+        console.log('Raw data from API:', data);
+        if (data.length > 0) {
+          console.log('First record sample:', data[0]);
+          console.log('Available fields:', Object.keys(data[0]));
+        }
+        
         // Nhóm theo bệnh nhân
         const grouped: { [patient: string]: MedicalRecord[] } = {};
         data.forEach((record: MedicalRecord) => {
@@ -140,6 +227,15 @@ export default function DoctorMedicalRecordsPage() {
       setEditNotes(selectedRecord.notes || '');
       setEditDoctorNote(selectedRecord.doctor_note || '');
       setEditFollowUpDate(selectedRecord.follow_up_date || '');
+      // Khởi tạo các trường mới sử dụng helper functions
+      setEditTemperature(getTemperature(selectedRecord)?.toString() || '');
+      setEditBloodPressure(getBloodPressure(selectedRecord)?.toString() || '');
+      setEditHeartRate(getHeartRate(selectedRecord)?.toString() || '');
+      setEditWeight(getWeight(selectedRecord)?.toString() || '');
+      setEditHeight(getHeight(selectedRecord)?.toString() || '');
+      setEditSymptoms(getSymptoms(selectedRecord)?.join(', ') || '');
+      setEditAllergies(getAllergies(selectedRecord)?.join(', ') || '');
+      setEditMedications(getMedications(selectedRecord)?.join(', ') || '');
     }
   }, [selectedRecord]);
 
@@ -167,8 +263,16 @@ export default function DoctorMedicalRecordsPage() {
         diagnosis: editDiagnosis,
         treatment: editTreatment,
         notes: editNotes,
-        doctor_note: editDoctorNote,
-        follow_up_date: editFollowUpDate
+        follow_up_date: editFollowUpDate,
+        // Thêm các trường mới
+        temperature: editTemperature ? parseFloat(editTemperature) : null,
+        blood_pressure: editBloodPressure ? parseInt(editBloodPressure) : null,
+        heart_rate: editHeartRate ? parseInt(editHeartRate) : null,
+        weight: editWeight ? parseFloat(editWeight) : null,
+        height: editHeight ? parseFloat(editHeight) : null,
+        symptoms: editSymptoms ? editSymptoms.split(',').map(s => s.trim()).filter(s => s) : [],
+        allergies: editAllergies ? editAllergies.split(',').map(s => s.trim()).filter(s => s) : [],
+        medications: editMedications ? editMedications.split(',').map(s => s.trim()).filter(s => s) : []
       })
     });
     if (res.ok) {
@@ -277,6 +381,7 @@ export default function DoctorMedicalRecordsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {(groupedByCustomer[selectedCustomer] || []).map((record) => (
                   <div key={record.record_id} className="bg-white rounded-2xl shadow-xl border p-6 flex flex-col gap-2 hover:shadow-2xl transition-all">
+                    {/* Card trong chế độ xem theo tài khoản */}
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-xl font-bold text-gray-800">{record.patient_name}</h3>
@@ -303,6 +408,41 @@ export default function DoctorMedicalRecordsPage() {
                         <p className="text-gray-800">{record.treatment || 'Chưa có'}</p>
                       </div>
                     </div>
+                    {/* Thêm thông tin y tế cơ bản */}
+                    {(getTemperature(record) || getBloodPressure(record) || getHeartRate(record) || getWeight(record) || getHeight(record)) && (
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+                        {getTemperature(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-blue-600">{getTemperature(record)}°C</div>
+                            <div className="text-gray-500">Nhiệt độ</div>
+                          </div>
+                        )}
+                        {getBloodPressure(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-green-600">{getBloodPressure(record)} mmHg</div>
+                            <div className="text-gray-500">Huyết áp</div>
+                          </div>
+                        )}
+                        {getHeartRate(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-red-600">{getHeartRate(record)} lần/phút</div>
+                            <div className="text-gray-500">Nhịp tim</div>
+                          </div>
+                        )}
+                        {getWeight(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-purple-600">{getWeight(record)} kg</div>
+                            <div className="text-gray-500">Cân nặng</div>
+                          </div>
+                        )}
+                        {getHeight(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-indigo-600">{getHeight(record)} cm</div>
+                            <div className="text-gray-500">Chiều cao</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold self-end" onClick={() => setSelectedRecord(record)}>
                       Xem chi tiết
                     </button>
@@ -323,6 +463,7 @@ export default function DoctorMedicalRecordsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredRecords.map((record) => (
                   <div key={record.record_id} className="bg-white rounded-2xl shadow-xl border p-6 flex flex-col gap-2 hover:shadow-2xl transition-all">
+                    {/* Card trong chế độ xem tất cả */}
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-xl font-bold text-gray-800">{record.patient_name}</h3>
@@ -349,6 +490,41 @@ export default function DoctorMedicalRecordsPage() {
                         <p className="text-gray-800">{record.treatment || 'Chưa có'}</p>
                       </div>
                     </div>
+                    {/* Thêm thông tin y tế cơ bản */}
+                    {(getTemperature(record) || getBloodPressure(record) || getHeartRate(record) || getWeight(record) || getHeight(record)) && (
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg">
+                        {getTemperature(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-blue-600">{getTemperature(record)}°C</div>
+                            <div className="text-gray-500">Nhiệt độ</div>
+                          </div>
+                        )}
+                        {getBloodPressure(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-green-600">{getBloodPressure(record)} mmHg</div>
+                            <div className="text-gray-500">Huyết áp</div>
+                          </div>
+                        )}
+                        {getHeartRate(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-red-600">{getHeartRate(record)} lần/phút</div>
+                            <div className="text-gray-500">Nhịp tim</div>
+                          </div>
+                        )}
+                        {getWeight(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-purple-600">{getWeight(record)} kg</div>
+                            <div className="text-gray-500">Cân nặng</div>
+                          </div>
+                        )}
+                        {getHeight(record) && (
+                          <div className="text-center">
+                            <div className="font-semibold text-indigo-600">{getHeight(record)} cm</div>
+                            <div className="text-gray-500">Chiều cao</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold self-end" onClick={() => setSelectedRecord(record)}>
                       Xem chi tiết
                     </button>
@@ -391,12 +567,43 @@ export default function DoctorMedicalRecordsPage() {
                       <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full p-2 border rounded" />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Ghi chú bác sĩ</label>
-                      <textarea value={editDoctorNote} onChange={e => setEditDoctorNote(e.target.value)} className="w-full p-2 border rounded" />
-                    </div>
-                    <div>
                       <label className="block font-semibold mb-1">Ngày tái khám</label>
                       <input type="date" value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
+                    </div>
+                    {/* Thêm các trường dữ liệu mới */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block font-semibold mb-1">Nhiệt độ (°C)</label>
+                        <input type="number" step="0.1" value={editTemperature} onChange={e => setEditTemperature(e.target.value)} className="w-full p-2 border rounded" placeholder="37.0" />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Huyết áp (mmHg)</label>
+                        <input type="number" value={editBloodPressure} onChange={e => setEditBloodPressure(e.target.value)} className="w-full p-2 border rounded" placeholder="120" />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Nhịp tim (lần/phút)</label>
+                        <input type="number" value={editHeartRate} onChange={e => setEditHeartRate(e.target.value)} className="w-full p-2 border rounded" placeholder="72" />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Cân nặng (kg)</label>
+                        <input type="number" step="0.01" value={editWeight} onChange={e => setEditWeight(e.target.value)} className="w-full p-2 border rounded" placeholder="65.5" />
+                      </div>
+                      <div>
+                        <label className="block font-semibold mb-1">Chiều cao (cm)</label>
+                        <input type="number" step="0.01" value={editHeight} onChange={e => setEditHeight(e.target.value)} className="w-full p-2 border rounded" placeholder="170.0" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Triệu chứng (phân cách bằng dấu phẩy)</label>
+                      <textarea value={editSymptoms} onChange={e => setEditSymptoms(e.target.value)} className="w-full p-2 border rounded" placeholder="Sốt, ho, đau đầu" />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Dị ứng (phân cách bằng dấu phẩy)</label>
+                      <textarea value={editAllergies} onChange={e => setEditAllergies(e.target.value)} className="w-full p-2 border rounded" placeholder="Không có, hoặc ghi rõ dị ứng" />
+                    </div>
+                    <div>
+                      <label className="block font-semibold mb-1">Thuốc đang dùng (phân cách bằng dấu phẩy)</label>
+                      <textarea value={editMedications} onChange={e => setEditMedications(e.target.value)} className="w-full p-2 border rounded" placeholder="Không có, hoặc ghi rõ thuốc" />
                     </div>
                     <div className="flex gap-2 mt-4">
                       <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Lưu</button>
@@ -429,10 +636,94 @@ export default function DoctorMedicalRecordsPage() {
                         <div><p className="font-semibold text-gray-600 mb-1">Chẩn đoán:</p><p className="text-lg font-semibold text-gray-800">{selectedRecord.diagnosis}</p></div>
                         <div><p className="font-semibold text-gray-600 mb-1">Điều trị:</p><p className="text-gray-800">{selectedRecord.treatment || 'Chưa có'}</p></div>
                         <div><p className="font-semibold text-gray-600 mb-1">Ghi chú:</p><p className="text-gray-800">{selectedRecord.notes || 'Không có'}</p></div>
-                        <div><p className="font-semibold text-gray-600 mb-1">Ghi chú bác sĩ:</p><p className="text-gray-800">{selectedRecord.doctor_note || 'Không có'}</p></div>
-                        {selectedRecord.follow_up_date && (
-                          <div><p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p><p className="text-orange-600 font-semibold">{getISODate(selectedRecord.follow_up_date)}</p></div>
-                        )}
+                        <div>
+                          <p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p>
+                          <p className={selectedRecord.follow_up_date ? "text-orange-600 font-semibold" : "text-gray-500"}>
+                            {selectedRecord.follow_up_date ? getISODate(selectedRecord.follow_up_date) : "Không có"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Thêm section mới cho dữ liệu y tế */}
+                    <div className="bg-gray-50 p-6 rounded-2xl border">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span>📊</span> Dữ liệu y tế
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Nhiệt độ:</span>
+                          <span className={selectedRecord.temperature ? 'font-semibold' : 'text-gray-500'}>
+                            {selectedRecord.temperature ? `${selectedRecord.temperature}°C` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Huyết áp:</span>
+                          <span className={selectedRecord.blood_pressure ? 'font-semibold' : 'text-gray-500'}>
+                            {selectedRecord.blood_pressure ? `${selectedRecord.blood_pressure} mmHg` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Nhịp tim:</span>
+                          <span className={selectedRecord.heart_rate ? 'font-semibold' : 'text-gray-500'}>
+                            {selectedRecord.heart_rate ? `${selectedRecord.heart_rate} lần/phút` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Cân nặng:</span>
+                          <span className={selectedRecord.weight ? 'font-semibold' : 'text-gray-500'}>
+                            {selectedRecord.weight ? `${selectedRecord.weight} kg` : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Chiều cao:</span>
+                          <span className={selectedRecord.height ? 'font-semibold' : 'text-gray-500'}>
+                            {selectedRecord.height ? `${selectedRecord.height} cm` : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <p className="font-semibold text-gray-600 mb-1">Triệu chứng:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {ensureArray(selectedRecord.symptoms).length > 0 ? (
+                              ensureArray(selectedRecord.symptoms).map((symptom, idx) => (
+                                <span key={idx} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                                  {symptom}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-500">Không có</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-600 mb-1">Dị ứng:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {ensureArray(selectedRecord.allergies).length > 0 ? (
+                              ensureArray(selectedRecord.allergies).map((allergy, idx) => (
+                                <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                                  {allergy}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-500">Không có</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-600 mb-1">Thuốc đang dùng:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {ensureArray(selectedRecord.medications).length > 0 ? (
+                              ensureArray(selectedRecord.medications).map((medication, idx) => (
+                                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                  {medication}
+                                </span>
+                                ))
+                            ) : (
+                              <span className="text-gray-500">Không có</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="bg-gray-50 p-6 rounded-2xl border">
