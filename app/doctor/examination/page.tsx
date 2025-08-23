@@ -53,6 +53,7 @@ interface ExaminationData {
     temperature: string;
     heartRate: string;
     weight: string;
+    
     height: string;
   };
   symptoms: string[];
@@ -173,7 +174,7 @@ export default function ExaminationPage() {
         }));
 
         // 2. Lấy dữ liệu khám bệnh đã lưu (nếu có)
-        const examinationResponse = await fetch(`${API_URL}/api/examination/${appointmentId}`, {
+        const medicalResponse = await fetch(`${API_URL}/api/examination/${appointmentId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -181,8 +182,8 @@ export default function ExaminationPage() {
           }
         });
 
-        if (examinationResponse.ok) {
-          const examinationData = await examinationResponse.json();
+        if (medicalResponse.ok) {
+          const examinationData = await medicalResponse.json();
           
           if (examinationData.hasRecord) {
             const record = examinationData.record;
@@ -197,13 +198,13 @@ export default function ExaminationPage() {
                 weight: record.weight || '',
                 height: record.height || ''
               },
-              symptoms: record.symptoms || [],
-              allergies: record.allergies || [],
-              medications: record.medications || [],
-              notes: record.notes || '',
-              diagnosis: record.diagnosis || '',
-              recommendations: record.recommendations || '',
-              followUpDate: record.follow_up_date || ''
+                             symptoms: record.symptoms || [],
+               allergies: record.allergies || [],
+               medications: record.medications || [],
+               notes: record.notes || '',
+               diagnosis: record.diagnosis || '',
+               recommendations: record.recommendations || '',
+               followUpDate: record.follow_up_date || ''
             }));
           }
         }
@@ -256,8 +257,8 @@ export default function ExaminationPage() {
 
     setSaving(true);
     try {
-      // 1. Lưu dữ liệu khám bệnh vào database
-      const saveResponse = await fetch(`${API_URL}/api/examination/save`, {
+             // 1. Lưu dữ liệu khám bệnh vào database
+       const saveResponse = await fetch(`${API_URL}/api/examination/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -342,8 +343,8 @@ export default function ExaminationPage() {
 
     setSaving(true);
     try {
-      // 1. Lưu dữ liệu khám bệnh vào database với trạng thái hoàn thành
-      const saveResponse = await fetch(`${API_URL}/api/examination/save`, {
+             // 1. Lưu dữ liệu khám bệnh vào database với trạng thái hoàn thành
+       const saveResponse = await fetch(`${API_URL}/api/examination/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -783,6 +784,7 @@ export default function ExaminationPage() {
                       className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
+                  
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Khuyến nghị & Hướng dẫn
@@ -790,7 +792,7 @@ export default function ExaminationPage() {
                     <textarea
                       value={examinationData.recommendations}
                       onChange={(e) => setExaminationData(prev => ({ ...prev, recommendations: e.target.value }))}
-                      placeholder="Kê đơn thuốc, lời khuyên, hướng dẫn..."
+                      placeholder="Lời khuyên, hướng dẫn..."
                       rows={3}
                       className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -889,6 +891,8 @@ export default function ExaminationPage() {
                 <h3 className="font-bold text-lg mb-2 text-gray-800">Chẩn đoán</h3>
                 <p className="text-lg text-gray-800">{examinationData.diagnosis || 'Chưa có chẩn đoán'}</p>
               </div>
+
+
 
               {/* Recommendations */}
               {examinationData.recommendations && (
