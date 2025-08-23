@@ -100,6 +100,22 @@ function getMedications(record: MedicalRecord): string[] | null {
   return getMedicalValue(record, 'medications', 'medication');
 }
 
+// Helper để đảm bảo luôn trả về mảng string cho các trường này
+function ensureArray(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      return [val];
+    } catch {
+      return [val];
+    }
+  }
+  return [val];
+}
+
 export default function DoctorMedicalRecordsPage() {
   const [doctorId, setDoctorId] = useState<number | null>(null);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
@@ -247,7 +263,6 @@ export default function DoctorMedicalRecordsPage() {
         diagnosis: editDiagnosis,
         treatment: editTreatment,
         notes: editNotes,
-        doctor_note: editDoctorNote,
         follow_up_date: editFollowUpDate,
         // Thêm các trường mới
         temperature: editTemperature ? parseFloat(editTemperature) : null,
@@ -552,10 +567,6 @@ export default function DoctorMedicalRecordsPage() {
                       <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="w-full p-2 border rounded" />
                     </div>
                     <div>
-                      <label className="block font-semibold mb-1">Ghi chú bác sĩ</label>
-                      <textarea value={editDoctorNote} onChange={e => setEditDoctorNote(e.target.value)} className="w-full p-2 border rounded" />
-                    </div>
-                    <div>
                       <label className="block font-semibold mb-1">Ngày tái khám</label>
                       <input type="date" value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
                     </div>
@@ -625,10 +636,12 @@ export default function DoctorMedicalRecordsPage() {
                         <div><p className="font-semibold text-gray-600 mb-1">Chẩn đoán:</p><p className="text-lg font-semibold text-gray-800">{selectedRecord.diagnosis}</p></div>
                         <div><p className="font-semibold text-gray-600 mb-1">Điều trị:</p><p className="text-gray-800">{selectedRecord.treatment || 'Chưa có'}</p></div>
                         <div><p className="font-semibold text-gray-600 mb-1">Ghi chú:</p><p className="text-gray-800">{selectedRecord.notes || 'Không có'}</p></div>
-                        <div><p className="font-semibold text-gray-600 mb-1">Ghi chú bác sĩ:</p><p className="text-gray-800">{selectedRecord.doctor_note || 'Không có'}</p></div>
-                        {selectedRecord.follow_up_date && (
-                          <div><p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p><p className="text-orange-600 font-semibold">{getISODate(selectedRecord.follow_up_date)}</p></div>
-                        )}
+                        <div>
+                          <p className="font-semibold text-gray-600 mb-1">Lịch tái khám:</p>
+                          <p className={selectedRecord.follow_up_date ? "text-orange-600 font-semibold" : "text-gray-500"}>
+                            {selectedRecord.follow_up_date ? getISODate(selectedRecord.follow_up_date) : "Không có"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {/* Thêm section mới cho dữ liệu y tế */}
@@ -672,8 +685,8 @@ export default function DoctorMedicalRecordsPage() {
                         <div>
                           <p className="font-semibold text-gray-600 mb-1">Triệu chứng:</p>
                           <div className="flex flex-wrap gap-2">
-                            {selectedRecord.symptoms && selectedRecord.symptoms.length > 0 ? (
-                              selectedRecord.symptoms.map((symptom, idx) => (
+                            {ensureArray(selectedRecord.symptoms).length > 0 ? (
+                              ensureArray(selectedRecord.symptoms).map((symptom, idx) => (
                                 <span key={idx} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
                                   {symptom}
                                 </span>
@@ -686,8 +699,8 @@ export default function DoctorMedicalRecordsPage() {
                         <div>
                           <p className="font-semibold text-gray-600 mb-1">Dị ứng:</p>
                           <div className="flex flex-wrap gap-2">
-                            {selectedRecord.allergies && selectedRecord.allergies.length > 0 ? (
-                              selectedRecord.allergies.map((allergy, idx) => (
+                            {ensureArray(selectedRecord.allergies).length > 0 ? (
+                              ensureArray(selectedRecord.allergies).map((allergy, idx) => (
                                 <span key={idx} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
                                   {allergy}
                                 </span>
@@ -700,8 +713,8 @@ export default function DoctorMedicalRecordsPage() {
                         <div>
                           <p className="font-semibold text-gray-600 mb-1">Thuốc đang dùng:</p>
                           <div className="flex flex-wrap gap-2">
-                            {selectedRecord.medications && selectedRecord.medications.length > 0 ? (
-                              selectedRecord.medications.map((medication, idx) => (
+                            {ensureArray(selectedRecord.medications).length > 0 ? (
+                              ensureArray(selectedRecord.medications).map((medication, idx) => (
                                 <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                                   {medication}
                                 </span>
