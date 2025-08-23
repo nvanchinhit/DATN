@@ -689,9 +689,7 @@ export default function DoctorSchedulePage() {
     (slot) => slot.booking && slot.booking.status === "Chưa xác nhận"
   );
   
-  const unexaminedSlots = allSlots.filter(
-    (slot) => slot.booking?.status === "Đã khám xong" && !slot.booking?.isExamined
-  );
+
 
   // Statistics
   const totalSlots = allSlots.length;
@@ -903,7 +901,7 @@ export default function DoctorSchedulePage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Tất cả
+                    Hôm nay
                   </button>
                   <button
                     onClick={() => setDateRange('week')}
@@ -1109,19 +1107,7 @@ export default function DoctorSchedulePage() {
               </div>
             </div>
           )}
-          {unexaminedSlots.length > 0 && (
-             <div className="mb-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl shadow-xl p-6 text-white">
-                <h2 className="text-2xl font-bold flex items-center mb-4"><FileText className="w-6 h-6 mr-3"/> Cần tạo bệnh án ({unexaminedSlots.length})</h2>
-                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                 {unexaminedSlots.slice(0,4).map((slot) => (
-                    <div key={slot.id} onClick={() => handleViewDetail(slot)} className="bg-white/20 p-4 rounded-xl hover:bg-white/30 cursor-pointer transition">
-                        <p className="font-semibold truncate">{slot.booking?.patientName}</p>
-                        <p className="text-sm">{new Date(slot.date).toLocaleDateString('vi-VN')} lúc {slot.start}</p>
-                    </div>
-                ))}
-                </div>
-            </div>
-          )}
+          
 
 
 
