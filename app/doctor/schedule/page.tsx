@@ -35,20 +35,19 @@ import {
   XCircle // Icon cho nút từ chối
 } from "lucide-react";
 
-// Form chọn lý do từ chối
-interface RejectReasonProps {
+// Form từ chối lịch hẹn
+interface RejectFormProps {
   appointmentId: number;
   onRejected: () => void;
   onCancel: () => void;
 }
 
-const RejectReasonForm: React.FC<RejectReasonProps> = ({ appointmentId, onRejected, onCancel }) => {
+const RejectForm: React.FC<RejectFormProps> = ({ appointmentId, onRejected, onCancel }) => {
   const reasons = [
     "Bác sĩ bận đột xuất",
     "Bệnh nhân cung cấp thông tin chưa đầy đủ",
     "Lịch trùng với ca khác",
     "Không phù hợp chuyên khoa",
-    "Bệnh nhân không đến",
     "Khác"
   ];
 
@@ -95,8 +94,107 @@ const RejectReasonForm: React.FC<RejectReasonProps> = ({ appointmentId, onReject
         <div key={idx} className="flex items-center mb-2">
           <input
             type="radio"
-            id={`reason-${idx}`}
+            id={`reject-reason-${idx}`}
             name="rejectReason"
+            value={reason}
+            checked={selectedReason === reason}
+            onChange={(e) => setSelectedReason(e.target.value)}
+            className="mr-2"
+          />
+          <label className="text-black" htmlFor={`reject-reason-${idx}`}>{reason}</label>
+        </div>
+      ))}
+
+      {selectedReason === "Khác" && (
+        <textarea
+          className="w-full p-2 border rounded mt-2"
+          rows={3}
+          placeholder="Nhập lý do khác..."
+          value={customReason}
+          onChange={(e) => setCustomReason(e.target.value)}
+        />
+      )}
+
+      <div className="mt-3 flex gap-3">
+        <button
+          onClick={handleReject}
+          disabled={submitting || !selectedReason}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400"
+        >
+          {submitting ? "Đang xử lý..." : "Xác nhận từ chối"}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={submitting}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 disabled:bg-gray-400"
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Form báo cáo lịch hẹn
+interface ReportFormProps {
+  appointmentId: number;
+  onReported: () => void;
+  onCancel: () => void;
+}
+
+const ReportForm: React.FC<ReportFormProps> = ({ appointmentId, onReported, onCancel }) => {
+  const reasons = [
+    "Bệnh nhân không đến",
+    "Bác sĩ bận đột xuất",
+    "Lịch trùng với ca khác",
+    "Khác"
+  ];
+
+  const [selectedReason, setSelectedReason] = React.useState("");
+  const [customReason, setCustomReason] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const handleReport = async () => {
+    if (!selectedReason) {
+      alert("Vui lòng chọn lý do báo cáo");
+      return;
+    }
+
+    let finalReason = selectedReason;
+    if (selectedReason === "Khác") {
+      finalReason = customReason.trim() || "Không có lý do cụ thể";
+    }
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments/${appointmentId}/reject`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reject_reason: finalReason })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Lỗi khi báo cáo lịch hẹn");
+      alert(data.message || "Đã báo cáo lịch hẹn");
+      onReported();
+    } catch (error: any) {
+      console.error("Lỗi khi báo cáo:", error);
+      alert(`❌ ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 border rounded-lg bg-white shadow-md">
+      <h3 className="font-bold mb-2 text-blue-600">Báo cáo lịch hẹn</h3>
+      {reasons.map((reason, idx) => (
+        <div key={idx} className="flex items-center mb-2">
+          <input
+            type="radio"
+            id={`reason-${idx}`}
+            name="reportReason"
             value={reason}
             checked={selectedReason === reason}
             onChange={(e) => setSelectedReason(e.target.value)}
@@ -118,11 +216,11 @@ const RejectReasonForm: React.FC<RejectReasonProps> = ({ appointmentId, onReject
 
       <div className="mt-3 flex gap-3">
         <button
-          onClick={handleReject}
+          onClick={handleReport}
           disabled={submitting || !selectedReason}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
         >
-          {submitting ? "Đang xử lý..." : "Xác nhận từ chối"}
+          {submitting ? "Đang xử lý..." : "Gửi báo cáo"}
         </button>
         <button
           onClick={onCancel}
@@ -198,6 +296,7 @@ export default function DoctorSchedulePage() {
   const [endDate, setEndDate] = useState(''); // Ngày kết thúc cho bộ lọc tùy chỉnh
   const [showHistoricalData, setShowHistoricalData] = useState(false); // Hiển thị dữ liệu lịch sử
   const [showRejectForm, setShowRejectForm] = useState(false); // Hiển thị form lý do từ chối
+  const [showReportForm, setShowReportForm] = useState(false); // Hiển thị form báo cáo
   
 
   
@@ -403,6 +502,7 @@ export default function DoctorSchedulePage() {
       setSelectedSlot(null);
       setShowMedicalForm(false); // Reset state khi đóng
       setShowRejectForm(false);
+      setShowReportForm(false);
   }
 
   const handleStatusUpdate = async (newStatus: "Đang khám" | "Đã khám xong" | "Đã xác nhận") => {
@@ -1194,75 +1294,88 @@ export default function DoctorSchedulePage() {
                         Trạng thái hiện tại: <span className={`font-bold px-3 py-1 rounded-full text-sm ${getStatusBadgeStyle(selectedSlot.booking?.status)}`}>{selectedSlot.booking?.status}</span>
                       </p>
 
-                      {/* Actions for "Chưa xác nhận" */}
-                      {selectedSlot.booking?.status === "Chưa xác nhận" && !showRejectForm && (
-                        <div className="flex gap-4">
-                          <button 
-                            onClick={() => handleAppointmentAction("confirm")} 
-                            disabled={submitting || showHistoricalData} 
-                            className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
-                          >
-                            Xác nhận
-                          </button>
-                          <button 
-                            onClick={() => setShowRejectForm(true)} 
-                            disabled={submitting || showHistoricalData} 
-                            className="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Reject Reason Form */}
-                      {((selectedSlot.booking?.status === "Chưa xác nhận" || selectedSlot.booking?.status === "Đã xác nhận") && showRejectForm && selectedSlot.booking?.id) && (
-                        <RejectReasonForm
-                          appointmentId={selectedSlot.booking.id}
-                          onRejected={() => {
-                            setShowRejectForm(false);
-                            handleCloseModal();
-                            fetchDoctorSlots();
-                          }}
-                          onCancel={() => setShowRejectForm(false)}
-                        />
-                      )}
-
-                      {/* Action for "Đã xác nhận" */}
-                      {selectedSlot.booking?.status === 'Đã xác nhận' && (
-                         <div className="space-y-3">
-                            <button 
-                               onClick={() => {
-                                 // Lấy ngày hôm nay theo múi giờ Việt Nam
-                                 const today = new Date();
-                                 const todayStr = today.toLocaleDateString('en-CA'); // Format: YYYY-MM-DD
-                                 
-                                 console.log('🔍 [DEBUG] Today:', todayStr);
-                                 console.log('🔍 [DEBUG] Appointment date:', selectedSlot.date);
-                                 
-                                 // Cho phép khám vào ngày hẹn hoặc sau ngày hẹn (không phải trước ngày hẹn)
-                                 if (selectedSlot.date > todayStr) {
-                                   alert(`Chỉ được bắt đầu khám vào ngày hẹn hoặc sau đó. Hôm nay: ${todayStr}, Ngày hẹn: ${selectedSlot.date}`);
-                                   return;
-                                 }
-                                 
-                                 // Chuyển sang trang examination
-                                 router.push(`/doctor/examination?id=${selectedSlot.booking?.id}&patientId=${selectedSlot.booking?.customer_id}`);
-                               }} 
-                               disabled={submitting || showHistoricalData} 
-                               className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
-                            >
-                               <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
-                            </button>
-                            
-                            <button
-                               onClick={() => setShowRejectForm(true)}
-                               disabled={submitting}
-                               className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
-                            >
-                               <XCircle className="w-5 h-5" /><span>Từ chối</span>
-                            </button>
+                                             {/* Actions for "Chưa xác nhận" */}
+                       {selectedSlot.booking?.status === "Chưa xác nhận" && !showRejectForm && !showReportForm && (
+                         <div className="flex gap-4">
+                           <button 
+                             onClick={() => handleAppointmentAction("confirm")} 
+                             disabled={submitting || showHistoricalData} 
+                             className="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
+                           >
+                             Xác nhận
+                           </button>
+                           <button 
+                             onClick={() => setShowRejectForm(true)} 
+                             disabled={submitting || showHistoricalData} 
+                             className="flex-1 bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
+                           >
+                             Từ chối
+                           </button>
                          </div>
-                      )}
+                       )}
+
+                       {/* Reject Form */}
+                       {selectedSlot.booking?.status === "Chưa xác nhận" && showRejectForm && selectedSlot.booking?.id && (
+                         <RejectForm
+                           appointmentId={selectedSlot.booking.id}
+                           onRejected={() => {
+                             setShowRejectForm(false);
+                             handleCloseModal();
+                             fetchDoctorSlots();
+                           }}
+                           onCancel={() => setShowRejectForm(false)}
+                         />
+                       )}
+
+                                             {/* Action for "Đã xác nhận" */}
+                       {selectedSlot.booking?.status === 'Đã xác nhận' && !showReportForm && (
+                          <div className="space-y-3">
+                             <button 
+                                onClick={() => {
+                                  // Lấy ngày hôm nay theo múi giờ Việt Nam
+                                  const today = new Date();
+                                  const todayStr = today.toLocaleDateString('en-CA'); // Format: YYYY-MM-DD
+                                  
+                                  console.log('🔍 [DEBUG] Today:', todayStr);
+                                  console.log('🔍 [DEBUG] Appointment date:', selectedSlot.date);
+                                  
+                                  // Cho phép khám vào ngày hẹn hoặc sau ngày hẹn (không phải trước ngày hẹn)
+                                  if (selectedSlot.date > todayStr) {
+                                    alert(`Chỉ được bắt đầu khám vào ngày hẹn hoặc sau đó. Hôm nay: ${todayStr}, Ngày hẹn: ${selectedSlot.date}`);
+                                    return;
+                                  }
+                                  
+                                  // Chuyển sang trang examination
+                                  router.push(`/doctor/examination?id=${selectedSlot.booking?.id}&patientId=${selectedSlot.booking?.customer_id}`);
+                                }} 
+                                disabled={submitting || showHistoricalData} 
+                                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                             >
+                                <PlayCircle className="w-5 h-5" /><span>Bắt đầu khám</span>
+                             </button>
+                             
+                             <button
+                                onClick={() => setShowReportForm(true)}
+                                disabled={submitting}
+                                className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 flex items-center justify-center space-x-2"
+                             >
+                                <XCircle className="w-5 h-5" /><span>Báo cáo</span>
+                             </button>
+                          </div>
+                       )}
+
+                       {/* Report Form */}
+                       {selectedSlot.booking?.status === 'Đã xác nhận' && showReportForm && selectedSlot.booking?.id && (
+                         <ReportForm
+                           appointmentId={selectedSlot.booking.id}
+                           onReported={() => {
+                             setShowReportForm(false);
+                             handleCloseModal();
+                             fetchDoctorSlots();
+                           }}
+                           onCancel={() => setShowReportForm(false)}
+                         />
+                       )}
 
                       {/* Action for "Đang khám" */}
                       {selectedSlot.booking?.status === 'Đang khám' && (
