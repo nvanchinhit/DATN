@@ -124,8 +124,7 @@ exports.getRevenueByYear = async (req, res) => {
 // controllers/admin.controller.js
 
 // [7] Thống kê lịch đặt khám theo chuyên khoa
-// [7] Thống kê lịch đặt khám theo chuyên khoa
-// [7] Thống kê lịch đặt khám theo chuyên khoa
+
 exports.getAppointmentStatsBySpecialty = async (req, res) => {
   try {
     const { month, year } = req.query
@@ -305,7 +304,15 @@ exports.getAllMedicalRecords = async (req, res) => {
         mr.diagnosis AS medical_record_diagnosis,
         mr.treatment,
         mr.notes AS medical_notes,
-        mr.created_at AS medical_record_created_at
+        mr.created_at AS medical_record_created_at,
+        mr.temperature,
+        mr.blood_pressure,
+        mr.heart_rate,
+        mr.weight,
+        mr.height,
+        mr.symptoms,
+        mr.allergies,
+        mr.medications
       FROM appointments a
       LEFT JOIN customers c ON a.customer_id = c.id
       LEFT JOIN doctors d ON a.doctor_id = d.id
@@ -319,8 +326,29 @@ exports.getAllMedicalRecords = async (req, res) => {
 
     const [records] = await db.promise().query(sql, [...values, parseInt(limit), offset]);
 
+    // Parse JSON cho các trường dữ liệu
+    const processedRecords = records.map(record => {
+      try {
+        if (record.symptoms) {
+          record.symptoms = JSON.parse(record.symptoms);
+        }
+        if (record.allergies) {
+          record.allergies = JSON.parse(record.allergies);
+        }
+        if (record.medications) {
+          record.medications = JSON.parse(record.medications);
+        }
+      } catch (e) {
+        // Nếu parse JSON thất bại, gán mảng rỗng
+        record.symptoms = [];
+        record.allergies = [];
+        record.medications = [];
+      }
+      return record;
+    });
+
     res.json({
-      records,
+      records: processedRecords,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalRecords / limit),
@@ -372,7 +400,15 @@ exports.getMedicalRecordById = async (req, res) => {
         mr.diagnosis AS medical_record_diagnosis,
         mr.treatment,
         mr.notes AS medical_notes,
-        mr.created_at AS medical_record_created_at
+        mr.created_at AS medical_record_created_at,
+        mr.temperature,
+        mr.blood_pressure,
+        mr.heart_rate,
+        mr.weight,
+        mr.height,
+        mr.symptoms,
+        mr.allergies,
+        mr.medications
       FROM appointments a
       LEFT JOIN customers c ON a.customer_id = c.id
       LEFT JOIN doctors d ON a.doctor_id = d.id
@@ -388,7 +424,27 @@ exports.getMedicalRecordById = async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy hồ sơ bệnh án' });
     }
 
-    res.json(records[0]);
+    const record = records[0];
+
+    // Parse JSON cho các trường dữ liệu
+    try {
+      if (record.symptoms) {
+        record.symptoms = JSON.parse(record.symptoms);
+      }
+      if (record.allergies) {
+        record.allergies = JSON.parse(record.allergies);
+      }
+      if (record.medications) {
+        record.medications = JSON.parse(record.medications);
+      }
+    } catch (e) {
+      // Nếu parse JSON thất bại, gán mảng rỗng
+      record.symptoms = [];
+      record.allergies = [];
+      record.medications = [];
+    }
+
+    res.json(record);
   } catch (err) {
     console.error("❌ Lỗi getMedicalRecordById:", err);
     res.status(500).json({ error: 'Server error' });

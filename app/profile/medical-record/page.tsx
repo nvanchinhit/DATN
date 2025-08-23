@@ -20,6 +20,15 @@ interface MedicalRecord {
   follow_up_date: string | null;
   record_created_at: string; // Thời gian bác sĩ lưu hồ sơ
   record_updated_at: string; // Thời gian cập nhật cuối
+  // Các trường dữ liệu sinh hiệu mới
+  temperature?: number | null;
+  blood_pressure?: number | null;
+  heart_rate?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  symptoms?: string[] | null;
+  allergies?: string[] | null;
+  medications?: string[] | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -82,6 +91,108 @@ const MedicalRecordCard: React.FC<{ record: MedicalRecord }> = ({ record }) => {
         )}
         <p><strong className="font-semibold text-gray-800 w-28 inline-block">Ghi chú thêm:</strong> {record.doctor_note || 'Không có'}</p>
       </div>
+
+      {/* Phần hiển thị chỉ số sinh hiệu và thông tin bổ sung */}
+      {(record.temperature || record.blood_pressure || record.heart_rate || record.weight || record.height || 
+        record.symptoms || record.allergies || record.medications) ? (
+        <div className="pt-4 border-t border-gray-100">
+          <h4 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide text-blue-600">
+            📊 Chỉ số sinh hiệu & Thông tin bổ sung
+          </h4>
+          
+          {/* Chỉ số sinh hiệu */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {record.temperature && (
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                <div className="text-xs text-blue-600 font-medium mb-1">🌡️ Nhiệt độ</div>
+                <div className="text-lg font-bold text-blue-800">{record.temperature}°C</div>
+              </div>
+            )}
+            {record.blood_pressure && (
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200 hover:shadow-md transition-shadow">
+                <div className="text-xs text-green-600 font-medium mb-1">💓 Huyết áp</div>
+                <div className="text-lg font-bold text-green-800">{record.blood_pressure} mmHg</div>
+              </div>
+            )}
+            {record.heart_rate && (
+              <div className="bg-red-50 p-3 rounded-lg border border-red-200 hover:shadow-md transition-shadow">
+                <div className="text-xs text-red-600 font-medium mb-1">❤️ Nhịp tim</div>
+                <div className="text-lg font-bold text-red-800">{record.heart_rate} lần/phút</div>
+              </div>
+            )}
+            {record.weight && (
+              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 hover:shadow-md transition-shadow">
+                <div className="text-xs text-purple-600 font-medium mb-1">⚖️ Cân nặng</div>
+                <div className="text-lg font-bold text-purple-800">{record.weight} kg</div>
+              </div>
+            )}
+            {record.height && (
+              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200 hover:shadow-md transition-shadow">
+                <div className="text-xs text-orange-600 font-medium mb-1">📏 Chiều cao</div>
+                <div className="text-lg font-bold text-orange-800">{record.height} cm</div>
+              </div>
+            )}
+          </div>
+
+          {/* Danh sách triệu chứng, dị ứng, thuốc */}
+          <div className="space-y-4">
+            {record.symptoms && record.symptoms.length > 0 && (
+              <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                <div className="text-sm font-medium text-red-700 mb-2 flex items-center">
+                  <span className="mr-2">🩺</span>
+                  Danh sách triệu chứng
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {record.symptoms.map((symptom, index) => (
+                    <span key={index} className="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full border border-red-300">
+                      {symptom}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {record.allergies && record.allergies.length > 0 && (
+              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                <div className="text-sm font-medium text-yellow-700 mb-2 flex items-center">
+                  <span className="mr-2">⚠️</span>
+                  Danh sách dị ứng
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {record.allergies.map((allergy, index) => (
+                    <span key={index} className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full border border-yellow-300">
+                      {allergy}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {record.medications && record.medications.length > 0 && (
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="text-sm font-medium text-blue-700 mb-2 flex items-center">
+                  <span className="mr-2">💊</span>
+                  Danh sách thuốc đang dùng
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {record.medications.map((medication, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full border border-blue-300">
+                      {medication}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="pt-4 border-t border-gray-100">
+          <div className="text-center py-4 text-gray-500">
+            <p className="text-sm">📊 Chưa có dữ liệu sinh hiệu và thông tin bổ sung</p>
+            <p className="text-xs text-gray-400 mt-1">Thông tin sẽ được cập nhật sau khi bác sĩ khám</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

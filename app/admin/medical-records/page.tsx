@@ -44,6 +44,15 @@ interface MedicalRecord {
   treatment: string;
   medical_notes: string;
   medical_record_created_at?: string;
+  // Các trường dữ liệu sinh hiệu mới
+  temperature?: number | null;
+  blood_pressure?: number | null;
+  heart_rate?: number | null;
+  weight?: number | null;
+  height?: number | null;
+  symptoms?: string[] | null;
+  allergies?: string[] | null;
+  medications?: string[] | null;
 }
 
 interface Pagination {
@@ -401,6 +410,85 @@ export default function MedicalRecordsPage() {
                           </p>
                         )}
                       </div>
+
+                      {/* Hiển thị chỉ số sinh hiệu nếu có */}
+                      {(record.temperature || record.blood_pressure || record.heart_rate || record.weight || record.height) && (
+                        <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">📊 Chỉ số sinh hiệu:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {record.temperature && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                🌡️ {record.temperature}°C
+                              </span>
+                            )}
+                            {record.blood_pressure && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                💓 {record.blood_pressure} mmHg
+                              </span>
+                            )}
+                            {record.heart_rate && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                                ❤️ {record.heart_rate} lần/phút
+                              </span>
+                            )}
+                            {record.weight && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                                ⚖️ {record.weight} kg
+                              </span>
+                            )}
+                            {record.height && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                                📏 {record.height} cm
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hiển thị danh sách triệu chứng, dị ứng, thuốc nếu có */}
+                      {(record.symptoms || record.allergies || record.medications) && (
+                        <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">📋 Thông tin bổ sung:</h4>
+                          <div className="space-y-2">
+                            {record.symptoms && record.symptoms.length > 0 && (
+                              <div>
+                                <span className="text-xs font-medium text-red-600">🩺 Triệu chứng:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {record.symptoms.map((symptom, index) => (
+                                    <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                                      {symptom}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {record.allergies && record.allergies.length > 0 && (
+                              <div>
+                                <span className="text-xs font-medium text-yellow-600">⚠️ Dị ứng:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {record.allergies.map((allergy, index) => (
+                                    <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
+                                      {allergy}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {record.medications && record.medications.length > 0 && (
+                              <div>
+                                <span className="text-xs font-medium text-blue-600">💊 Thuốc đang dùng:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {record.medications.map((medication, index) => (
+                                    <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                      {medication}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex flex-col items-end gap-2">
@@ -593,6 +681,107 @@ export default function MedicalRecordsPage() {
                         <p className="font-medium">
                           {format(new Date(selectedRecord.follow_up_date), 'dd/MM/yyyy', { locale: vi })}
                         </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Vital Signs & Additional Information */}
+              {(selectedRecord.temperature || selectedRecord.blood_pressure || selectedRecord.heart_rate || selectedRecord.weight || selectedRecord.height || 
+                selectedRecord.symptoms || selectedRecord.allergies || selectedRecord.medications) && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <span className="text-2xl">📊</span>
+                    Chỉ số sinh hiệu & Thông tin bổ sung
+                  </h3>
+                  
+                  {/* Chỉ số sinh hiệu */}
+                  {(selectedRecord.temperature || selectedRecord.blood_pressure || selectedRecord.heart_rate || selectedRecord.weight || selectedRecord.height) && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Chỉ số sinh hiệu:</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {selectedRecord.temperature && (
+                          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div className="text-xs text-blue-600 font-medium mb-1">🌡️ Nhiệt độ</div>
+                            <div className="text-lg font-bold text-blue-800">{selectedRecord.temperature}°C</div>
+                          </div>
+                        )}
+                        {selectedRecord.blood_pressure && (
+                          <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div className="text-xs text-green-600 font-medium mb-1">💓 Huyết áp</div>
+                            <div className="text-lg font-bold text-green-800">{selectedRecord.blood_pressure} mmHg</div>
+                          </div>
+                        )}
+                        {selectedRecord.heart_rate && (
+                          <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                            <div className="text-xs text-red-600 font-medium mb-1">❤️ Nhịp tim</div>
+                            <div className="text-lg font-bold text-red-800">{selectedRecord.heart_rate} lần/phút</div>
+                          </div>
+                        )}
+                        {selectedRecord.weight && (
+                          <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                            <div className="text-xs text-purple-600 font-medium mb-1">⚖️ Cân nặng</div>
+                            <div className="text-lg font-bold text-purple-800">{selectedRecord.weight} kg</div>
+                          </div>
+                        )}
+                        {selectedRecord.height && (
+                          <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                            <div className="text-xs text-orange-600 font-medium mb-1">📏 Chiều cao</div>
+                            <div className="text-lg font-bold text-orange-800">{selectedRecord.height} cm</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Danh sách triệu chứng, dị ứng, thuốc */}
+                  <div className="space-y-4">
+                    {selectedRecord.symptoms && selectedRecord.symptoms.length > 0 && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <span className="mr-2">🩺</span>
+                          Danh sách triệu chứng
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRecord.symptoms.map((symptom, index) => (
+                            <span key={index} className="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full border border-red-300">
+                              {symptom}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedRecord.allergies && selectedRecord.allergies.length > 0 && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <span className="mr-2">⚠️</span>
+                          Danh sách dị ứng
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRecord.allergies.map((allergy, index) => (
+                            <span key={index} className="bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full border border-yellow-300">
+                              {allergy}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedRecord.medications && selectedRecord.medications.length > 0 && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <span className="mr-2">💊</span>
+                          Danh sách thuốc đang dùng
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRecord.medications.map((medication, index) => (
+                            <span key={index} className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full border border-blue-300">
+                              {medication}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

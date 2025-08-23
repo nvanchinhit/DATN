@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: localhost:3306
--- Thời gian đã tạo: Th8 12, 2025 lúc 03:33 AM
+-- Thời gian đã tạo: Th8 23, 2025 lúc 07:11 AM
 -- Phiên bản máy phục vụ: 8.0.30
 -- Phiên bản PHP: 8.1.10
 
@@ -68,6 +68,7 @@ CREATE TABLE `appointments` (
   `payment_date` datetime DEFAULT NULL COMMENT 'Ngày thanh toán',
   `time_slot_id` int DEFAULT NULL,
   `status` enum('Chưa xác nhận','Đã xác nhận','Từ chối','Đã hủy','Đang khám','Đã khám xong') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Chưa xác nhận',
+  `reject_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `is_reviewed` tinyint(1) NOT NULL DEFAULT '0',
   `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `doctor_confirmation` enum('Chưa xác nhận','Đã xác nhận','Từ chối') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'Chưa xác nhận',
@@ -81,26 +82,20 @@ CREATE TABLE `appointments` (
 -- Đang đổ dữ liệu cho bảng `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `customer_id`, `doctor_id`, `reason`, `payment_status`, `payment_method`, `transaction_id`, `paid_amount`, `payment_date`, `time_slot_id`, `status`, `is_reviewed`, `address`, `doctor_confirmation`, `doctor_note`, `diagnosis`, `follow_up_date`, `is_examined`) VALUES
-(1, 'Nguyễn Văn A', 32, 'Nam', 'a@gmail.com', '0123456789', NULL, 1, 'Khám tổng quát', 'Đã thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', 0, NULL, 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', NULL, 2, 'Nổi mẩn da', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', 0, NULL, 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(35, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'r32w2er2', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(39, 'LÊ CÔNG TUẤN', 24, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'qffedgfa nê', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(43, 'Le van a', 22, 'Nam', 'huyensoaicavip@gmail.com', '0988842674', 3, 15, 'fsdfddf', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', 0, ' 04 yet keu', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(61, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'stessg', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 715, 'Đã xác nhận', 0, 'tẻt', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(62, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ykkk', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 752, 'Từ chối', 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(63, 'Hà Thị Dung', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'mệt', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 716, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'nghỉ ngơi đầy đủ', NULL, NULL, 1),
-(64, 'Hà Thị Trang', 22, 'Nữ', 'hathidung1502@gmail.com', '0342907002', 15, 15, 'đau đầu', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 725, 'Đã khám xong', 0, 'Cẩm Xuyên', 'Chưa xác nhận', 'bổ sung sắt', NULL, NULL, 1),
-(65, 'Hà Thị Dung', 45, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'ko', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 733, 'Đã khám xong', 0, 'Cẩm Xuyên', 'Chưa xác nhận', 'ko', NULL, NULL, 1),
-(66, 'bona', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'll', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 731, 'Chưa xác nhận', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(67, 'bona', 77, 'Nữ', 'dunghtpd09940@gmail.com', '0987123489', 15, 15, 'mmmm', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 734, 'Đã khám xong', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(68, 'bbb', 22, 'Nữ', 'dunghtpd09940@gmail.com', '0989745832', 15, 15, 'mmm', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 753, 'Đã xác nhận', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(69, 'bona', 21, 'Nam', 'dunghtpd09940@gmail.com', '0342907002', 15, 15, 'ô', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 759, 'Chưa xác nhận', 0, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(70, 'Hà Thị zun', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, '', 'Đã thanh toán', 'cash', NULL, 50000.00, '2025-08-05 22:11:46', 761, 'Đã khám xong', 0, 'Hà Tĩnh', 'Chưa xác nhận', 'kkkkk', NULL, NULL, 1),
-(71, 'ttt', 23, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'a', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 853, 'Chưa xác nhận', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(72, 'dun', 21, 'Nam', 'dunghtpd09940@gmail.com', '0989745832', 15, 15, 'ccc', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 925, 'Đang khám', 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
-(73, 'Hà Thị Dung 1', 88, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'kkkk', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 955, 'Đã khám xong', 0, 'Cẩm Thịnh', 'Chưa xác nhận', 'hhhh', NULL, NULL, 1),
-(74, 'cherry', 23, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'ho', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1045, 'Đã khám xong', 0, 'cx', 'Chưa xác nhận', NULL, NULL, NULL, 0);
+INSERT INTO `appointments` (`id`, `name`, `age`, `gender`, `email`, `phone`, `customer_id`, `doctor_id`, `reason`, `payment_status`, `payment_method`, `transaction_id`, `paid_amount`, `payment_date`, `time_slot_id`, `status`, `reject_reason`, `is_reviewed`, `address`, `doctor_confirmation`, `doctor_note`, `diagnosis`, `follow_up_date`, `is_examined`) VALUES
+(1, 'Nguyễn Văn A', 32, 'Nam', 'a@gmail.com', '0123456789', NULL, 1, 'Khám tổng quát', 'Đã thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', NULL, 0, NULL, 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(2, 'Trần Thị B', 28, 'Nữ', 'b@gmail.com', '0987654321', NULL, 2, 'Nổi mẩn da', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', NULL, 0, NULL, 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(35, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'r32w2er2', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', NULL, 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(39, 'LÊ CÔNG TUẤN', 24, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'qffedgfa nê', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Chưa xác nhận', NULL, 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(43, 'Le van a', 22, 'Nam', 'huyensoaicavip@gmail.com', '0988842674', 3, 15, 'fsdfddf', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, NULL, 'Đã xác nhận', NULL, 0, ' 04 yet keu', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(61, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'stessg', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 715, 'Đã xác nhận', NULL, 0, 'tẻt', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(62, 'LÊ CÔNG TUẤN', 22, 'Nam', 'tuanlcpd10779@gmail.com', '0342907002', 3, 15, 'ykkk', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 752, 'Từ chối', NULL, 0, 'k47 nguyễn lương bằng', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(77, 'Hà Thị Dung', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'ho', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1123, 'Đã khám xong', NULL, 0, 'Cẩm Thịnh', 'Chưa xác nhận', 'ko có gì\n', NULL, NULL, 1),
+(78, 'Hà Thị Trang', 9, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'lll', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1130, 'Đã khám xong', NULL, 0, 'Hải Châu', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(79, 'BS.Mina', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123489', 15, 15, 'ff', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1138, 'Đang khám', NULL, 0, 'Cẩm Xuyên', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(80, 'bona', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0987123489', 15, 15, 'dd', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1203, 'Đang khám', NULL, 0, 'Cẩm Thịnh', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(81, 'Hà Thị Dung 1', 21, 'Nữ', 'dunghtpd09940@gmail.com', '0342907002', 15, 15, 'jjj', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1238, 'Đã khám xong', NULL, 0, 'Hà Tĩnh', 'Chưa xác nhận', NULL, NULL, NULL, 0),
+(82, 'Hà Thị Dung h', 9, 'Nữ', 'dunghtpd09940@gmail.com', '0987123456', 15, 15, 'd', 'Chưa thanh toán', 'cash', NULL, 0.00, NULL, 1242, 'Đã khám xong', NULL, 0, 'Hà Tĩnh', 'Chưa xác nhận', 'kkkk', NULL, '2025-08-27', 1);
 
 -- --------------------------------------------------------
 
@@ -126,7 +121,9 @@ INSERT INTO `chat_messages` (`id`, `room_id`, `sender_id`, `sender_type`, `messa
 (2, 1, 15, 'doctor', 'bạn cần gì ', '2025-08-04 00:24:13'),
 (3, 1, 15, 'customer', 'gói khám ntn a', '2025-08-04 00:25:12'),
 (4, 1, 15, 'customer', 'hi', '2025-08-05 22:00:44'),
-(5, 1, 15, 'customer', 'xin chào bs', '2025-08-10 19:41:14');
+(5, 1, 15, 'customer', 'xin chào bs', '2025-08-10 19:41:14'),
+(6, 1, 15, 'doctor', 'hế lô', '2025-08-23 10:06:55'),
+(7, 1, 15, 'customer', 'cc', '2025-08-23 10:08:02');
 
 -- --------------------------------------------------------
 
@@ -147,7 +144,7 @@ CREATE TABLE `chat_rooms` (
 --
 
 INSERT INTO `chat_rooms` (`id`, `customer_id`, `assigned_doctor_id`, `created_at`, `updated_at`) VALUES
-(1, 15, 15, '2025-08-03 22:38:29', '2025-08-10 19:41:14');
+(1, 15, 15, '2025-08-03 22:38:29', '2025-08-23 10:08:02');
 
 -- --------------------------------------------------------
 
@@ -221,7 +218,7 @@ CREATE TABLE `doctors` (
 INSERT INTO `doctors` (`id`, `name`, `phone`, `email`, `password`, `specialization_id`, `img`, `introduction`, `certificate_image`, `degree_image`, `experience`, `account_status`, `role_id`, `university`, `gpa`, `graduation_date`, `degree_type`, `certificate_source`, `room_number`) VALUES
 (1, 'BS. Nguyễn Bác Sĩ', '0909345678', 'bs1@example.com', '$2b$10$abc123Bs1', 1, 'nguyenbacsi.jpg', 'Giáo sư, Tiến sĩ hàng đầu trong lĩnh vực Nội khoa, với hơn 30 năm kinh nghiệm khám và điều trị.', '1751077687528-3.png', '1751077687531-1.png', '', 'active', 3, NULL, NULL, NULL, NULL, NULL, NULL),
 (2, 'BS. Trần Da Liễu', '0909456789', 'bs2@example.com', '$2b$10$def456Bs2', 2, 'trandalieu.jpg', 'Chuyên gia Da liễu với nhiều năm kinh nghiệm điều trị các bệnh về da, đặc biệt là da thẩm mỹ và laser.', 'cert_bs2.jpg', 'https://i.imgur.com/T0azHTQ.jpeg', NULL, 'active', 3, NULL, NULL, NULL, NULL, NULL, NULL),
-(15, 'Đặng Tất Cường', '0342907002', 'tuanlcpd10779@gmail.com', '$2b$10$XK4ydmUKNB1KHvLkJBRI2eHwaeJHddBdXTIDw71eFn01yOmYFvPkS', 1, '1751992740181-small_28_02_2019_09_02_38_828416_jpeg_5ee29e2e57.jpg', 'GS. TS. Anh hùng lao động Đỗ Tất Cường có kinh nghiệm về lĩnh vực ghép tạng (ghép thận, ghép gan, ghép tim). Hiện là Phó Tổng Giám đốc phụ trách đối ngoại Hệ thống Y tế Vinmec kiêm cố vấn khoa Nội - Bệnh viện ĐKQT Vinmec Times City', '1752541544184-Screenshot 2025-06-22 210430.png', '1751992740185-Cream Bordered Appreciation Certificate.png', 'Công tác tại Khoa Hồi sức cấp cứu tại Bệnh viện 103 - Học viện Quân y a\r\nPhó Giám đốc Bệnh viện Quân y 103\r\nPhó Tổng Giám đốc phụ trách đối ngoại Hệ thống Y tế Vinmec kiêm cố vấn khoa Nội - Bệnh viện ĐKQT Vinmec Times City\r\n\r\n', 'active', 3, ' Trường Đại học Y Hà Nội', '5.0', '1972-02-27', 'TS – Tiến sĩ Y học', ' Bộ y tế', 'P101'),
+(15, 'Đặng Tất Cường', '0342907002', 'tuanlcpd10779@gmail.com', '$2b$10$XK4ydmUKNB1KHvLkJBRI2eHwaeJHddBdXTIDw71eFn01yOmYFvPkS', 1, 'Bằng.jpg', 'GS. TS. Anh hùng lao động Đỗ Tất Cường có kinh nghiệm về lĩnh vực ghép tạng (ghép thận, ghép gan, ghép tim). Hiện là Phó Tổng Giám đốc phụ trách đối ngoại Hệ thống Y tế Vinmec kiêm cố vấn khoa Nội - Bệnh viện ĐKQT Vinmec Times City', '1752541544184-Screenshot 2025-06-22 210430.png', '1751992740185-Cream Bordered Appreciation Certificate.png', 'Công tác tại Khoa Hồi sức cấp cứu tại Bệnh viện 103 - Học viện Quân y a\r\nPhó Giám đốc Bệnh viện Quân y 103\r\nPhó Tổng Giám đốc phụ trách đối ngoại Hệ thống Y tế Vinmec kiêm cố vấn khoa Nội - Bệnh viện ĐKQT Vinmec Times City\r\n\r\n', 'active', 3, ' Trường Đại học Y Hà Nội', '5.0', '1972-02-27', 'TS – Tiến sĩ Y học', ' Bộ y tế', 'P105'),
 (18, 'Nguyễn Văn Kỳ', '0988842674', 'kysoaicavip@gmail.com', '$2b$10$5hTr/1PkVC71NINykMutM.4kfyc5DU6qXKHwvvNANhInp9vjjopx6', 3, '1752465681743-small_20_06_2023_05_41_48_828145_jpeg_8ee5a8d83b.jpg', 'GS. TS. Nguyễn Văn Kỳ  có hơn 50 năm kinh nghiệm trong lĩnh vực Ngọai Nhi và là người tiên phong đưa các liệu pháp trong lĩnh vực Y học tái tạo và trị liệu tế bào vào điều trị các bệnh nan y tại Việt Nam thông qua các hoạt động nghiên cứu khoa học (các đề tài nghiên cứu ứng dụng lâm sàng về liệu pháp tế bào gốc, thể tiết, công nghệ gen và liệu pháp miễn dịch trong điều trị bệnh).\r\n\r\nGS. TS. Nguyễn Văn Kỳ được đào tạo chuyên môn nâng cao tại Pháp, Thụy Điển, Nhật Bản, Australia và Mỹ. Giáo sư được các đồng nghiệp quốc tế đánh giá là một trong các chuyên gia hàng đầu về phẫu thuật nội soi nhi khoa của thế giới, đặc biệt về kỹ thuật phẫu thuật nội soi điều trị u nang ống mật chủ (với kinh nghiệm hơn 500 trường hợp) và phẫu thuật nội soi điều trị thoát vị cơ hoành (với hơn 300 trường hợp). Ông đã được mời đi mổ trình diễn và giảng bài tại nhiều hội nghị quốc tế và tại nhiều nơi như Mỹ, Pháp, Italia, Úc, Nhật, Hàn Quốc, Malaysia, Thái Lan, Indonesia, Philippines, Đài Loan. Ông đã đóng góp 09 kỹ thuật hoàn toàn mới về Phẫu thuật Nhi khoa.\r\n\r\nGS Nguyễn Thanh Liêm là người tiên phong trong lĩnh vực ghép tế bào gốc điều trị các bệnh nan y tại Việt Nam (tự kỷ, bại não loạn sản phế quản phổi, xơ gan, đột quỵ, chấn thương sọ não, phổi tắc nghẽn mãn tính,…) và ghép tế bào gốc tạo máu điều trị các bệnh ung thư huyết học, Thalassemia.\r\n\r\nGS. TS Nguyễn Văn Kỳ là thành viên của Hiệp hội Ngoại nhi Thái Bình Dương (PAPS), Hội Điều trị các bệnh lỗ tiểu lệch thấp và rối loạn lưỡng tính quốc tế, Hội đồng Chính sách khoa học và công nghệ Quốc gia (NCSTP). Ông là Chủ tịch Hiệp hội Ngoại nhi Việt Nam (VAPS) và Ủy ban Nghiên cứu Hiệp hội Phẫu thuật nội soi nhi khoa quốc tế (IPEG), Phó chủ tịch Hiệp hội Ngoại nhi châu Á (AAPS). GS cũng là hội viên danh dự Hiệp hội Ngoại nhi Philippines và Hội Phẫu thuật nhi Liên bang Nga. Ông là đại diện của Việt Nam trong Hệ thống Phẫu thuật nhi khoa toàn cầu.', '1752465681745-TDCARE.png', '1752465681745-small_28_02_2019_09_02_38_828416_jpeg_5ee29e2e57.jpg', 'Viện trưởng Viện nghiên cứu Tế bào gốc và công nghệ gen Vinmec\r\nPhụ trách đơn nguyên Phòng khám Y học tái tạo và tâm lý giáo dục - Trung tâm Y học tái tạo và trị liệu tế bào, Bệnh viện Đa khoa Quốc tế Vinmec Times City\r\nGiám đốc - Bệnh viện Đa khoa Quốc tế Vinmec Times City\r\nViện trưởng Viện Nghiên cứu sức khỏe trẻ em\r\nGiám đốc Bệnh viện Nhi trung Ương\r\n\r\n', 'active', 3, 'Đại Học Y', '5.0', '1972-02-20', 'Tiến Sĩ', 'Bộ ý tế', 'P201'),
 (19, 'Nguyễn Thị Huyền', '0375393179', 'huyensoaicavip@gmail.com', '$2b$10$XaZ3nidV52qfWo0fpa1Zbuz8Vxf3B3bBg51tCDZSXrP.Z1Vu544Bm', 1, '1752640076829-305758762_560820982511053_7952047815843262362_n.jpg', 'ssddscxc', '1752640076844-TDCARE.png', '1752640076839-305758762_560820982511053_7952047815843262362_n.jpg', 'sád', 'active', 3, 'Năm 1973: Tốt nghiệp Trường Đại học Y Hà Nội', '4.2', '2002-11-11', 'TS – Tiến sĩ Y học', 'bộ y té', 'P102'),
 (20, 'LÊ CÔNG TUẤN', '0909123452', 'oanhsoaicavip@gmail.com', '$2b$10$V6xyhwCN1Z26GOrQxrd92em0oGCeTW1h.xo0KBHzOZD5OKQXrThUm', 3, '1752935877130-small_20_06_2023_05_41_48_828145_jpeg_8ee5a8d83b.jpg', 'kjkfdbjdsf', '1752935877132-small_20_06_2023_05_41_48_828145_jpeg_8ee5a8d83b.jpg', '1752935877132-small_20_06_2023_05_41_48_828145_jpeg_8ee5a8d83b.jpg', 'flkvxkklxv', 'active', 3, ' Trường Đại học Y Hà Nội', '5.0', '2000-12-02', 'TS – Tiến sĩ Y học', 'bộ y tế', 'P202'),
@@ -733,7 +730,151 @@ INSERT INTO `doctor_time_slot` (`id`, `doctor_id`, `work_shift_id`, `slot_date`,
 (1101, 15, 105, '2025-08-13', '16:30:00', '16:45:00', 'Available', 1),
 (1102, 15, 105, '2025-08-13', '16:45:00', '17:00:00', 'Available', 1),
 (1103, 15, 105, '2025-08-13', '17:00:00', '17:15:00', 'Available', 1),
-(1104, 15, 105, '2025-08-13', '17:15:00', '17:30:00', 'Available', 1);
+(1104, 15, 105, '2025-08-13', '17:15:00', '17:30:00', 'Available', 1),
+(1105, 15, 106, '2025-08-18', '07:00:00', '07:30:00', 'Available', 1),
+(1106, 15, 106, '2025-08-18', '07:30:00', '08:00:00', 'Available', 1),
+(1107, 15, 106, '2025-08-18', '08:00:00', '08:30:00', 'Available', 1),
+(1108, 15, 106, '2025-08-18', '08:30:00', '09:00:00', 'Available', 1),
+(1109, 15, 106, '2025-08-18', '09:00:00', '09:30:00', 'Available', 1),
+(1110, 15, 106, '2025-08-18', '09:30:00', '10:00:00', 'Available', 1),
+(1111, 15, 106, '2025-08-18', '10:00:00', '10:30:00', 'Available', 1),
+(1112, 15, 106, '2025-08-18', '10:30:00', '11:00:00', 'Available', 1),
+(1113, 15, 106, '2025-08-18', '11:00:00', '11:30:00', 'Available', 1),
+(1114, 15, 106, '2025-08-18', '11:30:00', '12:00:00', 'Available', 1),
+(1115, 15, 107, '2025-08-18', '13:30:00', '14:00:00', 'Available', 1),
+(1116, 15, 107, '2025-08-18', '14:00:00', '14:30:00', 'Available', 1),
+(1117, 15, 107, '2025-08-18', '14:30:00', '15:00:00', 'Available', 1),
+(1118, 15, 107, '2025-08-18', '15:00:00', '15:30:00', 'Available', 1),
+(1119, 15, 107, '2025-08-18', '15:30:00', '16:00:00', 'Available', 1),
+(1120, 15, 107, '2025-08-18', '16:00:00', '16:30:00', 'Available', 1),
+(1121, 15, 107, '2025-08-18', '16:30:00', '17:00:00', 'Available', 1),
+(1122, 15, 107, '2025-08-18', '17:00:00', '17:30:00', 'Available', 1),
+(1123, 15, 108, '2025-08-19', '07:00:00', '07:30:00', 'Available', 1),
+(1124, 15, 108, '2025-08-19', '07:30:00', '08:00:00', 'Available', 1),
+(1125, 15, 108, '2025-08-19', '08:00:00', '08:30:00', 'Available', 1),
+(1126, 15, 108, '2025-08-19', '08:30:00', '09:00:00', 'Available', 1),
+(1127, 15, 108, '2025-08-19', '09:00:00', '09:30:00', 'Available', 1),
+(1128, 15, 108, '2025-08-19', '09:30:00', '10:00:00', 'Available', 1),
+(1129, 15, 108, '2025-08-19', '10:00:00', '10:30:00', 'Available', 1),
+(1130, 15, 108, '2025-08-19', '10:30:00', '11:00:00', 'Available', 1),
+(1131, 15, 108, '2025-08-19', '11:00:00', '11:30:00', 'Available', 1),
+(1132, 15, 108, '2025-08-19', '11:30:00', '12:00:00', 'Available', 1),
+(1133, 15, 109, '2025-08-19', '13:30:00', '14:00:00', 'Available', 1),
+(1134, 15, 109, '2025-08-19', '14:00:00', '14:30:00', 'Available', 1),
+(1135, 15, 109, '2025-08-19', '14:30:00', '15:00:00', 'Available', 1),
+(1136, 15, 109, '2025-08-19', '15:00:00', '15:30:00', 'Available', 1),
+(1137, 15, 109, '2025-08-19', '15:30:00', '16:00:00', 'Available', 1),
+(1138, 15, 109, '2025-08-19', '16:00:00', '16:30:00', 'Available', 1),
+(1139, 15, 109, '2025-08-19', '16:30:00', '17:00:00', 'Available', 1),
+(1140, 15, 109, '2025-08-19', '17:00:00', '17:30:00', 'Available', 1),
+(1141, 15, 110, '2025-08-16', '07:00:00', '07:30:00', 'Available', 1),
+(1142, 15, 110, '2025-08-16', '07:30:00', '08:00:00', 'Available', 1),
+(1143, 15, 110, '2025-08-16', '08:00:00', '08:30:00', 'Available', 1),
+(1144, 15, 110, '2025-08-16', '08:30:00', '09:00:00', 'Available', 1),
+(1145, 15, 110, '2025-08-16', '09:00:00', '09:30:00', 'Available', 1),
+(1146, 15, 110, '2025-08-16', '09:30:00', '10:00:00', 'Available', 1),
+(1147, 15, 110, '2025-08-16', '10:00:00', '10:30:00', 'Available', 1),
+(1148, 15, 110, '2025-08-16', '10:30:00', '11:00:00', 'Available', 1),
+(1149, 15, 110, '2025-08-16', '11:00:00', '11:30:00', 'Available', 1),
+(1150, 15, 110, '2025-08-16', '11:30:00', '12:00:00', 'Available', 1),
+(1151, 15, 111, '2025-08-16', '13:30:00', '14:00:00', 'Available', 1),
+(1152, 15, 111, '2025-08-16', '14:00:00', '14:30:00', 'Available', 1),
+(1153, 15, 111, '2025-08-16', '14:30:00', '15:00:00', 'Available', 1),
+(1154, 15, 111, '2025-08-16', '15:00:00', '15:30:00', 'Available', 1),
+(1155, 15, 111, '2025-08-16', '15:30:00', '16:00:00', 'Available', 1),
+(1156, 15, 111, '2025-08-16', '16:00:00', '16:30:00', 'Available', 1),
+(1157, 15, 111, '2025-08-16', '16:30:00', '17:00:00', 'Available', 1),
+(1158, 15, 111, '2025-08-16', '17:00:00', '17:30:00', 'Available', 1),
+(1159, 15, 112, '2025-08-17', '07:00:00', '07:30:00', 'Available', 1),
+(1160, 15, 112, '2025-08-17', '07:30:00', '08:00:00', 'Available', 1),
+(1161, 15, 112, '2025-08-17', '08:00:00', '08:30:00', 'Available', 1),
+(1162, 15, 112, '2025-08-17', '08:30:00', '09:00:00', 'Available', 1),
+(1163, 15, 112, '2025-08-17', '09:00:00', '09:30:00', 'Available', 1),
+(1164, 15, 112, '2025-08-17', '09:30:00', '10:00:00', 'Available', 1),
+(1165, 15, 112, '2025-08-17', '10:00:00', '10:30:00', 'Available', 1),
+(1166, 15, 112, '2025-08-17', '10:30:00', '11:00:00', 'Available', 1),
+(1167, 15, 112, '2025-08-17', '11:00:00', '11:30:00', 'Available', 1),
+(1168, 15, 112, '2025-08-17', '11:30:00', '12:00:00', 'Available', 1),
+(1169, 15, 113, '2025-08-17', '13:30:00', '14:00:00', 'Available', 1),
+(1170, 15, 113, '2025-08-17', '14:00:00', '14:30:00', 'Available', 1),
+(1171, 15, 113, '2025-08-17', '14:30:00', '15:00:00', 'Available', 1),
+(1172, 15, 113, '2025-08-17', '15:00:00', '15:30:00', 'Available', 1),
+(1173, 15, 113, '2025-08-17', '15:30:00', '16:00:00', 'Available', 1),
+(1174, 15, 113, '2025-08-17', '16:00:00', '16:30:00', 'Available', 1),
+(1175, 15, 113, '2025-08-17', '16:30:00', '17:00:00', 'Available', 1),
+(1176, 15, 113, '2025-08-17', '17:00:00', '17:30:00', 'Available', 1),
+(1177, 15, 114, '2025-08-20', '07:00:00', '07:30:00', 'Available', 1),
+(1178, 15, 114, '2025-08-20', '07:30:00', '08:00:00', 'Available', 1),
+(1179, 15, 114, '2025-08-20', '08:00:00', '08:30:00', 'Available', 1),
+(1180, 15, 114, '2025-08-20', '08:30:00', '09:00:00', 'Available', 1),
+(1181, 15, 114, '2025-08-20', '09:00:00', '09:30:00', 'Available', 1),
+(1182, 15, 114, '2025-08-20', '09:30:00', '10:00:00', 'Available', 1),
+(1183, 15, 114, '2025-08-20', '10:00:00', '10:30:00', 'Available', 1),
+(1184, 15, 114, '2025-08-20', '10:30:00', '11:00:00', 'Available', 1),
+(1185, 15, 114, '2025-08-20', '11:00:00', '11:30:00', 'Available', 1),
+(1186, 15, 114, '2025-08-20', '11:30:00', '12:00:00', 'Available', 1),
+(1187, 15, 115, '2025-08-20', '13:30:00', '14:00:00', 'Available', 1),
+(1188, 15, 115, '2025-08-20', '14:00:00', '14:30:00', 'Available', 1),
+(1189, 15, 115, '2025-08-20', '14:30:00', '15:00:00', 'Available', 1),
+(1190, 15, 115, '2025-08-20', '15:00:00', '15:30:00', 'Available', 1),
+(1191, 15, 115, '2025-08-20', '15:30:00', '16:00:00', 'Available', 1),
+(1192, 15, 115, '2025-08-20', '16:00:00', '16:30:00', 'Available', 1),
+(1193, 15, 115, '2025-08-20', '16:30:00', '17:00:00', 'Available', 1),
+(1194, 15, 115, '2025-08-20', '17:00:00', '17:30:00', 'Available', 1),
+(1195, 15, 116, '2025-08-21', '07:00:00', '07:30:00', 'Available', 1),
+(1196, 15, 116, '2025-08-21', '07:30:00', '08:00:00', 'Available', 1),
+(1197, 15, 116, '2025-08-21', '08:00:00', '08:30:00', 'Available', 1),
+(1198, 15, 116, '2025-08-21', '08:30:00', '09:00:00', 'Available', 1),
+(1199, 15, 116, '2025-08-21', '09:00:00', '09:30:00', 'Available', 1),
+(1200, 15, 116, '2025-08-21', '09:30:00', '10:00:00', 'Available', 1),
+(1201, 15, 116, '2025-08-21', '10:00:00', '10:30:00', 'Available', 1),
+(1202, 15, 116, '2025-08-21', '10:30:00', '11:00:00', 'Available', 1),
+(1203, 15, 116, '2025-08-21', '11:00:00', '11:30:00', 'Available', 1),
+(1204, 15, 116, '2025-08-21', '11:30:00', '12:00:00', 'Available', 1),
+(1205, 15, 117, '2025-08-21', '13:30:00', '14:00:00', 'Available', 1),
+(1206, 15, 117, '2025-08-21', '14:00:00', '14:30:00', 'Available', 1),
+(1207, 15, 117, '2025-08-21', '14:30:00', '15:00:00', 'Available', 1),
+(1208, 15, 117, '2025-08-21', '15:00:00', '15:30:00', 'Available', 1),
+(1209, 15, 117, '2025-08-21', '15:30:00', '16:00:00', 'Available', 1),
+(1210, 15, 117, '2025-08-21', '16:00:00', '16:30:00', 'Available', 1),
+(1211, 15, 117, '2025-08-21', '16:30:00', '17:00:00', 'Available', 1),
+(1212, 15, 117, '2025-08-21', '17:00:00', '17:30:00', 'Available', 1),
+(1213, 15, 118, '2025-08-22', '07:00:00', '07:30:00', 'Available', 1),
+(1214, 15, 118, '2025-08-22', '07:30:00', '08:00:00', 'Available', 1),
+(1215, 15, 118, '2025-08-22', '08:00:00', '08:30:00', 'Available', 1),
+(1216, 15, 118, '2025-08-22', '08:30:00', '09:00:00', 'Available', 1),
+(1217, 15, 118, '2025-08-22', '09:00:00', '09:30:00', 'Available', 1),
+(1218, 15, 118, '2025-08-22', '09:30:00', '10:00:00', 'Available', 1),
+(1219, 15, 118, '2025-08-22', '10:00:00', '10:30:00', 'Available', 1),
+(1220, 15, 118, '2025-08-22', '10:30:00', '11:00:00', 'Available', 1),
+(1221, 15, 118, '2025-08-22', '11:00:00', '11:30:00', 'Available', 1),
+(1222, 15, 118, '2025-08-22', '11:30:00', '12:00:00', 'Available', 1),
+(1223, 15, 119, '2025-08-22', '13:30:00', '14:00:00', 'Available', 1),
+(1224, 15, 119, '2025-08-22', '14:00:00', '14:30:00', 'Available', 1),
+(1225, 15, 119, '2025-08-22', '14:30:00', '15:00:00', 'Available', 1),
+(1226, 15, 119, '2025-08-22', '15:00:00', '15:30:00', 'Available', 1),
+(1227, 15, 119, '2025-08-22', '15:30:00', '16:00:00', 'Available', 1),
+(1228, 15, 119, '2025-08-22', '16:00:00', '16:30:00', 'Available', 1),
+(1229, 15, 119, '2025-08-22', '16:30:00', '17:00:00', 'Available', 1),
+(1230, 15, 119, '2025-08-22', '17:00:00', '17:30:00', 'Available', 1),
+(1231, 15, 120, '2025-08-23', '07:00:00', '07:30:00', 'Available', 1),
+(1232, 15, 120, '2025-08-23', '07:30:00', '08:00:00', 'Available', 1),
+(1233, 15, 120, '2025-08-23', '08:00:00', '08:30:00', 'Available', 1),
+(1234, 15, 120, '2025-08-23', '08:30:00', '09:00:00', 'Available', 1),
+(1235, 15, 120, '2025-08-23', '09:00:00', '09:30:00', 'Available', 1),
+(1236, 15, 120, '2025-08-23', '09:30:00', '10:00:00', 'Available', 1),
+(1237, 15, 120, '2025-08-23', '10:00:00', '10:30:00', 'Available', 1),
+(1238, 15, 120, '2025-08-23', '10:30:00', '11:00:00', 'Available', 1),
+(1239, 15, 120, '2025-08-23', '11:00:00', '11:30:00', 'Available', 1),
+(1240, 15, 120, '2025-08-23', '11:30:00', '12:00:00', 'Available', 1),
+(1241, 15, 121, '2025-08-23', '13:30:00', '14:00:00', 'Available', 1),
+(1242, 15, 121, '2025-08-23', '14:00:00', '14:30:00', 'Available', 1),
+(1243, 15, 121, '2025-08-23', '14:30:00', '15:00:00', 'Available', 1),
+(1244, 15, 121, '2025-08-23', '15:00:00', '15:30:00', 'Available', 1),
+(1245, 15, 121, '2025-08-23', '15:30:00', '16:00:00', 'Available', 1),
+(1246, 15, 121, '2025-08-23', '16:00:00', '16:30:00', 'Available', 1),
+(1247, 15, 121, '2025-08-23', '16:30:00', '17:00:00', 'Available', 1),
+(1248, 15, 121, '2025-08-23', '17:00:00', '17:30:00', 'Available', 1);
 
 -- --------------------------------------------------------
 
@@ -799,7 +940,23 @@ INSERT INTO `doctor_work_shifts` (`id`, `doctor_id`, `work_date`, `shift_name`, 
 (102, 15, '2025-08-12', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-09 08:41:19', '2025-08-09 08:41:19'),
 (103, 15, '2025-08-12', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-09 08:41:21', '2025-08-09 08:41:21'),
 (104, 15, '2025-08-13', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-09 08:41:26', '2025-08-09 08:41:26'),
-(105, 15, '2025-08-13', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-09 08:41:26', '2025-08-09 08:41:26');
+(105, 15, '2025-08-13', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-09 08:41:26', '2025-08-09 08:41:26'),
+(106, 15, '2025-08-18', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-15 14:29:11', '2025-08-15 14:29:11'),
+(107, 15, '2025-08-18', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-15 14:29:12', '2025-08-15 14:29:12'),
+(108, 15, '2025-08-19', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-15 14:29:37', '2025-08-15 14:29:37'),
+(109, 15, '2025-08-19', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-15 14:29:38', '2025-08-15 14:29:38'),
+(110, 15, '2025-08-16', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-16 02:42:19', '2025-08-16 02:42:19'),
+(111, 15, '2025-08-16', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-16 02:42:20', '2025-08-16 02:42:20'),
+(112, 15, '2025-08-17', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-16 02:42:25', '2025-08-16 02:42:25'),
+(113, 15, '2025-08-17', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-16 02:42:26', '2025-08-16 02:42:26'),
+(114, 15, '2025-08-20', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-16 02:42:37', '2025-08-16 02:42:37'),
+(115, 15, '2025-08-20', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-16 02:42:37', '2025-08-16 02:42:37'),
+(116, 15, '2025-08-21', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-16 02:42:41', '2025-08-16 02:42:41'),
+(117, 15, '2025-08-21', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-16 02:42:41', '2025-08-16 02:42:41'),
+(118, 15, '2025-08-22', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-16 02:42:45', '2025-08-16 02:42:45'),
+(119, 15, '2025-08-22', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-16 02:42:46', '2025-08-16 02:42:46'),
+(120, 15, '2025-08-23', 'Ca sáng', '07:00:00', '12:00:00', 'Active', '2025-08-19 02:43:21', '2025-08-19 02:43:21'),
+(121, 15, '2025-08-23', 'Ca chiều', '13:30:00', '17:30:00', 'Active', '2025-08-19 02:43:21', '2025-08-19 02:43:21');
 
 -- --------------------------------------------------------
 
@@ -811,89 +968,31 @@ CREATE TABLE `medical_records` (
   `id` int NOT NULL,
   `appointment_id` int DEFAULT NULL,
   `doctor_id` int DEFAULT NULL,
-  `customer_id` int DEFAULT NULL,
+  `patient_id` int DEFAULT NULL,
+  `temperature` decimal(4,1) DEFAULT NULL COMMENT 'Nhiệt độ (°C)',
+  `blood_pressure` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'Huyết áp (mmHg)',
+  `heart_rate` int DEFAULT NULL COMMENT 'Nhịp tim (lần/phút)',
+  `weight` decimal(5,2) DEFAULT NULL COMMENT 'Cân nặng (kg)',
+  `height` decimal(5,2) DEFAULT NULL COMMENT 'Chiều cao (cm)',
+  `symptoms` json DEFAULT NULL COMMENT 'Danh sách triệu chứng',
+  `allergies` json DEFAULT NULL COMMENT 'Danh sách dị ứng',
+  `medications` json DEFAULT NULL COMMENT 'Danh sách thuốc đang dùng',
   `diagnosis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `recommendations` text COLLATE utf8mb4_general_ci COMMENT 'Khuyến nghị và hướng dẫn',
+  `follow_up_date` date DEFAULT NULL COMMENT 'Ngày tái khám',
+  `status` enum('draft','completed') COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'Trạng thái hồ sơ',
   `treatment` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
-  `created_at` datetime DEFAULT NULL
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `medical_records`
 --
 
-INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `customer_id`, `diagnosis`, `treatment`, `notes`, `created_at`) VALUES
-(10, 64, 15, 15, 'thiếu máu', NULL, NULL, '2025-08-01 15:26:25'),
-(11, 65, 15, 15, 'ko có gì', NULL, NULL, '2025-08-02 15:23:15'),
-(12, 70, 15, 15, 'hhh', '', '', '2025-08-05 22:13:47'),
-(13, 73, 15, 15, 'hhhhh', NULL, NULL, '2025-08-09 15:46:20');
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `orders`
---
-
-CREATE TABLE `orders` (
-  `id` int NOT NULL,
-  `customer_id` int DEFAULT NULL,
-  `order_date` datetime DEFAULT NULL,
-  `status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `total_amount` decimal(10,2) DEFAULT NULL,
-  `payment_status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `orders`
---
-
-INSERT INTO `orders` (`id`, `customer_id`, `order_date`, `status`, `total_amount`, `payment_status`) VALUES
-(1, 1, '2025-06-07 14:02:51', 'Đã giao', 40000.00, 'Đã thanh toán'),
-(2, 2, '2025-06-07 14:02:51', 'Đang xử lý', 25000.00, 'Chưa thanh toán');
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `order_details`
---
-
-CREATE TABLE `order_details` (
-  `id` int NOT NULL,
-  `order_id` int DEFAULT NULL,
-  `quantity` int DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `order_details`
---
-
-INSERT INTO `order_details` (`id`, `order_id`, `quantity`, `price`) VALUES
-(1, 1, 1, 15000.00),
-(2, 1, 1, 25000.00),
-(3, 2, 1, 25000.00);
-
--- --------------------------------------------------------
-
---
--- Cấu trúc bảng cho bảng `payments`
---
-
-CREATE TABLE `payments` (
-  `id` int NOT NULL,
-  `order_id` int DEFAULT NULL,
-  `method` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `status` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `payment_date` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Đang đổ dữ liệu cho bảng `payments`
---
-
-INSERT INTO `payments` (`id`, `order_id`, `method`, `status`, `payment_date`) VALUES
-(1, 1, 'Tiền mặt', 'Đã thanh toán', '2025-06-07 14:02:51'),
-(2, 2, 'Chuyển khoản', 'Chờ thanh toán', NULL);
+INSERT INTO `medical_records` (`id`, `appointment_id`, `doctor_id`, `patient_id`, `temperature`, `blood_pressure`, `heart_rate`, `weight`, `height`, `symptoms`, `allergies`, `medications`, `diagnosis`, `recommendations`, `follow_up_date`, `status`, `treatment`, `notes`, `created_at`, `updated_at`) VALUES
+(15, 82, 15, 15, 34.0, '112', 67, 43.00, 153.00, '[\"Sốt\"]', '[\"Không có\"]', '[\"Không có\"]', 'abc', 'xyz', NULL, 'completed', 'thuốc', 'ko sao', '2025-08-23 13:39:55', '2025-08-23 06:54:11');
 
 -- --------------------------------------------------------
 
@@ -976,7 +1075,7 @@ CREATE TABLE `ratings` (
   `created_at` datetime DEFAULT NULL,
   `doctor_id` int DEFAULT NULL,
   `appointment_id` int DEFAULT NULL,
-  `status` enum('pending','approved','rejected') COLLATE utf8mb4_general_ci DEFAULT 'pending' COMMENT 'Trạng thái duyệt: pending=chờ duyệt, approved=đã duyệt, rejected=từ chối'
+  `status` enum('pending','approved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'pending' COMMENT 'Trạng thái duyệt: pending=chờ duyệt, approved=đã duyệt, rejected=từ chối'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -984,13 +1083,8 @@ CREATE TABLE `ratings` (
 --
 
 INSERT INTO `ratings` (`id`, `customer_id`, `rating`, `comment`, `created_at`, `doctor_id`, `appointment_id`, `status`) VALUES
-(1, 1, 5, 'Rất tốt!', '2025-06-07 14:02:51', NULL, NULL, 'pending'),
-(2, 2, 4, 'Chất lượng ổn.', '2025-06-07 14:02:51', NULL, NULL, 'pending'),
-(5, 15, 4, 'bs nhiệt tình', '2025-07-23 23:23:48', 19, NULL, 'pending'),
-(10, 15, 2, 'kkkkkkkk', '2025-07-23 23:40:23', 15, 44, 'pending'),
-(11, 15, 4, 'tốt', '2025-07-24 14:00:09', 15, 50, 'pending'),
-(12, 15, 5, 'Bs tận tâm l', '2025-08-01 13:07:40', 15, 63, 'pending'),
-(14, 15, 3, 'tận tình', '2025-08-12 10:25:48', 15, 74, 'pending');
+(16, 15, 4, 'tốt', '2025-08-18 20:32:58', 15, 77, 'approved'),
+(17, 15, 5, 'ok', '2025-08-23 10:07:40', 15, 81, 'approved');
 
 -- --------------------------------------------------------
 
@@ -1030,7 +1124,7 @@ CREATE TABLE `specializations` (
 --
 
 INSERT INTO `specializations` (`id`, `name`, `image`, `price`) VALUES
-(1, 'Nội khoa', '/uploads/1750666911605-cÃ´ng ty tÃ i chÃ­nh.png', 100000),
+(1, 'Nội khoa', '/uploads/1750666911605-cÃ´ng ty tÃ i chÃ­nh.png', 10000),
 (2, 'Da liễu', '/uploads/1750609299162-screenshot_1749730713.png', 100000),
 (3, 'Tai mũi họng', '/uploads/1750609326029-screenshot_1749730713.png', 100000),
 (4, 'Khoa tim mạch', '/uploads/1750609612105-z6609834095121_c248e82fc8056b10772f73afbfb4e383.jpg', 123000),
@@ -1117,28 +1211,12 @@ ALTER TABLE `medical_records`
   ADD PRIMARY KEY (`id`),
   ADD KEY `appointment_id` (`appointment_id`),
   ADD KEY `doctor_id` (`doctor_id`),
-  ADD KEY `customer_id` (`customer_id`);
-
---
--- Chỉ mục cho bảng `orders`
---
-ALTER TABLE `orders`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `customer_id` (`customer_id`);
-
---
--- Chỉ mục cho bảng `order_details`
---
-ALTER TABLE `order_details`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `order_id` (`order_id`);
-
---
--- Chỉ mục cho bảng `payments`
---
-ALTER TABLE `payments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `order_id` (`order_id`);
+  ADD KEY `customer_id` (`patient_id`),
+  ADD KEY `idx_appointment` (`appointment_id`),
+  ADD KEY `idx_doctor` (`doctor_id`),
+  ADD KEY `idx_patient` (`patient_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_created_at` (`created_at`);
 
 --
 -- Chỉ mục cho bảng `payment_settings`
@@ -1198,19 +1276,19 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT cho bảng `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=83;
 
 --
 -- AUTO_INCREMENT cho bảng `chat_messages`
 --
 ALTER TABLE `chat_messages`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT cho bảng `chat_rooms`
 --
 ALTER TABLE `chat_rooms`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT cho bảng `customers`
@@ -1228,37 +1306,19 @@ ALTER TABLE `doctors`
 -- AUTO_INCREMENT cho bảng `doctor_time_slot`
 --
 ALTER TABLE `doctor_time_slot`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1105;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1249;
 
 --
 -- AUTO_INCREMENT cho bảng `doctor_work_shifts`
 --
 ALTER TABLE `doctor_work_shifts`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=106;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=122;
 
 --
 -- AUTO_INCREMENT cho bảng `medical_records`
 --
 ALTER TABLE `medical_records`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
-
---
--- AUTO_INCREMENT cho bảng `orders`
---
-ALTER TABLE `orders`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT cho bảng `order_details`
---
-ALTER TABLE `order_details`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT cho bảng `payments`
---
-ALTER TABLE `payments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT cho bảng `payment_settings`
@@ -1282,7 +1342,7 @@ ALTER TABLE `prescription_items`
 -- AUTO_INCREMENT cho bảng `ratings`
 --
 ALTER TABLE `ratings`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT cho bảng `role`
@@ -1352,12 +1412,6 @@ ALTER TABLE `doctor_time_slot`
 --
 ALTER TABLE `doctor_work_shifts`
   ADD CONSTRAINT `fk_work_shifts_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`) ON DELETE CASCADE;
-
---
--- Các ràng buộc cho bảng `orders`
---
-ALTER TABLE `orders`
-  ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

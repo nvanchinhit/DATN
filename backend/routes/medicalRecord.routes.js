@@ -234,11 +234,20 @@ router.get('/my-records', authMiddleware, (req, res) => {
             mr.notes AS doctor_note,
             a.follow_up_date,
             mr.created_at AS record_created_at,
+            mr.updated_at AS record_updated_at,
             d.name AS doctor_name,
             s.name AS specialization_name,
             ts.slot_date,
             ts.start_time,
-            ts.end_time
+            ts.end_time,
+            mr.temperature,
+            mr.blood_pressure,
+            mr.heart_rate,
+            mr.weight,
+            mr.height,
+            mr.symptoms,
+            mr.allergies,
+            mr.medications
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
         JOIN specializations s ON d.specialization_id = s.id
@@ -259,8 +268,30 @@ router.get('/my-records', authMiddleware, (req, res) => {
             console.error("❌ Lỗi khi lấy hồ sơ bệnh án của người dùng:", err);
             return res.status(500).json({ error: 'Lỗi máy chủ khi truy vấn dữ liệu.' });
         }
-        console.log("✅ Kết quả tìm được:", results.length, "hồ sơ");
-        res.status(200).json(results);
+        
+        // Parse JSON cho các trường dữ liệu
+        const processedResults = results.map(record => {
+            try {
+                if (record.symptoms) {
+                    record.symptoms = JSON.parse(record.symptoms);
+                }
+                if (record.allergies) {
+                    record.allergies = JSON.parse(record.allergies);
+                }
+                if (record.medications) {
+                    record.medications = JSON.parse(record.medications);
+                }
+            } catch (e) {
+                // Nếu parse JSON thất bại, gán mảng rỗng
+                record.symptoms = [];
+                record.allergies = [];
+                record.medications = [];
+            }
+            return record;
+        });
+        
+        console.log("✅ Kết quả tìm được:", processedResults.length, "hồ sơ");
+        res.status(200).json(processedResults);
     });
 });
 
