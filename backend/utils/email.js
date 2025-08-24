@@ -18,7 +18,7 @@ function sendRejectionEmail({ name, email, doctor, date, start, end, reason, pay
         <p style="color:#dc3545; font-weight:bold;">THÔNG BÁO HOÀN TIỀN</p>
         <p>Quý khách đã thực hiện thanh toán cho lịch hẹn này. 
         Vui lòng liên hệ với <strong>Phòng Tài chính</strong> của bệnh viện qua số 
-        <strong>1900-xxxx</strong> hoặc email <strong>finance@benhvienabc.com</strong> 
+        <strong>1900-8888</strong> hoặc email <strong>support@healthfirst.vn</strong> 
         để được hỗ trợ hoàn tiền trong thời gian sớm nhất.</p>
       </div>
     `
@@ -54,6 +54,7 @@ function sendRejectionEmail({ name, email, doctor, date, start, end, reason, pay
           <li><strong>Lý do khám mà quý khách đã đăng ký là:</strong> ${reason}</li>
           <li><strong>Lý do từ chối được đưa ra là:</strong> ${reject_reason || "Không có lý do cụ thể"}</li>
           <li><strong>Hình thức thanh toán đã được ghi nhận là:</strong> ${payment}</li>
+          <li><strong>Địa chỉ bệnh viện: 116 Nguyễn Huy Tưởng, Thành phố Đà Nẵng</li>
         </ul>
 
         <!-- Refund (if any) -->

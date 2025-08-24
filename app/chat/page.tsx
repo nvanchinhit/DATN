@@ -358,7 +358,7 @@ export default function UserChatPage() {
                       }}
                       placeholder="Nhập tin nhắn của bạn..."
                       rows={1}
-                      className="w-full px-4 py-3 bg-transparent border-0 outline-none resize-none text-sm placeholder-gray-500"
+                      className="w-full px-4 py-3 bg-transparent border-0 outline-none resize-none text-sm placeholder-gray-500 text-blue-900 font-medium"
                       style={{ minHeight: '20px', maxHeight: '120px' }}
                     />
                   </div>

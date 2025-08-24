@@ -564,14 +564,14 @@ export default function AdminChatPage() {
                     {/* Doctor Assignment Section */}
                     <div className="flex items-center gap-3 bg-white/70 p-3 rounded-xl border border-slate-200/50">
                       <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Stethoscope className="w-4 h-4 text-emerald-600" />
+                        <Stethoscope className="w-4 h-4 text-blue-600" />
                         <span className="font-medium">Phân công bác sĩ:</span>
                       </div>
                       
                       {/* 🔥 HIỂN THỊ TRẠNG THÁI BÁC SĨ */}
                       {selectedRoom?.doctor_joined ? (
                         <div className="flex-1 flex items-center gap-3">
-                          <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg">
+                          <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 px-3 py-2 rounded-lg">
                             <Stethoscope className="w-4 h-4" />
                             <span>Bác sĩ {selectedRoom.doctor_name} đã tham gia phòng</span>
                           </div>
@@ -678,7 +678,7 @@ export default function AdminChatPage() {
                             msg.sender_type === 'admin'
                               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md border-2 border-blue-400'
                               : msg.sender_type === 'doctor'
-                              ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-bl-md border-2 border-green-400'
+                              ? 'bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-bl-md border-2 border-blue-400'
                               : 'bg-white border-2 border-orange-200 text-slate-800 rounded-bl-md hover:border-orange-300'
                           }`}
                         >
@@ -726,7 +726,7 @@ export default function AdminChatPage() {
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                         placeholder="Nhập tin nhắn hỗ trợ..."
-                        className="flex-1 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+                        className="flex-1 p-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 shadow-sm hover:shadow-md text-sm text-blue-900 font-medium"
                       />
                       <button
                         onClick={sendMessage}

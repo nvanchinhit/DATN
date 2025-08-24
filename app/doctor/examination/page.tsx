@@ -852,7 +852,7 @@ export default function ExaminationPage() {
             <div className="p-6" ref={printRef}>
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">PHIẾU KHÁM BỆNH</h2>
-                <p className="text-gray-600 mt-1">TDCARE - Hệ thống quản lý y tế</p>
+                <p className="text-gray-600 mt-1">HEALTH-FIRST - Hệ thống quản lý y tế</p>
               </div>
               
               {/* Patient Info */}

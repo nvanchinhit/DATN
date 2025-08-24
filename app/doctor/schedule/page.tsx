@@ -414,6 +414,86 @@ export default function DoctorSchedulePage() {
     }
   }, [startDate, endDate, doctorId, fetchDoctorSlots]);
 
+  // Auto-reject unconfirmed appointments when appointment time arrives
+  useEffect(() => {
+    if (!doctorId) return;
+
+    const checkAndAutoReject = async () => {
+      const now = new Date();
+      const currentTime = now.getTime();
+      
+      // Lọc các cuộc hẹn chưa xác nhận và đã đến giờ
+      const appointmentsToReject = allSlots.filter(slot => {
+        if (!slot.booking || slot.booking.status !== "Chưa xác nhận") return false;
+        
+        // Tạo đối tượng Date cho giờ hẹn
+        const appointmentDateTime = new Date(`${slot.date}T${slot.start}`);
+        const appointmentTime = appointmentDateTime.getTime();
+        
+        // Kiểm tra xem đã đến giờ hẹn chưa (cho phép 15 phút trễ)
+        const timeDiff = currentTime - appointmentTime;
+        const fifteenMinutes = 15 * 60 * 1000; // 15 phút tính bằng milliseconds
+        
+        return timeDiff >= fifteenMinutes;
+      });
+
+      if (appointmentsToReject.length > 0) {
+        console.log("🔍 [DEBUG] Found appointments to auto-reject:", appointmentsToReject.length);
+        
+        for (const slot of appointmentsToReject) {
+          if (slot.booking?.id) {
+            try {
+              await autoRejectAppointment(slot.booking.id);
+              console.log("✅ [DEBUG] Auto-rejected appointment:", slot.booking.id);
+            } catch (error) {
+              console.error("❌ [DEBUG] Error auto-rejecting appointment:", slot.booking.id, error);
+            }
+          }
+        }
+        
+        // Refresh data sau khi xử lý
+        fetchDoctorSlots();
+      }
+    };
+
+    // Kiểm tra mỗi phút
+    const interval = setInterval(checkAndAutoReject, 60000);
+    
+    // Kiểm tra ngay lập tức khi component mount
+    checkAndAutoReject();
+
+    return () => clearInterval(interval);
+  }, [doctorId, allSlots, fetchDoctorSlots]);
+
+  // Hàm tự động từ chối cuộc hẹn
+  const autoRejectAppointment = async (appointmentId: number) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/appointments/${appointmentId}/reject`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ 
+          reject_reason: "Bác sĩ không xác nhận lịch hẹn" 
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Lỗi khi tự động từ chối lịch hẹn");
+      }
+
+      console.log("✅ [DEBUG] Auto-rejected appointment successfully:", appointmentId);
+    } catch (error: any) {
+      console.error("❌ [DEBUG] Error in autoRejectAppointment:", error);
+      throw error;
+    }
+  };
+
   // Refresh data when page becomes visible (e.g., returning from examination page)
   useEffect(() => {
     const handleVisibilityChange = () => {

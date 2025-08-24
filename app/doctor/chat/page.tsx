@@ -36,6 +36,7 @@ export default function DoctorChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageCache = useRef<Record<number, ChatMessage[]>>({});
   const currentRoomRef = useRef<number | null>(null); // theo dõi phòng hiện tại
+  const sentMessagesRef = useRef<Set<string>>(new Set()); // theo dõi tin nhắn đã gửi để tránh trùng lặp
 
   /* ----- ID bác sĩ ----- */
   const doctorId =
@@ -59,13 +60,67 @@ export default function DoctorChatPage() {
 
     // Lắng nghe tin nhắn mới – handler được gắn 1 lần duy nhất
     const handleNewMessage = (msg: ChatMessage) => {
+      // Tạo key duy nhất cho tin nhắn để kiểm tra trùng lặp
+      const messageKey = `${msg.room_id}-${msg.sender_id}-${msg.sender_type}-${msg.message}-${msg.created_at}`;
+      
+      // Kiểm tra xem tin nhắn này đã được xử lý chưa
+      if (sentMessagesRef.current.has(messageKey)) {
+        console.log('🔍 [DEBUG] Duplicate message detected, skipping:', messageKey);
+        return;
+      }
+      
+      // Đánh dấu tin nhắn này đã được xử lý
+      sentMessagesRef.current.add(messageKey);
+      
       // Lưu vào cache
       if (!messageCache.current[msg.room_id]) messageCache.current[msg.room_id] = [];
       messageCache.current[msg.room_id].push(msg);
 
       // Nếu đang ở đúng phòng thì hiển thị
       if (msg.room_id === currentRoomRef.current) {
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => {
+          // Kiểm tra xem có tin nhắn tạm thời tương tự không
+          const tempMessageIndex = prev.findIndex(existingMsg => 
+            existingMsg.room_id === msg.room_id &&
+            existingMsg.sender_id === msg.sender_id &&
+            existingMsg.sender_type === msg.sender_type &&
+            existingMsg.message === msg.message &&
+            Math.abs(new Date(existingMsg.created_at).getTime() - new Date(msg.created_at).getTime()) < 5000 // Chênh lệch < 5 giây
+          );
+          
+          if (tempMessageIndex !== -1) {
+            // Thay thế tin nhắn tạm thời bằng tin nhắn chính thức từ server
+            const newMessages = [...prev];
+            newMessages[tempMessageIndex] = msg;
+            console.log('🔍 [DEBUG] Replaced temporary message with official message');
+            return newMessages;
+          }
+          
+          // Kiểm tra xem tin nhắn này đã có trong state chưa
+          const isDuplicate = prev.some(existingMsg => 
+            existingMsg.room_id === msg.room_id &&
+            existingMsg.sender_id === msg.sender_id &&
+            existingMsg.sender_type === msg.sender_type &&
+            existingMsg.message === msg.message &&
+            existingMsg.created_at === msg.created_at
+          );
+          
+          if (isDuplicate) {
+            console.log('🔍 [DEBUG] Message already in state, skipping:', messageKey);
+            return prev;
+          }
+          
+          // Thêm tin nhắn mới
+          return [...prev, msg];
+        });
+      }
+      
+      // Giới hạn số lượng tin nhắn đã gửi để tránh memory leak
+      if (sentMessagesRef.current.size > 1000) {
+        const firstKey = sentMessagesRef.current.values().next().value;
+        if (firstKey) {
+          sentMessagesRef.current.delete(firstKey);
+        }
       }
     };
     socket.on('newMessage', handleNewMessage);
@@ -107,6 +162,11 @@ export default function DoctorChatPage() {
     // Cập nhật ref theo dõi phòng hiện tại
     currentRoomRef.current = selectedRoomId;
 
+    // Xóa cache của phòng cũ để tránh xung đột
+    if (messageCache.current[selectedRoomId]) {
+      delete messageCache.current[selectedRoomId];
+    }
+
     // Nếu đã có trong cache thì dùng ngay
     if (messageCache.current[selectedRoomId]) {
       setMessages(messageCache.current[selectedRoomId]);
@@ -115,8 +175,28 @@ export default function DoctorChatPage() {
       fetch(`${API_URL}/api/chat/${selectedRoomId}/messages`)
         .then((res) => res.json())
         .then((data) => {
-          messageCache.current[selectedRoomId] = data;
-          setMessages(data);
+          // Lọc tin nhắn trùng lặp trước khi lưu vào cache
+          const uniqueMessages = data.filter((msg: ChatMessage) => {
+            const messageKey = `${msg.room_id}-${msg.sender_id}-${msg.sender_type}-${msg.message}-${msg.created_at}`;
+            if (sentMessagesRef.current.has(messageKey)) {
+              return false; // Bỏ qua tin nhắn đã xử lý
+            }
+            sentMessagesRef.current.add(messageKey);
+            return true;
+          });
+          
+          messageCache.current[selectedRoomId] = uniqueMessages;
+          
+          // Kết hợp tin nhắn từ API với tin nhắn tạm thời hiện tại
+          setMessages(prev => {
+            const tempMessages = prev.filter(msg => 
+              msg.room_id === selectedRoomId && 
+              msg.sender_type === 'doctor' &&
+              Math.abs(new Date(msg.created_at).getTime() - Date.now()) < 10000 // Tin nhắn tạm thời < 10 giây
+            );
+            
+            return [...uniqueMessages, ...tempMessages];
+          });
         })
         .catch((err) => console.error('Lỗi khi fetch messages:', err));
     }
@@ -138,15 +218,42 @@ export default function DoctorChatPage() {
   const sendMessage = () => {
     if (!message.trim() || !selectedRoomId || !doctorId || !socketRef.current) return;
 
+    // Tạo tin nhắn mới với ID tạm thời để tránh trùng lặp
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const newMessage: ChatMessage = {
+      room_id: selectedRoomId,
+      sender_id: doctorId,
+      sender_type: 'doctor',
+      message: message.trim(),
+      created_at: new Date().toISOString()
+    };
+
+    // Hiển thị tin nhắn ngay lập tức (optimistic update)
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Lưu vào cache với ID tạm thời
+    if (!messageCache.current[selectedRoomId]) messageCache.current[selectedRoomId] = [];
+    messageCache.current[selectedRoomId].push(newMessage);
+    
+    // Tạo key duy nhất và đánh dấu đã gửi
+    const messageKey = `${newMessage.room_id}-${newMessage.sender_id}-${newMessage.sender_type}-${newMessage.message}-${newMessage.created_at}`;
+    sentMessagesRef.current.add(messageKey);
+
+    // Gửi qua socket
     socketRef.current.emit('replyMessage', {
       room_id: selectedRoomId,
       sender_id: doctorId,
       sender_type: 'doctor',
-      message,
+      message: message.trim(),
     });
 
-    // KHÔNG thêm thủ công vào messages → tránh hiển thị 2 lần
+    // Xóa nội dung input
     setMessage('');
+    
+    // Cuộn xuống cuối
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const filteredRooms = rooms.filter(room =>
@@ -359,7 +466,7 @@ export default function DoctorChatPage() {
                         }`}>
                           <Clock className="w-3 h-3 text-gray-400" />
                           <span className="text-xs text-gray-500">
-                            {msg.sender_name || (msg.sender_type === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân')} • {formatTime(msg.created_at)}
+                            {(msg.sender_name || (msg.sender_type === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân'))} • {formatTime(msg.created_at)}
                           </span>
                         </div>
                       </div>
@@ -398,7 +505,7 @@ export default function DoctorChatPage() {
                       }}
                       placeholder="Nhập tư vấn y tế cho bệnh nhân..."
                       rows={1}
-                      className="w-full px-4 py-3 bg-transparent border-0 outline-none resize-none text-sm placeholder-gray-500"
+                      className="w-full px-4 py-3 bg-transparent border-0 outline-none resize-none text-sm placeholder-gray-500 text-gray-800"
                       style={{ minHeight: '20px', maxHeight: '120px' }}
                     />
                   </div>

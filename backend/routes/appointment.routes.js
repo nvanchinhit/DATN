@@ -45,7 +45,7 @@ function sendBookingConfirmationEmail({ name, email, doctor, room, floor, date, 
           <li>Vui lòng đến trước 15 phút để làm thủ tục</li>
           <li>Lịch hẹn của bạn đang chờ bác sĩ xác nhận</li>
         </ul>
-        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
+        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện HEALTH-FIRST'}</strong></p>
       </div>
     `
   };
@@ -84,6 +84,7 @@ function sendConfirmationEmail({ name, email, doctor, room, floor, date, start, 
           <li><strong>Tầng mà quý khách sẽ đến khám là:</strong> ${floor || 'Chưa cập nhật'}</li>
           <li><strong>Ngày khám đã được ấn định là:</strong> ${date}</li>
           <li><strong>Thời gian khám sẽ diễn ra từ:</strong> ${start} đến ${end}</li>
+          <li><strong>Địa chỉ bệnh viện: 116 Nguyễn Huy Tưởng, Thành phố Đà Nẵng</li>
           <li><strong>Lý do khám mà quý khách đã đăng ký là:</strong> ${reason}</li>
           <li><strong>Hình thức thanh toán mà quý khách đã lựa chọn là:</strong> ${payment}</li>
         </ul>
@@ -95,7 +96,7 @@ function sendConfirmationEmail({ name, email, doctor, room, floor, date, start, 
         <p>Xin cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.</p>
 
         <!-- Signature -->
-        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện ABC'}</strong></p>
+        <p>Trân trọng,<br><strong>${mailConfig.FROM_NAME || 'Bệnh viện HEALTH-FIRST'}</strong></p>
       </div>
     `,
     attachments: [
