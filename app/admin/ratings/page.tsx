@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/app/contexts/page';
-import { FaStar, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaTrash } from 'react-icons/fa';
+import { FaStar, FaCheckCircle, FaTimesCircle, FaClock, FaEye, FaTrash, FaSearch, FaCalendar } from 'react-icons/fa';
 
 interface Rating {
   id: number;
@@ -70,6 +70,20 @@ const RatingDetailModal: React.FC<{
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 
+  // Hàm xử lý ảnh bác sĩ
+  const getDoctorImage = (doctorImg: string | null) => {
+    if (!doctorImg) return 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr';
+    
+    // Kiểm tra nếu ảnh bắt đầu bằng http hoặc https (URL tuyệt đối)
+    if (doctorImg.startsWith('http://') || doctorImg.startsWith('https://')) {
+      return doctorImg;
+    }
+    
+    // Nếu là tên file (từ database), thêm /uploads/ vào trước
+    // Server đã cấu hình static serving cho /uploads -> backend/public/uploads
+    return `${API_BASE_URL}/uploads/${doctorImg}`;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -84,10 +98,12 @@ const RatingDetailModal: React.FC<{
           {/* Thông tin bác sĩ */}
           <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
             <img
-              src={rating.doctor_img ? `${API_BASE_URL}${rating.doctor_img}` : 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'}
+              src={getDoctorImage(rating.doctor_img)}
               alt={rating.doctor_name}
               className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
-              onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'; }}
+              onError={(e) => { 
+                e.currentTarget.src = 'https://via.placeholder.com/64/007BFF/FFFFFF?text=Dr'; 
+              }}
             />
             <div>
               <h3 className="text-lg font-bold text-gray-800">{rating.doctor_name}</h3>
@@ -149,12 +165,19 @@ export default function AdminRatingsPage() {
   const [selectedRating, setSelectedRating] = useState<Rating | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  
+  // Thêm state cho bộ lọc tìm kiếm
+  const [searchCustomerName, setSearchCustomerName] = useState('');
+  const [searchDateFrom, setSearchDateFrom] = useState('');
+  const [searchDateTo, setSearchDateTo] = useState('');
 
   useEffect(() => {
     if (!authLoading && token) {
       fetchRatings();
     }
   }, [token, authLoading]);
+
+
 
   const fetchRatings = async () => {
     if (!token) {
@@ -253,10 +276,52 @@ export default function AdminRatingsPage() {
     setIsDetailModalOpen(true);
   };
 
+  // Hàm xử lý ảnh bác sĩ
+  const getDoctorImage = (doctorImg: string | null) => {
+    if (!doctorImg) return 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr';
+    
+    // Kiểm tra nếu ảnh bắt đầu bằng http hoặc https (URL tuyệt đối)
+    if (doctorImg.startsWith('http://') || doctorImg.startsWith('https://')) {
+      return doctorImg;
+    }
+    
+    // Nếu là tên file (từ database), thêm /uploads/ vào trước
+    // Server đã cấu hình static serving cho /uploads -> backend/public/uploads
+    return `${API_BASE_URL}/uploads/${doctorImg}`;
+  };
+
+  // Hàm lọc dữ liệu
   const filteredRatings = ratings.filter(rating => {
-    if (filterStatus === 'all') return true;
-    return rating.status === filterStatus;
+    // Lọc theo trạng thái
+    if (filterStatus !== 'all' && rating.status !== filterStatus) {
+      return false;
+    }
+    
+    // Lọc theo tên khách hàng
+    if (searchCustomerName && !rating.customer_name.toLowerCase().includes(searchCustomerName.toLowerCase())) {
+      return false;
+    }
+    
+    // Lọc theo ngày đánh giá
+    if (searchDateFrom || searchDateTo) {
+      const ratingDate = new Date(rating.created_at);
+      const fromDate = searchDateFrom ? new Date(searchDateFrom) : null;
+      const toDate = searchDateTo ? new Date(searchDateTo + 'T23:59:59') : null;
+      
+      if (fromDate && ratingDate < fromDate) return false;
+      if (toDate && ratingDate > toDate) return false;
+    }
+    
+    return true;
   });
+
+  // Hàm xóa bộ lọc
+  const clearFilters = () => {
+    setSearchCustomerName('');
+    setSearchDateFrom('');
+    setSearchDateTo('');
+    setFilterStatus('all');
+  };
 
   const renderContent = () => {
     if (isLoading || authLoading) {
@@ -302,10 +367,12 @@ export default function AdminRatingsPage() {
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <img
-                      src={rating.doctor_img ? `${API_BASE_URL}${rating.doctor_img}` : 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'}
+                      src={getDoctorImage(rating.doctor_img)}
                       alt={rating.doctor_name}
-                      className="w-10 h-10 rounded-full object-cover mr-3"
-                      onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'; }}
+                      className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-gray-200"
+                      onError={(e) => { 
+                        e.currentTarget.src = 'https://via.placeholder.com/40/007BFF/FFFFFF?text=Dr'; 
+                      }}
                     />
                     <div>
                       <div className="text-sm font-medium text-gray-900">{rating.doctor_name}</div>
@@ -386,19 +453,20 @@ export default function AdminRatingsPage() {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý đánh giá</h1>
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Quản lý đánh giá</h1>
         <button
           onClick={fetchRatings}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
         >
           Làm mới
         </button>
       </div>
 
-      {/* Bộ lọc */}
-      <div className="mb-6">
-        <div className="flex space-x-2">
+      {/* Status Filter Buttons */}
+      <div className="mb-8">
+        <div className="flex space-x-3">
           {[
             { value: 'all', label: 'Tất cả' },
             { value: 'pending', label: 'Chờ duyệt' },
@@ -408,15 +476,81 @@ export default function AdminRatingsPage() {
             <button
               key={filter.value}
               onClick={() => setFilterStatus(filter.value as any)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
                 filterStatus === filter.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-sm'
               }`}
             >
               {filter.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+        <h3 className="text-xl font-semibold text-gray-800 mb-6">Tìm kiếm và lọc</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Tìm kiếm theo tên khách hàng */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+              <FaSearch className="mr-2 text-blue-600" />
+              Tên khách hàng
+            </label>
+            <input
+              type="text"
+              value={searchCustomerName}
+              onChange={(e) => setSearchCustomerName(e.target.value)}
+              placeholder="Nhập tên khách hàng..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            />
+          </div>
+
+          {/* Lọc theo ngày từ */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+              <FaCalendar className="mr-2 text-blue-600" />
+              Từ ngày
+            </label>
+            <input
+              type="date"
+              value={searchDateFrom}
+              onChange={(e) => setSearchDateFrom(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            />
+          </div>
+
+          {/* Lọc theo ngày đến */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center">
+              <FaCalendar className="mr-2 text-blue-600" />
+              Đến ngày
+            </label>
+            <input
+              type="date"
+              value={searchDateTo}
+              onChange={(e) => setSearchDateTo(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            />
+          </div>
+
+          {/* Nút xóa bộ lọc */}
+          <div className="flex items-end">
+            <button
+              onClick={clearFilters}
+              className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium shadow-sm"
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Hiển thị số lượng kết quả */}
+      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="text-sm text-blue-800 font-medium">
+          Hiển thị <span className="font-bold text-blue-900">{filteredRatings.length}</span> trong tổng số <span className="font-bold text-blue-900">{ratings.length}</span> đánh giá
         </div>
       </div>
 
