@@ -80,9 +80,9 @@ export default function Header() {
               <Phone size={14} />
               <span>1900-8888</span>
             </a>
-            <a href="mailto:support@tdcare.vn" className="hidden sm:flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+            <a href="mailto:support@healthfirst.vn" className="hidden sm:flex items-center gap-1.5 hover:text-blue-600 transition-colors">
               <Mail size={14} />
-              <span>support@tdcare.vn</span>
+              <span>support@healthfirst.vn</span>
             </a>
           </div>
           <div className="flex items-center gap-4">

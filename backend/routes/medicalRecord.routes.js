@@ -288,6 +288,7 @@ router.get('/my-records', authMiddleware, (req, res) => {
             mr.created_at AS record_created_at,
             mr.updated_at AS record_updated_at,
             d.name AS doctor_name,
+            d.img AS doctor_avatar,
             s.name AS specialization_name,
             ts.slot_date,
             ts.start_time,

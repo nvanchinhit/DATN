@@ -62,13 +62,17 @@ const AppointmentCard: React.FC<{
 }> = ({ appointment, onReviewClick, onCancelClick }) => {
   const statusInfo = STATUS_CONFIG[appointment.status] || { text: appointment.status, color: 'bg-gray-400' };
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  const imageUrl = appointment.doctor_img ? `${API_BASE_URL}/uploads/${appointment.doctor_img}` : 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr';
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 border border-gray-200">
       <div className="p-5">
         <div className="flex justify-between items-start flex-wrap gap-2">
           <div className="flex items-center space-x-4">
-            <img src={appointment.doctor_img ? `${API_BASE_URL}${appointment.doctor_img}` : 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'} alt={appointment.doctor_name} className="w-16 h-16 rounded-full object-cover border-2 border-blue-200" onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'; }} />
+            <img src={imageUrl} alt={appointment.doctor_name} className="w-16 h-16 rounded-full object-cover border-2 border-blue-200" onError={(e) => { 
+              e.currentTarget.src = 'https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr'; 
+            }} />
             <div>
               <h3 className="text-lg font-bold text-gray-800">{appointment.doctor_name}</h3>
               <p className="text-sm text-gray-500">{appointment.specialization_name}</p>
@@ -324,10 +328,11 @@ export default function AppointmentPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // API này giờ đây trả về cả rating, comment và rating_status
       const response = await fetch(`${API_BASE_URL}/api/appointments/my-appointments`, { headers: { 'Authorization': `Bearer ${token}` } });
+      
       if (!response.ok) { const err = await response.json(); throw new Error(err.message || 'Không thể tải dữ liệu.'); }
       const data = await response.json();
+      
       setAllAppointments(data);
     } catch (err: any) { setError(err.message); } finally { setIsLoading(false); }
   };

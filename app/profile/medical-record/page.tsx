@@ -12,6 +12,7 @@ interface MedicalRecord {
   start_time: string;
   end_time: string;
   doctor_name: string;
+  doctor_avatar?: string | null; // Avatar của bác sĩ
   specialization_name: string;
   reason: string;
   diagnosis: string;
@@ -31,7 +32,8 @@ interface MedicalRecord {
   medications?: string[] | null;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+
 
 // Component Card để hiển thị một hồ sơ, đã được thiết kế lại
 const MedicalRecordCard: React.FC<{ record: MedicalRecord }> = ({ record }) => {
@@ -57,14 +59,49 @@ const MedicalRecordCard: React.FC<{ record: MedicalRecord }> = ({ record }) => {
     <div className="bg-white border border-gray-200 rounded-lg p-5 mb-5 shadow-sm hover:shadow-md transition-shadow">
       {/* Phần Header của Card */}
       <div className="flex justify-between items-center pb-3 border-b border-dashed">
-        <div>
-          <h3 className="text-lg font-bold text-blue-700">
-            Ngày khám: {formatDate(record.slot_date)} • {record.start_time} - {record.end_time}
-          </h3>
-          <p className="text-sm text-gray-600">
-            Bác sĩ: {record.doctor_name} ({record.specialization_name})
-          </p>
+        <div className="flex items-center space-x-3">
+          {/* Avatar bác sĩ */}
+          <div className="flex-shrink-0">
+            {record.doctor_avatar ? (
+              <img 
+                src={`${API_BASE_URL}/uploads/${record.doctor_avatar}`}
+                alt={`Avatar của ${record.doctor_name}`}
+                className="w-12 h-12 rounded-full object-cover border-2 border-blue-200"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                        <span class="text-blue-600 font-semibold text-lg">
+                          ${record.doctor_name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    `;
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                <span className="text-blue-600 font-semibold text-lg">
+                  {record.doctor_name.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Thông tin bác sĩ và lịch hẹn */}
+          <div>
+            <h3 className="text-lg font-bold text-blue-700">
+              Ngày khám: {formatDate(record.slot_date)} • {record.start_time} - {record.end_time}
+            </h3>
+            <p className="text-sm text-gray-600">
+              Bác sĩ: {record.doctor_name} ({record.specialization_name})
+            </p>
+          </div>
         </div>
+        
         <div className="text-right">
           <span className="text-xs text-gray-500 flex-shrink-0 ml-4 block">
             Tạo lúc: {formatDateTime(record.record_created_at)}
@@ -216,7 +253,7 @@ export default function MyMedicalRecordsPage() {
       try {
         setIsLoading(true);
         console.log("🔍 Đang gọi API hồ sơ bệnh án...");
-        const response = await fetch(`${API_URL}/api/medical-records/my-records`, {
+        const response = await fetch(`${API_BASE_URL}/api/medical-records/my-records`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         console.log("📡 Response status:", response.status);
@@ -229,6 +266,11 @@ export default function MyMedicalRecordsPage() {
         
         const data = await response.json();
         console.log("✅ API Response:", data);
+        console.log("🔍 Kiểm tra trường doctor_avatar:", data.map((record: any) => ({
+          doctor_name: record.doctor_name,
+          doctor_avatar: record.doctor_avatar,
+          has_avatar: !!record.doctor_avatar
+        })));
         setRecords(data);
       } catch (err: any) {
         console.error("❌ Frontend Error:", err);

@@ -60,7 +60,6 @@ export default function DoctorLoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
         <div className="absolute bottom-10 left-10 text-white">
-          <h2 className="text-4xl font-bold">TDCARE for Doctors</h2>
           <p className="mt-2 text-lg max-w-md">Nền tảng kết nối và quản lý công việc chuyên nghiệp, giúp bạn tập trung vào điều quan trọng nhất: chăm sóc bệnh nhân.</p>
         </div>
       </div>
@@ -71,8 +70,8 @@ export default function DoctorLoginPage() {
           <div>
             <Link href="/" className="inline-block">
                 <img
-                    className="mx-auto h-12 w-auto"
-                    src="/logo.png" // Thay bằng logo của bạn
+                    className="mx-auto w-auto"
+                    src="https://imgur.com/bUBPKF9.png" // Thay bằng logo của bạn
                     alt="TDCARE Logo"
                 />
             </Link>

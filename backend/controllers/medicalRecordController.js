@@ -23,10 +23,15 @@ const getRecordsByCustomer = (req, res) => {
       a.time_slot_id,
       dts.start_time,
       dts.end_time,
+      d.name AS doctor_name,
+      d.img AS doctor_avatar, -- Thêm trường ảnh bác sĩ
+      s.name AS specialization_name,
       c.name AS customer_name -- tên tài khoản đặt lịch
     FROM appointments a
     JOIN customers c ON a.customer_id = c.id
     LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
+    LEFT JOIN doctors d ON a.doctor_id = d.id
+    LEFT JOIN specializations s ON d.specialization_id = s.id
     WHERE a.customer_id = ?
     ORDER BY a.id DESC
   `;
