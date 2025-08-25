@@ -212,15 +212,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Logo Section */}
       <div className="px-4 py-4 mb-2 flex items-center justify-between border-b border-slate-800">
         <Link href="/admin" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <img src="https://i.imgur.com/bUBPKF9.jpeg" alt="Logo" className="w-8 h-8 rounded-lg" />
+          <div className="bg-white rounded-xl p-2">
+            <img src="https://i.imgur.com/bUBPKF9.jpeg" alt="Logo" className="h-16 w-auto object-contain" />
           </div>
-          {!isCompactMode && (
-            <div>
-              <h1 className="text-white font-bold text-lg">HEAL THFIRST</h1>
-              <p className="text-slate-400 text-xs">Admin Panel</p>
-            </div>
-          )}
         </Link>
         <div className="flex items-center gap-2">
           <button 
@@ -366,7 +360,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:relative inset-y-0 left-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col z-30 transition-all duration-300 ease-in-out shadow-2xl ${
+      <aside className={`fixed lg:relative inset-y-0 left-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col z-30 transition-all duration-300 ease-in-out ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 ${isCompactMode ? 'w-20' : 'w-72'}`}>
         <SidebarContent />
