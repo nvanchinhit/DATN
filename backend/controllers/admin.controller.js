@@ -73,9 +73,12 @@ exports.getStats = async (req, res) => {
 exports.getRevenueByMonth = async (req, res) => {
   try {
     const [result] = await db.promise().query(`
-      SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, SUM(total_amount) AS total
-      FROM orders
-      WHERE payment_status = 'Đã thanh toán'
+      SELECT 
+        DATE_FORMAT(a.payment_date, '%Y-%m') AS month, 
+        SUM(a.paid_amount) AS total
+      FROM appointments a
+      WHERE a.payment_status = 'Đã thanh toán'
+        AND a.payment_date IS NOT NULL
       GROUP BY month
       ORDER BY month ASC
       LIMIT 12
@@ -91,9 +94,12 @@ exports.getRevenueByMonth = async (req, res) => {
 exports.getRevenueByDay = async (req, res) => {
   try {
     const [result] = await db.promise().query(`
-      SELECT DATE(order_date) AS day, SUM(total_amount) AS total
-      FROM orders
-      WHERE payment_status = 'Đã thanh toán'
+      SELECT 
+        DATE(a.payment_date) AS day, 
+        SUM(a.paid_amount) AS total
+      FROM appointments a
+      WHERE a.payment_status = 'Đã thanh toán'
+        AND a.payment_date IS NOT NULL
       GROUP BY day
       ORDER BY day DESC
       LIMIT 30
@@ -109,9 +115,12 @@ exports.getRevenueByDay = async (req, res) => {
 exports.getRevenueByYear = async (req, res) => {
   try {
     const [result] = await db.promise().query(`
-      SELECT YEAR(order_date) AS year, SUM(total_amount) AS total
-      FROM orders
-      WHERE payment_status = 'Đã thanh toán'
+      SELECT 
+        YEAR(a.payment_date) AS year, 
+        SUM(a.paid_amount) AS total
+      FROM appointments a
+      WHERE a.payment_status = 'Đã thanh toán'
+        AND a.payment_date IS NOT NULL
       GROUP BY year
       ORDER BY year ASC
     `);
@@ -288,9 +297,9 @@ exports.getAllMedicalRecords = async (req, res) => {
         a.status,
         a.address,
         a.doctor_confirmation,
-        a.doctor_note,
-        a.diagnosis AS appointment_diagnosis,
-        a.follow_up_date,
+        mr.notes AS doctor_note,
+        NULL AS appointment_diagnosis,
+        mr.follow_up_date AS follow_up_date,
         a.is_examined,
         a.time_slot_id,
         c.name AS customer_name,
@@ -380,9 +389,9 @@ exports.getMedicalRecordById = async (req, res) => {
         a.status,
         a.address,
         a.doctor_confirmation,
-        a.doctor_note,
-        a.diagnosis AS appointment_diagnosis,
-        a.follow_up_date,
+        mr.notes AS doctor_note,
+        NULL AS appointment_diagnosis,
+        mr.follow_up_date AS follow_up_date,
         a.is_examined,
         a.time_slot_id,
         c.name AS customer_name,
@@ -540,9 +549,9 @@ exports.getMedicalRecordsByDoctors = async (req, res) => {
         a.status,
         a.address,
         a.doctor_confirmation,
-        a.doctor_note,
-        a.diagnosis AS appointment_diagnosis,
-        a.follow_up_date,
+        mr.notes AS doctor_note,
+        NULL AS appointment_diagnosis,
+        mr.follow_up_date,
         a.is_examined,
         a.time_slot_id,
         c.name AS customer_name,
@@ -646,9 +655,9 @@ exports.getPaidAppointments = async (req, res) => {
         a.payment_date,
         a.status,
         a.doctor_confirmation,
-        a.doctor_note,
-        a.diagnosis,
-        a.follow_up_date,
+        mr.notes AS doctor_note,
+        mr.diagnosis,
+        mr.follow_up_date,
         a.is_examined,
         d.name AS doctor_name,
         d.phone AS doctor_phone,

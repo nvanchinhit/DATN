@@ -4,7 +4,10 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Pencil, Trash2, PlusCircle, Search, X, Loader2, AlertTriangle, ShieldCheck, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+// Ưu tiên biến môi trường; nếu không có (local dev), suy ra backend ở cổng 5000
+const API_URL = (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_BASE_URL)
+  ? `${window.location.protocol}//${window.location.hostname}:5000`
+  : (process.env.NEXT_PUBLIC_API_BASE_URL || '');
 
 // --- Interfaces và các hàm helper không đổi ---
 interface UserFromAPI {
@@ -17,8 +20,40 @@ interface User {
   address: string; avatar: string; isVerified: boolean; createdAt: string; role: string;
 }
 const getAvatarUrl = (path: string | null): string => {
-  if (!path) return '/default-avatar.jpg';
-  try { new URL(path); return path; } catch (_) { return `${API_URL}${path}`; }
+  // Placeholder SVG để tránh 404 khi không có ảnh
+  const placeholder =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+        <rect width="100%" height="100%" fill="#e5e7eb"/>
+        <circle cx="22" cy="16" r="8" fill="#9ca3af"/>
+        <rect x="8" y="28" width="28" height="10" rx="5" fill="#9ca3af"/>
+      </svg>`
+    );
+  if (!path) return placeholder;
+  const trimmed = path.trim();
+  // Nếu là đường dẫn ảnh uploads tương đối, luôn prefix bằng API_URL
+  if (trimmed.startsWith('/uploads')) {
+    const url = `${API_URL}${trimmed}`;
+    if (typeof window !== 'undefined') {
+      // Debug: xem URL ảnh cuối cùng
+      console.debug('[avatar] uploads path ->', { path, API_URL, url });
+    }
+    return url;
+  }
+  // Nếu đã là URL tuyệt đối (http/https)
+  if (/^https?:\/\//i.test(trimmed)) {
+    if (typeof window !== 'undefined') {
+      console.debug('[avatar] absolute url ->', { path, API_URL, url: trimmed });
+    }
+    return trimmed;
+  }
+  // Trường hợp còn lại: coi như tương đối trên backend
+  const url = `${API_URL}/${trimmed.replace(/^\/+/, '')}`;
+  if (typeof window !== 'undefined') {
+    console.debug('[avatar] relative other ->', { path, API_URL, url });
+  }
+  return url;
 };
 const formatDate = (dateString: string | null): string => {
   if (!dateString) return 'N/A';

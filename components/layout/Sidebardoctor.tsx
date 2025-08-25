@@ -4,6 +4,7 @@
   import { useState, useEffect } from 'react';
   import Link from 'next/link';
   import { usePathname, useRouter } from 'next/navigation';
+  import { API_URL } from '@/lib/config';
 
   interface Doctor {
     id: number;
@@ -67,7 +68,16 @@
       );
     }
 
-    const isActive = (href: string) => pathname.startsWith(href);
+    const isActive = (href: string) => {
+      // Sử dụng exact match để tránh trùng lặp giữa /schedules và /schedule
+      if (href === '/doctor/schedules' && pathname === '/doctor/schedule') {
+        return false;
+      }
+      if (href === '/doctor/schedule' && pathname === '/doctor/schedules') {
+        return false;
+      }
+      return pathname.startsWith(href);
+    };
 
     const menuItems = [
       { href: '/doctor/dashboard', icon: '📊', label: 'Dashboard', color: 'from-blue-500 to-blue-600' },
@@ -88,9 +98,12 @@
         <div className="text-center mb-10 relative z-10">
           <div className="relative mb-4">
             <img
-              src={doctor.img ? `http://localhost:5000/uploads/${doctor.img}` : "https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr"}
+              src={doctor.img ? `${API_URL}/uploads/${doctor.img}` : "https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr"}
               alt="avatar"
               className="w-28 h-28 rounded-full mx-auto object-cover border-4 border-white shadow-lg ring-4 ring-blue-100 transition-transform hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = "https://via.placeholder.com/150/007BFF/FFFFFF?text=Dr";
+              }}
             />
             <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-400 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
               <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse"></div>

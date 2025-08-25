@@ -74,30 +74,55 @@ router.put('/appointments/:id/diagnosis', (req, res) => {
   const { id } = req.params;
   const { diagnosis, doctor_note, follow_up_date, is_examined } = req.body;
 
-  const sql = `
+  const upsertMedicalRecordSql = `
+    INSERT INTO medical_records (appointment_id, diagnosis, notes, follow_up_date)
+    VALUES (?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      diagnosis = VALUES(diagnosis),
+      notes = VALUES(notes),
+      follow_up_date = VALUES(follow_up_date)
+  `;
+
+  const updateAppointmentSql = `
     UPDATE appointments
-    SET 
-      diagnosis = ?, 
-      doctor_note = ?, 
-      follow_up_date = ?, 
-      is_examined = ?
+    SET is_examined = ?
     WHERE id = ?
   `;
 
-  db.query(
-    sql,
-    [diagnosis, doctor_note, follow_up_date, is_examined || 0, id],
-    (err, result) => {
-      if (err) {
-        console.error("❌ Lỗi khi lưu bệnh án:", err);
-        return res.status(500).json({ error: "Không thể lưu bệnh án." });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: "Không tìm thấy lịch hẹn." });
-      }
-      res.json({ message: "✅ Lưu bệnh án thành công." });
+  db.beginTransaction(err => {
+    if (err) {
+      console.error('❌ Lỗi bắt đầu transaction:', err);
+      return res.status(500).json({ error: 'Không thể lưu bệnh án.' });
     }
-  );
+
+    db.query(upsertMedicalRecordSql, [id, diagnosis || null, doctor_note || null, follow_up_date || null], (err1) => {
+      if (err1) {
+        return db.rollback(() => {
+          console.error('❌ Lỗi lưu medical_records:', err1);
+          res.status(500).json({ error: 'Không thể lưu bệnh án.' });
+        });
+      }
+
+      db.query(updateAppointmentSql, [is_examined ? 1 : 0, id], (err2, result2) => {
+        if (err2) {
+          return db.rollback(() => {
+            console.error('❌ Lỗi cập nhật appointments:', err2);
+            res.status(500).json({ error: 'Không thể cập nhật trạng thái khám.' });
+          });
+        }
+
+        db.commit((err3) => {
+          if (err3) {
+            return db.rollback(() => {
+              console.error('❌ Lỗi commit transaction:', err3);
+              res.status(500).json({ error: 'Không thể hoàn tất lưu bệnh án.' });
+            });
+          }
+          res.json({ message: '✅ Lưu bệnh án thành công.' });
+        });
+      });
+    });
+  });
 });
 
 router.get('/doctors/top', (req, res) => {
@@ -186,12 +211,13 @@ router.get('/doctors/:doctorId/time-slots', (req, res) => {
       a.transaction_id,
       a.payment_date,
       a.status AS booking_status,
-      a.diagnosis,
-      a.doctor_note,
-      a.follow_up_date,
+      mr.diagnosis,
+      mr.notes AS doctor_note,
+      mr.follow_up_date,
       a.is_examined
     FROM doctor_time_slot AS dts
     LEFT JOIN appointments AS a ON dts.id = a.time_slot_id
+    LEFT JOIN medical_records AS mr ON mr.appointment_id = a.id
     WHERE dts.doctor_id = ? AND ${dateCondition}
     ORDER BY dts.slot_date, dts.start_time`;
 

@@ -1,16 +1,16 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Phone, Mail, ChevronDown, Search, User as UserIcon, LogOut, LayoutDashboard, MessageCircle } from 'lucide-react';
+import { Phone, Mail, ChevronDown, User as UserIcon } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -30,32 +30,16 @@ export default function Header() {
       window.addEventListener("userChanged", loadUser);
     }
     
-    // Đóng dropdown khi click ra ngoài
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener("userChanged", loadUser);
       }
-      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
-    setUser(null);
-    setDropdownOpen(false);
-    router.push("/login");
-  };
+  
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const navLinks = [
     { href: "/", label: "Trang chủ" },
@@ -123,46 +107,50 @@ export default function Header() {
             </nav>
 
             {/* Actions & User */}
-            <div className="flex items-center gap-4">
-                <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                    <Search className="h-5 w-5 text-gray-600" />
+            <div className="flex items-center gap-2">
+                {/* Mobile menu toggle */}
+                <button aria-label="Toggle menu" className="p-2 rounded-md hover:bg-gray-100 transition-colors lg:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+                  {mobileOpen ? <X className="h-6 w-6 text-gray-700" /> : <Menu className="h-6 w-6 text-gray-700" />}
                 </button>
-
-
-                {user ? (
-                  <div className="relative" ref={dropdownRef}>
-                    <button onClick={() => setDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2">
-                      <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
-                        {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20}/>}
-                      </div>
-                      <div className="hidden md:block text-left">
-                         <p className="text-xs text-gray-500">Xin chào,</p>
-                         <p className="text-sm font-semibold text-gray-800">{user.name}</p>
-                      </div>
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10">
-                        <Link href="/profile" onClick={e => { e.stopPropagation(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <LayoutDashboard size={16} />
-                          Hồ sơ của tôi
-                        </Link>
-                        <Link href="/chat" onClick={e => { e.stopPropagation(); setDropdownOpen(false); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                <MessageCircle size={16} />
-                 Tin nhắn
-                     </Link>
-                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                           <LogOut size={16} />
-                           Đăng xuất
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
-                    Đăng nhập
-                  </Link>
-                )}
+ 
+ 
+                 {user ? (
+                   <Link href="/profile" className="flex items-center gap-2">
+                     <div className="w-9 h-9 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                       {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20}/>} 
+                     </div>
+                     <div className="hidden md:block text-left">
+                        <p className="text-xs text-gray-500">Xin chào,</p>
+                        <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+                     </div>
+                   </Link>
+                 ) : (
+                   <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                     Đăng nhập
+                   </Link>
+                 )}
             </div>
+         </div>
+         {/* Mobile Nav */}
+         <div className={`lg:hidden px-2 pb-4 ${mobileOpen ? 'block' : 'hidden'}`}>
+           <nav className="flex flex-col gap-1 bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden">
+             {navLinks.map(link => (
+               <Link key={link.href} href={link.href} className={`px-4 py-3 text-sm font-medium transition-colors ${pathname === link.href ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                 {link.label}
+               </Link>
+             ))}
+             <div className="h-px bg-gray-100" />
+             {user ? (
+               <Link href="/profile" className="px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                 <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                   {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={18}/>} 
+                 </div>
+                 <span>Hồ sơ của tôi</span>
+               </Link>
+             ) : (
+               <Link href="/login" className="px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">Đăng nhập</Link>
+             )}
+           </nav>
          </div>
       </div>
     </header>

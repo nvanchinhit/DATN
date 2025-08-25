@@ -50,15 +50,33 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 function getISODate(dateStr: string | null): string {
   if (!dateStr) return '';
-  // Nếu là ISO hoặc yyyy-mm-dd
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
-  // Nếu là dạng có giờ
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  const trimmed = dateStr.trim();
+  // Nếu bắt đầu bằng yyyy-mm-dd thì trả về phần ngày trực tiếp để tránh lệch múi giờ
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // Nếu có thời gian kèm timezone (Z hoặc ±HH:MM), parse theo local và xuất yyyy-mm-dd
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+  }
+  // Nếu là dạng yyyy-mm-ddTHH:mm:ss (không timezone), coi như local và lấy phần ngày
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return trimmed.slice(0, 10);
   // Nếu là dd/mm/yyyy
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
-    const [d1, m1, y1] = dateStr.split('/');
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const [d1, m1, y1] = trimmed.split('/');
     return `${y1}-${m1.padStart(2, '0')}-${d1.padStart(2, '0')}`;
+  }
+  // Thử parse và format về yyyy-mm-dd theo giờ local (không dùng toISOString)
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
   return '';
 }
@@ -152,6 +170,11 @@ export default function DoctorMedicalRecordsPage() {
     }
     return acc;
   }, {} as Record<string, MedicalRecord[]>);
+  
+  // Ngày hôm nay (ISO, theo múi giờ local) để chặn chọn quá khứ
+  const todayISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
 
   useEffect(() => {
     const rawData = localStorage.getItem('user');
@@ -248,6 +271,11 @@ export default function DoctorMedicalRecordsPage() {
   const handleUpdateRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecord) return;
+    // Chặn ngày tái khám ở quá khứ
+    if (editFollowUpDate && editFollowUpDate < todayISO) {
+      setToast({ type: 'error', message: 'Ngày tái khám phải từ hôm nay trở đi.' });
+      return;
+    }
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const res = await fetch(`${API_URL}/api/medical-records/save-from-schedule`, {
@@ -568,7 +596,7 @@ export default function DoctorMedicalRecordsPage() {
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Ngày tái khám</label>
-                      <input type="date" value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
+                      <input type="date" min={todayISO} value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
                     </div>
                     {/* Thêm các trường dữ liệu mới */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
