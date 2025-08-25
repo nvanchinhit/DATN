@@ -50,7 +50,9 @@ function DoctorSelectionModal({
   if (!isOpen || !group) return null;
 
   const filteredSlots = group.slots.filter(slot =>
-    slot.doctor.name.toLowerCase().includes(search.toLowerCase())
+    slot.doctor.name.toLowerCase().includes(search.toLowerCase()) &&
+    // Chỉ hiển thị những slot có sẵn (không bị tắt)
+    group.availableSlots > 0
   );
 
   return (
