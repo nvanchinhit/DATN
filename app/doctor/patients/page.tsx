@@ -50,15 +50,33 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 function getISODate(dateStr: string | null): string {
   if (!dateStr) return '';
-  // Nếu là ISO hoặc yyyy-mm-dd
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
-  // Nếu là dạng có giờ
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  const trimmed = dateStr.trim();
+  // Nếu bắt đầu bằng yyyy-mm-dd thì trả về phần ngày trực tiếp để tránh lệch múi giờ
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // Nếu có thời gian kèm timezone (Z hoặc ±HH:MM), parse theo local và xuất yyyy-mm-dd
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+  }
+  // Nếu là dạng yyyy-mm-ddTHH:mm:ss (không timezone), coi như local và lấy phần ngày
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return trimmed.slice(0, 10);
   // Nếu là dd/mm/yyyy
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
-    const [d1, m1, y1] = dateStr.split('/');
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const [d1, m1, y1] = trimmed.split('/');
     return `${y1}-${m1.padStart(2, '0')}-${d1.padStart(2, '0')}`;
+  }
+  // Thử parse và format về yyyy-mm-dd theo giờ local (không dùng toISOString)
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
   return '';
 }
