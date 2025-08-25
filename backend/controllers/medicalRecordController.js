@@ -16,9 +16,9 @@ const getRecordsByCustomer = (req, res) => {
       a.status,
       a.address,
       a.doctor_confirmation,
-      a.doctor_note,
-      a.diagnosis,
-      a.follow_up_date,
+      mr.notes AS doctor_note,
+      mr.diagnosis,
+      mr.follow_up_date,
       a.is_examined,
       a.time_slot_id,
       dts.start_time,
@@ -28,6 +28,7 @@ const getRecordsByCustomer = (req, res) => {
       s.name AS specialization_name,
       c.name AS customer_name -- tên tài khoản đặt lịch
     FROM appointments a
+    LEFT JOIN medical_records mr ON mr.appointment_id = a.id
     JOIN customers c ON a.customer_id = c.id
     LEFT JOIN doctor_time_slot dts ON a.time_slot_id = dts.id
     LEFT JOIN doctors d ON a.doctor_id = d.id
