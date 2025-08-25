@@ -1081,7 +1081,7 @@ export default function DoctorSchedulePage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Hôm nay
+                    Tất cả
                   </button>
                   <button
                     onClick={() => setDateRange('week')}

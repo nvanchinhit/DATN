@@ -607,20 +607,7 @@ export default function AdminDashboard() {
                   <Calendar className="w-4 h-4 mr-2" />
                   Theo tháng
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="day" 
-                  className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-3 rounded-xl font-medium text-slate-700 hover:text-cyan-600 transition-all duration-200"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Theo ngày
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="year" 
-                  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-3 rounded-xl font-medium text-slate-700 hover:text-emerald-600 transition-all duration-200"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Theo năm
-                </TabsTrigger>
+               
               </TabsList>
             </div>
 
