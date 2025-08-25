@@ -152,6 +152,11 @@ export default function DoctorMedicalRecordsPage() {
     }
     return acc;
   }, {} as Record<string, MedicalRecord[]>);
+  
+  // Ngày hôm nay (ISO, theo múi giờ local) để chặn chọn quá khứ
+  const todayISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
 
   useEffect(() => {
     const rawData = localStorage.getItem('user');
@@ -248,6 +253,11 @@ export default function DoctorMedicalRecordsPage() {
   const handleUpdateRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecord) return;
+    // Chặn ngày tái khám ở quá khứ
+    if (editFollowUpDate && editFollowUpDate < todayISO) {
+      setToast({ type: 'error', message: 'Ngày tái khám phải từ hôm nay trở đi.' });
+      return;
+    }
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const res = await fetch(`${API_URL}/api/medical-records/save-from-schedule`, {
@@ -568,7 +578,7 @@ export default function DoctorMedicalRecordsPage() {
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">Ngày tái khám</label>
-                      <input type="date" value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
+                      <input type="date" min={todayISO} value={editFollowUpDate} onChange={e => setEditFollowUpDate(e.target.value)} className="w-full p-2 border rounded" />
                     </div>
                     {/* Thêm các trường dữ liệu mới */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
